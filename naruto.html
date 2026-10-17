@@ -1,0 +1,2329 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>火影忍者·忍界对决</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+html,body{width:100%;height:100%;overflow:hidden;background:#0a0a12;font-family:"PingFang SC","Microsoft YaHei",sans-serif;touch-action:none}
+#wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#0a0a12}
+#stage{position:relative;background:#000;overflow:hidden}
+canvas{display:block;width:100%;height:100%}
+.hidden{display:none!important}
+
+/* ---- HUD ---- */
+#hud{position:absolute;inset:0;pointer-events:none;z-index:5}
+.hpwrap{position:absolute;top:3%;width:38%;height:5.5%}
+#hpL{left:2%}#hpR{right:2%}
+.hpname{position:absolute;top:-1.2em;font-size:13px;color:#fff;text-shadow:0 1px 2px #000;left:0}
+#hpR .hpname{left:auto;right:0}
+.hpbar{position:absolute;inset:0;border-radius:8px;overflow:hidden;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.35)}
+.hpfill{position:absolute;inset:0;border-radius:7px;background:linear-gradient(180deg,#8ef26c,#3fb53f);width:100%}
+#hpR .hpfill{background:linear-gradient(180deg,#ff8d8d,#d93838);transform-origin:right;float:right}
+.hptext{position:absolute;right:6px;bottom:1px;font-size:11px;color:#fff;text-shadow:0 1px 1px #000}
+#hpR .hptext{left:6px;right:auto}
+.energy{position:absolute;top:9.5%;width:38%;height:2.2%;display:flex;gap:3px}
+#enL{left:2%}#enR{right:2%;flex-direction:row-reverse}
+.pip{flex:1;border-radius:3px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25)}
+.pip.on{background:linear-gradient(180deg,#ffd75e,#ff9500);box-shadow:0 0 8px rgba(255,180,0,.9);border-color:#ffd75e}
+.ulttag{position:absolute;top:12.6%;font-size:11px;color:#ffd75e;text-shadow:0 0 6px #ff9500;display:none}
+.ulttag.on{display:block}
+#ultL{left:2%}#ultR{right:2%}
+.stealthcnt{position:absolute;top:15.4%;font-size:11px;color:#7dd8ff}
+#stL{left:2%}#stR{right:2%}
+
+/* ---- 菜单 ---- */
+#menu{position:absolute;inset:0;z-index:20;background:radial-gradient(ellipse at 50% 20%,#2b3550,#0c0e18 70%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3vh;color:#fff}
+#menu h1{font-size:clamp(24px,6vw,42px);letter-spacing:6px;background:linear-gradient(180deg,#ffd75e,#ff7b00);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 0 24px rgba(255,150,0,.35)}
+#menu .sub{color:#9fb3d8;font-size:clamp(11px,2.6vw,14px);margin-top:-2vh}
+.cards{display:flex;gap:4vw;flex-wrap:wrap;justify-content:center}
+.card{width:min(38vw,190px);padding:16px 12px 14px;border-radius:16px;background:rgba(255,255,255,.07);border:2px solid rgba(255,255,255,.15);text-align:center;cursor:pointer;transition:all .15s}
+.card.sel{border-color:#ffd75e;box-shadow:0 0 22px rgba(255,180,0,.5);background:rgba(255,255,255,.12)}
+.card h3{font-size:clamp(14px,3.4vw,19px);margin:6px 0 2px}
+.card .mode{font-size:clamp(10px,2.4vw,13px);color:#ffd75e;margin-bottom:6px}
+.card p{font-size:clamp(9px,2.1vw,12px);color:#c8d4ea;line-height:1.5;text-align:left}
+.avatar{width:64px;height:64px;border-radius:50%;margin:0 auto;background:radial-gradient(circle at 50% 35%,#ffe2b0 0 32%,#f7931e 32% 45%,#3a2a12 45% 100%);position:relative}
+#avS{background:radial-gradient(circle at 50% 35%,#ffe2b0 0 32%,#23233a 32% 45%,#0e0e18 45% 100%)}
+#goBtn{font-size:clamp(15px,3.6vw,20px);padding:12px 44px;border-radius:999px;border:none;color:#fff;font-weight:700;background:linear-gradient(180deg,#ff9d2e,#e5600a);box-shadow:0 4px 18px rgba(230,100,0,.5);cursor:pointer;letter-spacing:2px}
+#goBtn:disabled{opacity:.35}
+.ctrlhint{font-size:clamp(9px,2.2vw,12px);color:#7d8fb0;text-align:center;line-height:1.7}
+#btnCfg{padding:8px 26px;border-radius:999px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.08);color:#fff;font-size:14px;cursor:pointer;letter-spacing:1px}
+
+.skinRow{display:flex;align-items:center;gap:6px;justify-content:center;margin-top:8px}
+.skinDot{width:22px;height:22px;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.06);color:#fff;font-size:11px;line-height:22px;text-align:center;cursor:pointer}
+.skinDot.sel{background:linear-gradient(180deg,#ff9d2e,#e5600a);border-color:#ffd75e}
+.skinName{font-size:11px;color:#7d8fb0}
+
+/* ---- 参数设置面板 ---- */
+#cfgPanel{position:absolute;inset:0;z-index:30;background:rgba(6,10,22,.6);display:flex;align-items:center;justify-content:center}
+.cfgCard{background:#1a2138;border:1px solid rgba(255,255,255,.2);border-radius:14px;padding:16px 18px;width:min(92vw,420px);max-height:88vh;overflow-y:auto;color:#fff}
+.cfgCard h2{font-size:18px;margin-bottom:10px;text-align:center}
+.cfgRow{display:flex;align-items:center;gap:8px;margin:10px 0;font-size:13px}
+.cfgRow label{flex:0 0 112px;text-align:right;color:#c8d4ea}
+.cfgRow input[type=range]{flex:1;min-width:0}
+.cfgRow .val{flex:0 0 56px;color:#ffd75e;font-weight:700;text-align:center}
+.cfgBtns{display:flex;gap:10px;justify-content:center;margin-top:14px}
+.cfgBtns button{padding:8px 22px;border-radius:999px;border:none;color:#fff;font-size:14px;cursor:pointer}
+#cfgReset{background:rgba(255,255,255,.15)}
+#cfgClose{background:linear-gradient(180deg,#ff9d2e,#e5600a)}
+.cfgTip{margin-top:10px;font-size:11px;color:#7d8fb0;text-align:center}
+
+/* ---- 联机面板 ---- */
+#onlinePanel{position:absolute;inset:0;z-index:35;background:rgba(6,10,22,.6);display:flex;align-items:center;justify-content:center}
+.onlineCard input[type=text],.onlineCard input[type=password]{flex:1;min-width:0;background:#12182b;border:1px solid rgba(255,255,255,.2);border-radius:6px;color:#fff;padding:6px 8px;font-size:13px}
+.onlineCard select{flex:1;min-width:0;background:#12182b;color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:6px;padding:6px;font-size:13px}
+.friendItem{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;margin:6px 0;border-radius:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);cursor:pointer;font-size:14px}
+.friendItem .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}
+.friendItem.online .dot{background:#3fd05a}
+.friendItem.offline .dot{background:#666}
+.friendItem.offline{opacity:.5;cursor:default}
+#onFriends{max-height:30vh;overflow-y:auto}
+
+/* ---- 操作按钮 ---- */
+#btns{position:absolute;right:2%;bottom:4%;z-index:6;display:grid;grid-template-columns:repeat(3,64px);grid-template-rows:repeat(2,64px);gap:10px;pointer-events:none}
+.gbtn{pointer-events:auto;position:relative;border-radius:50%;border:2px solid rgba(255,255,255,.4);background:rgba(20,24,40,.55);color:#fff;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-direction:column;line-height:1.15;cursor:pointer;overflow:hidden}
+.gbtn small{font-size:9px;font-weight:400;color:#bcd;pointer-events:none}
+.gbtn .cd{position:absolute;left:0;top:0;width:100%;height:0%;background:rgba(0,0,0,.72);pointer-events:none}
+.gbtn .cdt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;pointer-events:none;text-shadow:0 1px 2px #000}
+.gbtn:active{transform:scale(.93)}
+#bA{background:rgba(90,120,220,.45)}#bA small{color:#cfe0ff}
+#bS1{background:rgba(230,130,30,.5)}
+#bS2{background:rgba(180,90,220,.5)}
+#bU{background:rgba(255,190,40,.5);border-color:#ffd75e}
+#bU.ready{box-shadow:0 0 18px rgba(255,200,0,.9);animation:pulse .7s infinite alternate}
+@keyframes pulse{from{transform:scale(1)}to{transform:scale(1.08)}}
+#bX{background:rgba(60,180,220,.5)}
+#bX .cnt{position:absolute;top:-6px;right:-6px;min-width:20px;height:20px;border-radius:10px;background:#e8352e;font-size:12px;display:flex;align-items:center;justify-content:center;padding:0 4px}
+#bS2.twostage{border-color:#00e5ff;box-shadow:0 0 16px rgba(0,220,255,.8);animation:pulse .4s infinite alternate}
+#bS2.twostage small{color:#00e5ff}
+
+/* ---- 摇杆 ---- */
+#stick{position:absolute;z-index:6;pointer-events:none}
+#stick .base{position:absolute;width:110px;height:110px;border-radius:50%;border:2px solid rgba(255,255,255,.3);background:rgba(255,255,255,.06);transform:translate(-50%,-50%)}
+#stick .knob{position:absolute;width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.35);border:2px solid rgba(255,255,255,.5);transform:translate(-50%,-50%)}
+
+/* ---- KO ---- */
+#overlay{position:absolute;inset:0;z-index:15;background:rgba(6,10,22,.55);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2.5vh;color:#fff}
+#overlay h2{font-size:clamp(30px,8vw,60px);letter-spacing:8px}
+#overlay .win{background:linear-gradient(180deg,#ffe26b,#ff8a00);-webkit-background-clip:text;background-clip:text;color:transparent}
+#overlay .lose{color:#9aa7c0}
+#overlay button{font-size:clamp(13px,3.4vw,17px);padding:10px 30px;border-radius:999px;border:none;color:#fff;background:linear-gradient(180deg,#ff9d2e,#e5600a);cursor:pointer;margin:0 8px}
+#overlay button.ghost{background:rgba(255,255,255,.15)}
+#banner{position:absolute;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;pointer-events:none}
+#banner span{font-size:clamp(26px,7vw,52px);font-weight:900;letter-spacing:6px;color:#fff;text-shadow:0 0 24px rgba(255,170,0,.9),0 2px 4px #000;animation:zoom .9s ease-out forwards}
+@keyframes zoom{0%{transform:scale(.4);opacity:0}25%{transform:scale(1.15);opacity:1}60%{transform:scale(1)}100%{transform:scale(1.4);opacity:0}}
+#tip{position:absolute;left:50%;bottom:20%;transform:translateX(-50%);z-index:7;color:#fff;background:rgba(0,0,0,.55);padding:6px 16px;border-radius:999px;font-size:12px;pointer-events:none}
+#tip{display:none}
+@media (orientation:portrait){#tip{display:block}}
+@media (orientation:landscape){#tip{display:none}}
+
+/* ---- 暂停 ---- */
+#btnPause{position:absolute;top:2%;left:50%;transform:translateX(-50%);z-index:8;padding:6px 16px;border-radius:999px;border:1px solid rgba(255,255,255,.4);background:rgba(20,24,40,.6);color:#fff;font-size:14px;cursor:pointer}
+#modeTag{position:absolute;top:2%;left:calc(50% + 100px);z-index:8;padding:6px 12px;border-radius:999px;background:rgba(20,24,40,.65);border:1px solid rgba(255,255,255,.3);color:#ffd75e;font-size:12px;white-space:nowrap}
+#onTimer{position:absolute;top:2%;left:calc(50% - 150px);z-index:8;padding:6px 12px;border-radius:999px;background:rgba(20,24,40,.65);border:1px solid rgba(255,255,255,.3);color:#7dd8ff;font-size:12px;white-space:nowrap}
+#pausePanel{position:absolute;inset:0;z-index:30;background:rgba(6,10,22,.55);display:flex;align-items:center;justify-content:center}
+#btnResume{background:linear-gradient(180deg,#ff9d2e,#e5600a)}
+#btnPauseMenu{background:rgba(255,255,255,.15)}
+
+/* ---- 参数面板分节标题 ---- */
+.cfgSec{font-weight:700;color:#ffd75e;margin:14px 0 6px;border-bottom:1px solid rgba(255,255,255,.15);padding-bottom:4px;font-size:14px}
+</style>
+</head>
+<body>
+<div id="wrap"><div id="stage">
+<canvas id="cv"></canvas>
+
+<div id="hud" class="hidden">
+  <div class="hpwrap" id="hpL"><div class="hpname" id="nameL"></div><div class="hpbar"><div class="hpfill" id="fillL"></div></div><div class="hptext" id="hpTextL"></div></div>
+  <div class="hpwrap" id="hpR"><div class="hpname" id="nameR"></div><div class="hpbar"><div class="hpfill" id="fillR"></div></div><div class="hptext" id="hpTextR"></div></div>
+  <div class="energy" id="enL"></div><div class="energy" id="enR"></div>
+  <div class="ulttag" id="ultL">🔥 大招就绪!</div><div class="ulttag" id="ultR">🔥 大招就绪!</div>
+  <div class="stealthcnt" id="stL"></div><div class="stealthcnt" id="stR"></div>
+</div>
+
+<div id="btns" class="hidden">
+  <button class="gbtn" id="bX"><span>隐身</span><small>锁血·解控</small><span class="cnt" id="xCnt">2</span><div class="cd"></div><div class="cdt"></div></button>
+  <button class="gbtn" id="bU"><span>大招</span><small>5次命中</small><div class="cd"></div><div class="cdt"></div></button>
+  <button class="gbtn" id="bS1"><span>技能1</span><small id="s1name"></small><div class="cd"></div><div class="cdt"></div></button>
+  <button class="gbtn" id="bS2"><span>技能2</span><small>二段待命</small><div class="cd"></div><div class="cdt"></div></button>
+  <button class="gbtn" id="bA"><span>普攻</span><small>3段强化</small><div class="cd"></div><div class="cdt"></div></button>
+  <div></div>
+</div>
+
+<button id="btnPause" class="hidden">⏸ 暂停</button>
+<div id="modeTag" class="hidden"></div>
+<div id="onTimer" class="hidden"></div>
+
+<div id="stick" class="hidden"><div class="base"></div><div class="knob"></div></div>
+<div id="banner" class="hidden"><span></span></div>
+<div id="tip">🕹 左侧滑动移动 · 右侧按钮出招</div>
+
+<div id="menu">
+  <h1>火影忍者 · 忍界对决</h1>
+  <div class="sub">同人小游戏 · 选择你的忍者（对战 AI）</div>
+  <div class="cards">
+    <div class="card" id="cardN">
+      <div class="avatar"></div>
+      <h3>漩涡鸣人</h3><div class="mode">仙人模式</div>
+      <div class="skinRow"><span class="skinDot sel" data-c="naruto" data-s="0">1</span><span class="skinDot" data-c="naruto" data-s="1">2</span><span class="skinDot" data-c="naruto" data-s="2">3</span><span class="skinName" id="skinNameN">仙人模式</span></div>
+      <p>① 风遁·螺旋手里剑：位移+自动追踪手里剑<br>② 尾兽之尾：抓取 → 二段投掷<br>③ 风遁·超大玉螺旋手里剑</p>
+    </div>
+    <div class="card" id="cardS">
+      <div class="avatar" id="avS"></div>
+      <h3>宇智波佐助</h3><div class="mode">万花筒写轮眼</div>
+      <div class="skinRow"><span class="skinDot sel" data-c="sasuke" data-s="0">1</span><span class="skinDot" data-c="sasuke" data-s="1">2</span><span class="skinDot" data-c="sasuke" data-s="2">3</span><span class="skinName" id="skinNameS">万花筒</span></div>
+      <p>① 万花筒·天照：减速50%+黑火持续灼烧<br>② 拔刀斩：锁定突刺 → 二段击退<br>③ 须佐能乎·天照斩</p>
+    </div>
+  </div>
+  <button id="goBtn" disabled>开始对战</button>
+  <button id="btnPractice">🥋 练习模式(AI不死)</button>
+  <button id="btnOnline">🌐 联机对战</button>
+  <button id="btnRank">🏆 排行榜</button>
+  <button id="btnCfg">⚙ 参数设置</button>
+  <div class="ctrlhint">🕹 左侧屏幕滑动=移动 &nbsp;|&nbsp; 右侧按钮=普攻/技能/大招/隐身<br>技能命中5次积满能量激活大招 · 隐身每局2次(无敌+解控)<br>🔄 横/竖拿手机自动切换擂台方向(需关闭手机方向锁定)<br>💻 电脑键盘: A/D移动 J普攻 K技能1 L技能2 U大招 I隐身</div>
+</div>
+
+<div id="cfgPanel" class="hidden">
+  <div class="cfgCard">
+    <h2>⚙ 参数设置</h2>
+    <div class="cfgRows" id="cfgRows"></div>
+    <div class="cfgBtns">
+      <button id="cfgReset">恢复默认</button>
+      <button id="cfgClose">关闭</button>
+    </div>
+    <div class="cfgTip">拖动滑块立即生效并自动保存 · 生命值类下一局生效</div>
+  </div>
+</div>
+
+<div id="pausePanel" class="hidden">
+  <div class="cfgCard" style="text-align:center">
+    <h2>⏸ 已暂停</h2>
+    <div class="cfgBtns">
+      <button id="btnResume">继续战斗</button>
+      <button id="btnPauseMenu">回到菜单</button>
+    </div>
+  </div>
+</div>
+
+<div id="onlinePanel" class="hidden">
+  <div class="cfgCard onlineCard">
+    <h2>🌐 联机对战</h2>
+    <div id="onLogin">
+      <div class="cfgRow"><label>服务器地址</label><input id="onSrv" type="text" value="http://127.0.0.1:3777"></div>
+      <div class="cfgRow"><label>聊天账号</label><input id="onName" type="text"></div>
+      <div class="cfgRow"><label>密码</label><input id="onPass" type="password"></div>
+      <div class="cfgBtns">
+        <button id="onLoginBtn" style="background:linear-gradient(180deg,#ff9d2e,#e5600a)">登录</button>
+        <button id="onRegBtn" style="background:rgba(255,255,255,.15)">注册新号</button>
+        <button id="onCloseBtn" style="background:rgba(255,255,255,.15)">返回</button>
+      </div>
+      <div class="cfgTip" id="onMsg">用极简聊天 v3.0.5 的账号登录 · 双方需先加为好友</div>
+    </div>
+    <div id="onLobby" class="hidden">
+      <div class="cfgTip" id="onMe"></div>
+      <div class="cfgRow"><label>添加好友</label><input id="onAddName" type="text" placeholder="输入对方昵称"><button id="onAddBtn" style="flex:0 0 auto;padding:6px 14px;border-radius:8px;border:none;background:linear-gradient(180deg,#ff9d2e,#e5600a);color:#fff;cursor:pointer;font-size:13px">添加</button></div>
+      <div class="cfgTip" id="onAddMsg"></div>
+      <div class="cfgTip">👇 点击在线好友发起挑战(对方需打开本游戏)</div>
+      <div id="onFriends"></div>
+      <div class="cfgBtns">
+        <button id="onLogoutBtn" style="background:rgba(255,255,255,.15)">退出登录</button>
+        <button id="onBackBtn" style="background:linear-gradient(180deg,#ff9d2e,#e5600a)">返回游戏</button>
+      </div>
+    </div>
+    <div id="onSetup" class="hidden">
+      <div class="cfgTip" id="onPeerTip"></div>
+      <div class="cfgRow"><label>选人方式</label>
+        <select id="onSelMode">
+          <option value="draw">抽签不重复(中签者先选)</option>
+          <option value="free">自由选择(可相同)</option>
+        </select></div>
+      <div class="cfgRow"><label>时间限制</label>
+        <select id="onTime">
+          <option value="0">不限时</option>
+          <option value="60">60秒</option>
+          <option value="90" selected>90秒</option>
+          <option value="120">120秒</option>
+        </select></div>
+      <div class="cfgTip">对战参数 = 你当前「⚙参数设置」的数值(双方一致)</div>
+      <div class="cfgBtns">
+        <button id="onStartBtn" style="background:linear-gradient(180deg,#ff9d2e,#e5600a)">发出邀请</button>
+        <button id="onCancelBtn" style="background:rgba(255,255,255,.15)">取消</button>
+      </div>
+    </div>
+    <div id="onPick" class="hidden">
+      <div class="cfgTip" id="onPickTip"></div>
+      <div class="cfgBtns" id="onPickBtns"></div>
+      <div class="cfgBtns"><button id="onPickCancel" style="background:rgba(255,255,255,.15)">取消</button></div>
+    </div>
+    <div id="onInviteBox" class="hidden">
+      <div class="cfgTip" id="onInviteText"></div>
+      <div class="cfgBtns">
+        <button id="onAccBtn" style="background:linear-gradient(180deg,#ff9d2e,#e5600a)">接受挑战</button>
+        <button id="onRejBtn" style="background:rgba(255,255,255,.15)">拒绝</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="rankPanel" class="hidden">
+  <div class="cfgCard" style="text-align:center">
+    <h2>🏆 排行榜</h2>
+    <div id="rankList" style="text-align:left;font-size:13px;max-height:52vh;overflow-y:auto"></div>
+    <div class="cfgBtns"><button id="rankClose" style="background:linear-gradient(180deg,#ff9d2e,#e5600a)">关闭</button></div>
+  </div>
+</div>
+
+<div id="overlay" class="hidden"><h2 id="koTitle"></h2><div id="koSub"></div><div><button id="btnAgain">再来一局</button><button class="ghost" id="btnMenu">换角色</button></div></div>
+
+</div></div>
+<script>
+'use strict';
+/* ============================================================
+   游戏平衡参数 —— 开发者可在此自由调整所有数值
+   ============================================================ */
+const BALANCE = {
+  maxHp: 1000,
+  moveSpeed: 235,            // 移动速度 px/s
+  basicDamage: 35,           // 普攻伤害
+  basicRange: 62,            // 普攻范围
+  basicCd: 320,              // 普攻后摇
+  enhancedDamage: 62,        // 强化普攻(第3段)伤害
+  enhancedDashSpeed: 1050,   // 强化普攻突进速度
+  enhancedRange: 95,         // 强化普攻范围
+  comboWindow: 1700,         // 普攻连段窗口 ms
+  hitstun: 0.30,             // 受击硬直 s
+  skill1Cd: 5000,            // 小技能CD ms
+  skill2Cd: 5000,
+  ultCd: 12000,              // 大招CD ms
+  hitsToUlt: 5,              // 技能命中5次激活大招
+  stealthUses: 2,            // 每局隐身次数
+  stealthDuration: 2500,     // 隐身时长 ms
+  stealthCd: 2500,           // 两次隐身间隔 ms
+  // ---- 鸣人 ----
+  narutoS1Damage: 130, narutoS1Lunge: 130, narutoS1LungeSpeed: 1200,
+  shurikenDamage: 130, shurikenSpeed: 760, shurikenTurn: 7.5, shurikenLife: 1.7,
+  narutoS2Damage: 100, tailSpeed: 1500, tailRange: 230, tailHoldMs: 1100,
+  narutoS2ThrowDamage: 125, throwSpeed: 760,
+  narutoUltDamage: 400, narutoUltSpeed: 560, narutoUltKnock: 950,
+  // ---- 佐助 ----
+  sasukeS1SlowPct: 0.5, sasukeS1SlowMs: 3000,
+  amaterasuDamage: 26, amaterasuTicks: 6, amaterasuInterval: 500,
+  sasukeS2Damage: 125, sasukeS2DashSpeed: 1350, sasukeS2Range: 280, sasukeS2WindowMs: 1200,
+  sasukeS2SecondDamage: 135, sasukeS2SecondKnock: 820,
+  sasukeUltDamage: 360, sasukeUltRange: 320, sasukeUltKnock: 900, sasukeUltDot: 70,
+  // ---- AI ----
+  aiThink: 0.16, aiAggro: 0.72, aiSkillChance: 0.75, aiUltChance: 0.9, aiStealthHp: 0.32,
+  aiDefense: 0.4,          // AI 受击伤害系数(调低=AI更肉)
+};
+
+/* ============================================================
+   工具函数
+   ============================================================ */
+const clamp=(v,a,b)=>v<a?a:(v>b?b:v);
+const dist=(a,b)=>Math.abs(a.x-b.x);
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const sign=(v)=>v>=0?1:-1;
+const TAU=Math.PI*2;
+
+/* ============================================================
+   可调参数(设置面板) —— 每个角色独立, 自动保存
+   ============================================================ */
+const BTN_CFG=[
+  {key:'scale',label:'按键大小',min:0.7,max:1.6,step:0.05,def:1,fmt:v=>v.toFixed(2)+'x'},
+  {key:'x',label:'按键左右位置',min:-15,max:15,step:1,def:0,fmt:v=>v+'%'},
+  {key:'y',label:'按键上下位置',min:-15,max:15,step:1,def:0,fmt:v=>v+'%'},
+  {key:'bgmVol',label:'音乐音量',min:0,max:100,step:5,def:70,fmt:v=>v},
+  {key:'voiceVol',label:'台词音量',min:0,max:100,step:5,def:90,fmt:v=>v}
+];
+const CHAR_CFG=[
+  {key:'hp',label:'生命值',min:500,max:5000,step:100,def:1000,fmt:v=>v},
+  {key:'spd',label:'移速倍率',min:0.5,max:2,step:0.1,def:1,fmt:v=>v.toFixed(1)+'x'},
+  {key:'stealthUses',label:'隐身次数',min:1,max:5,step:1,def:2,fmt:v=>v+'次'},
+  {key:'stealthMs',label:'隐身时间',min:1500,max:5000,step:250,def:2500,fmt:v=>(v/1000)+'秒'},
+  {key:'hitsToUlt',label:'大招所需命中',min:3,max:8,step:1,def:5,fmt:v=>v+'次'},
+  {key:'basicDmg',label:'普攻伤害',min:10,max:100,step:5,def:35,fmt:v=>v},
+  {key:'enhDmg',label:'强化普攻伤害',min:20,max:200,step:10,def:62,fmt:v=>v},
+  {key:'s1Dmg',label:'技能1伤害',min:50,max:300,step:10,def:130,fmt:v=>v},
+  {key:'s2Dmg',label:'技能2伤害',min:50,max:300,step:10,def:110,fmt:v=>v},
+  {key:'ultDmg',label:'大招伤害',min:150,max:600,step:25,def:400,fmt:v=>v},
+  {key:'basicRange',label:'普攻距离',min:40,max:160,step:5,def:62,fmt:v=>v},
+  {key:'skillRange',label:'技能选中距离',min:150,max:400,step:10,def:230,fmt:v=>v},
+  {key:'lunge',label:'位移大小',min:0.5,max:2,step:0.1,def:1,fmt:v=>v.toFixed(1)+'x'},
+  {key:'scale',label:'角色大小',min:0.7,max:1.6,step:0.05,def:1,fmt:v=>v.toFixed(2)+'x'}
+];
+function mkDefaults(defs){ const o={}; defs.forEach(d=>o[d.key]=d.def); return o; }
+const CFG_DEFAULTS={
+  btn:mkDefaults(BTN_CFG),
+  naruto:mkDefaults(CHAR_CFG),
+  sasuke:Object.assign(mkDefaults(CHAR_CFG),{ultDmg:360,s2Dmg:125})
+};
+const CFG={btn:{},naruto:{},sasuke:{}};
+function loadCfg(){
+  let saved=null;
+  try{ saved=JSON.parse(localStorage.getItem('naruto-cfg-v2')||'null'); }catch(e){}
+  ['btn','naruto','sasuke'].forEach(sec=>{
+    const defs=sec==='btn'?BTN_CFG:CHAR_CFG;
+    defs.forEach(d=>{
+      let v=(saved&&saved[sec]&&typeof saved[sec][d.key]==='number')?saved[sec][d.key]:CFG_DEFAULTS[sec][d.key];
+      CFG[sec][d.key]=clamp(parseFloat(v),d.min,d.max);
+    });
+  });
+}
+function saveCfg(){ try{ localStorage.setItem('naruto-cfg-v2',JSON.stringify(CFG)); }catch(e){} }
+loadCfg();
+
+const SOUND_ON=true;
+let actx=null;
+const SFX={
+  ensure(){ if(!actx){ try{ actx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } },
+  tone(f0,f1,dur,type,vol){ if(!SOUND_ON)return; this.ensure(); if(!actx)return;
+    try{ const o=actx.createOscillator(),g=actx.createGain();
+      o.type=type||'sine'; o.frequency.setValueAtTime(f0,actx.currentTime);
+      o.frequency.exponentialRampToValueAtTime(Math.max(f1,1),actx.currentTime+dur);
+      g.gain.setValueAtTime(vol||0.12,actx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.0001,actx.currentTime+dur);
+      o.connect(g);g.connect(actx.destination);o.start();o.stop(actx.currentTime+dur+0.02);
+    }catch(e){} },
+  hit(){this.tone(220,60,0.12,'square',0.1);},
+  slash(){this.tone(900,200,0.14,'sawtooth',0.07);},
+  whoosh(){this.tone(300,1200,0.22,'sine',0.09);},
+  throwS(){this.tone(500,1400,0.18,'sawtooth',0.08);},
+  fire(){this.tone(140,60,0.4,'sawtooth',0.12);},
+  ult(){this.tone(120,900,0.5,'sawtooth',0.16); this.tone(60,200,0.6,'square',0.1);},
+  ko(){this.tone(400,60,0.7,'sawtooth',0.14);},
+  miss(){this.tone(700,300,0.08,'triangle',0.07);},
+  stealth(){this.tone(1600,500,0.25,'sine',0.08);},
+  select(){this.tone(600,900,0.1,'triangle',0.1);},
+};
+
+/* ============================================================
+   战斗BGM: WebAudio 程序生成 5 首热血风曲目(随机一首, 音量可调)
+   ============================================================ */
+const MUSIC={
+  actx:null, gain:null, timer:null, nextT:0, step:0, cur:null, masterVol:0.7, phase:'calm', tense:false,
+  T:[
+    {bpm:152,melo:'E4 E4 G4 E4 A4 G4 E4 D4|E4 E4 G4 E4 B4 A4 G4 F#4|G4 G4 B4 G4 D5 B4 G4 E4|D5 B4 G4 E4 D4 C4 D4 E4',bass:'E2 E2 G2 A2|A2 A2 C3 D3|G2 G2 B2 D3|C3 B2 A2 E2'},
+    {bpm:146,melo:'A4 C5 E5 A5 G5 E5 C5 A4|B4 D5 F#5 B5 A5 F#5 D5 B4|C5 E5 G5 C6 B5 G5 E5 C5|B5 G5 E5 D5 C5 B4 A4 G4',bass:'A2 A2 E3 A2|B2 B2 F#3 B2|C3 C3 G3 C3|E3 D3 C3 B2'},
+    {bpm:160,melo:'D5 A4 D5 F5 E5 D5 C5 D5|E5 B4 E5 G5 F#5 E5 D5 E5|F5 C5 F5 A5 G5 F5 E5 F5|G5 D5 G5 B5 A5 G5 F#5 E5',bass:'D2 A2 D3 D3|E2 B2 E3 E3|F2 C3 F3 F3|G2 D3 G3 G2'},
+    {bpm:138,melo:'E4 G4 B4 E5 D5 B4 A4 G4|F#4 A4 C5 F#5 E5 C5 B4 A4|G4 B4 D5 G5 F#5 D5 C5 B4|A4 C5 E5 A5 G5 E5 D5 C5',bass:'E2 E2 B2 G2|F#2 F#2 C#3 A2|G2 G2 D3 B2|A2 A2 E3 C3'},
+    {bpm:168,melo:'G4 G4 A4 B4 D5 B4 A4 G4|E4 G4 B4 E5 B4 G4 E4 D4|C5 C5 B4 A4 G4 F#4 E4 D4|B4 D5 E5 G5 E5 D5 B4 A4',bass:'G2 G2 D3 B2|E2 E2 B2 G2|C3 C3 G3 A2|E3 D3 B2 A2'}
+  ]
+};
+function musicEnsure(){
+  if(MUSIC.actx)return;
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext;
+    MUSIC.actx=new AC();
+    MUSIC.gain=MUSIC.actx.createGain();
+    MUSIC.gain.gain.value=0.16*MUSIC.masterVol;
+    MUSIC.gain.connect(MUSIC.actx.destination);
+  }catch(e){}
+}
+function musicStop(){
+  if(MUSIC.timer){ clearInterval(MUSIC.timer); MUSIC.timer=null; }
+  MUSIC.cur=null;
+  if(AUDIO.curBgm){ try{ AUDIO.curBgm.pause(); AUDIO.curBgm.currentTime=0; }catch(e){} AUDIO.curBgm=null; }
+}
+function musicSetPhase(p){ MUSIC.phase=p; }
+function musicPlay(idx){
+  musicStop();
+  // 优先播放打包的免版权曲目
+  const okBgm=AUDIO.bgm.filter(a=>a.dataset.ok);
+  if(okBgm.length){
+    const a=okBgm[idx%okBgm.length];
+    try{ a.currentTime=0; a.volume=0.8*MUSIC.masterVol; a.play().catch(()=>{}); AUDIO.curBgm=a; }catch(e){}
+    return;
+  }
+  musicEnsure();
+  if(!MUSIC.actx)return;
+  musicStop();
+  const tr=MUSIC.T[idx%MUSIC.T.length];
+  MUSIC.cur=tr; MUSIC.step=0; MUSIC.nextT=MUSIC.actx.currentTime+0.1;
+  const spb=60/tr.bpm;
+  const mel=tr.melo.split('|');
+  const bass=tr.bass.split('|');
+  MUSIC.timer=setInterval(()=>{
+    if(!MUSIC.actx||!MUSIC.cur)return;
+    const ac=MUSIC.actx;
+    while(MUSIC.nextT<ac.currentTime+0.25){
+      const s=MUSIC.step;
+      const bar=Math.floor(s/8)%mel.length;
+      const beat=s%8;
+      const t=MUSIC.nextT;
+      const spb0=spb*(MUSIC.phase==='tense'?0.85:1);
+      const mn=mel[bar].split(' ')[beat];
+      if(mn&&mn!=='-'){
+        const f=noteFreq(mn);
+        musicTone(f,t,spb0*0.9,'square',0.10);
+        musicTone(f*2,t,spb0*0.9,'sawtooth',0.035);
+      }
+      // 紧张阶段: 高八度急速琶音层(动漫决胜感)
+      if(MUSIC.phase==='tense'){
+        const arp=['E5','G5','B5','D6'];
+        musicTone(noteFreq(arp[beat%4]),t,spb0*0.45,'square',0.055);
+        musicTone(noteFreq(arp[beat%4])*2,t,spb0*0.45,'triangle',0.03);
+      }
+      const bn=bass[bar].split(' ')[beat%4];
+      if(bn&&bn!=='-')musicTone(noteFreq(bn),t,spb0*0.9,'triangle',0.22);
+      musicNoise(t,0.05,'kick');
+      if(beat%2===1)musicNoise(t,0.07,'snare');
+      musicNoise(t,0.03,'hat');
+      if(beat%2===1)musicNoise(t+spb0/2,0.03,'hat');
+      if(MUSIC.phase==='tense')musicNoise(t+spb0/4,0.025,'hat');
+      MUSIC.nextT+=spb0/2;
+      MUSIC.step=(s+1)%(mel.length*8);
+    }
+  },120);
+}
+function noteFreq(n){
+  const map={C:0,'C#':1,D:2,'D#':3,E:4,F:5,'F#':6,G:7,'G#':8,A:9,'A#':10,B:11};
+  const m=n.match(/^([A-G]#?)(\d)$/); if(!m)return 440;
+  const semi=map[m[1]]+(parseInt(m[2])+1)*12;
+  return 440*Math.pow(2,(semi-69)/12);
+}
+function musicTone(freq,t,dur,type,vol){
+  if(!MUSIC.actx||!MUSIC.gain)return;
+  const ac=MUSIC.actx;
+  const o=ac.createOscillator(),g=ac.createGain();
+  o.type=type; o.frequency.value=freq;
+  g.gain.setValueAtTime(vol,t);
+  g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+  o.connect(g); g.connect(MUSIC.gain);
+  o.start(t); o.stop(t+dur+0.02);
+}
+function musicNoise(t,vol,kind){
+  if(!MUSIC.actx||!MUSIC.gain)return;
+  const ac=MUSIC.actx;
+  const len=kind==='kick'?0.12:(kind==='snare'?0.15:0.04);
+  const buf=ac.createBuffer(1,Math.floor(ac.sampleRate*len),ac.sampleRate);
+  const d=buf.getChannelData(0);
+  for(let i=0;i<d.length;i++){
+    d[i]=(Math.random()*2-1)*(1-i/d.length);
+    if(kind==='kick')d[i]*=Math.exp(-i/d.length*6);
+    if(kind==='snare')d[i]*=Math.exp(-i/d.length*9)*1.4;
+    if(kind==='hat')d[i]*=0.5;
+  }
+  const src=ac.createBufferSource(); src.buffer=buf;
+  const g=ac.createGain(); g.gain.value=vol;
+  src.connect(g); g.connect(MUSIC.gain); src.start(t);
+}
+function musicSetVol(v){ MUSIC.masterVol=v; if(MUSIC.gain)MUSIC.gain.gain.value=0.16*v; if(AUDIO.curBgm){ try{ AUDIO.curBgm.volume=0.8*v; }catch(e){} } }
+function musicSting(win){
+  if(!MUSIC.actx||!MUSIC.gain)return;
+  musicStop();
+  const t0=MUSIC.actx.currentTime+0.08;
+  const notes=win?[523.25,659.25,783.99,1046.5]:[392,311.13,261.63];
+  notes.forEach((fr,i)=>{
+    const o=MUSIC.actx.createOscillator(), g=MUSIC.actx.createGain();
+    o.type='triangle'; o.frequency.value=fr;
+    g.gain.setValueAtTime(0.0001,t0+i*0.16);
+    g.gain.exponentialRampToValueAtTime(0.5*MUSIC.masterVol,t0+i*0.16+0.03);
+    g.gain.exponentialRampToValueAtTime(0.0001,t0+i*0.16+0.5);
+    o.connect(g); g.connect(MUSIC.gain);
+    o.start(t0+i*0.16); o.stop(t0+i*0.16+0.55);
+  });
+}
+
+/* ============================================================
+   技能台词(系统语音合成, 音量可调)
+   ============================================================ */
+const VOICE={vol:0.9};
+const VOICE_LINES={
+  naruto:{
+    s1:{ja:'螺旋手裏剣！',zh:'风遁·螺旋手里剑！'},
+    s2:{ja:'九尾の力！',zh:'九尾之力！'},
+    ult:{ja:'超大玉螺旋手裏剣！！',zh:'风遁·超大玉螺旋手里剑！！'},
+    stl:{ja:'仙人モード！',zh:'仙人模式！'},
+    atk3:{ja:'木ノ葉旋風！',zh:'木叶旋风！'}
+  },
+  sasuke:{
+    s1:{ja:'天照！',zh:'天照！'},
+    s2:{ja:'千鳥流し！',zh:'拔刀——斩！'},
+    ult:{ja:'須佐能乎·天照斬！！',zh:'须佐能乎·天照斩！！'},
+    stl:{ja:'写輪眼！',zh:'写轮眼！'},
+    atk3:{ja:'獅子連弾！',zh:'狮子连弹！'}
+  }
+};
+function voiceLine(f,key){
+  // 优先播放外部配音文件(懒加载探测)
+  const va=voiceAudio(f,key);
+  if(va&&va.dataset.ok){
+    try{ va.currentTime=0; va.volume=Math.max(0.05,VOICE.vol); va.play().catch(()=>{}); return; }catch(e){}
+  }
+  if(!('speechSynthesis' in window))return;
+  try{
+    const m=VOICE_LINES[f.c.id]&&VOICE_LINES[f.c.id][key];
+    if(!m)return;
+    let lang='zh-CN', text=m.zh;
+    const vs=(speechSynthesis.getVoices&&speechSynthesis.getVoices())||[];
+    const jaVoice=vs.find(v=>v.lang&&v.lang.indexOf('ja')===0);
+    if(jaVoice){ lang='ja-JP'; text=m.ja; }
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(text);
+    u.lang=lang; u.rate=1.08; u.pitch=1.0; u.volume=Math.max(0.05,VOICE.vol);
+    if(jaVoice)u.voice=jaVoice;
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+/* ============================================================
+   外部音频: bgm/bgm1~5.mp3 免版权曲目 + voice/角色_技能.mp3 配音
+   文件存在则优先使用, 缺失/404 时自动回退合成BGM与系统语音
+   ============================================================ */
+const AUDIO={bgm:[],voice:{},curBgm:null};
+function audioInit(){
+  if(typeof Audio==='undefined')return; // 测试环境无 Audio
+  try{
+    for(let i=1;i<=5;i++){
+      const a=new Audio('bgm/bgm'+i+'.mp3');
+      a.loop=true; a.preload='none'; a.dataset.ok=false;
+      a.addEventListener('canplaythrough',()=>{ a.dataset.ok=true; });
+      a.addEventListener('error',()=>{ a.dataset.ok=false; });
+      AUDIO.bgm.push(a);
+    }
+    const keys=[['naruto','s1'],['naruto','s2'],['naruto','ult'],['naruto','stl'],['naruto','atk3'],['sasuke','s1'],['sasuke','s2'],['sasuke','ult'],['sasuke','stl'],['sasuke','atk3']];
+    AUDIO.bgm.forEach(a=>{ try{ a.load(); }catch(e){} });
+  }catch(e){}
+}
+function voiceAudio(f,key){
+  // 配音懒加载: 首次放技能时才探测文件(避免页面加载时 404 噪音)
+  const id=f.c.id+'_'+key;
+  if(!AUDIO.voice[id]){
+    if(typeof Audio==='undefined')return null;
+    try{
+      const a=new Audio('voice/'+id+'.mp3');
+      a.preload='none'; a.dataset.ok=false;
+      a.addEventListener('canplaythrough',()=>{ a.dataset.ok=true; });
+      a.addEventListener('error',()=>{ a.dataset.ok=false; });
+      AUDIO.voice[id]=a;
+      a.load();
+    }catch(e){ return null; }
+  }
+  return AUDIO.voice[id];
+}
+audioInit();
+// 应用持久化的音量设置
+musicSetVol(CFG.btn.bgmVol/100);
+VOICE.vol=CFG.btn.voiceVol/100;
+
+/* ============================================================
+   画布 / 世界坐标
+   ============================================================ */
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+const WORLD={w:960,h:540,ground:442};
+const ARENA_W=2400;             // 对局地图总宽(横向卷轴), 屏幕显示 960 宽窗口
+let viewScale=1;
+let camX=0;                     // 摄像机 x 偏移(世界坐标)
+const DPR=Math.min(window.devicePixelRatio||1,2);
+function resize(){
+  const s=document.getElementById('stage');
+  const vv=window.visualViewport||null;
+  const w=vv?vv.width:window.innerWidth,h=vv?vv.height:window.innerHeight;
+  s.style.width=w+'px'; s.style.height=h+'px';
+  viewScale=w/WORLD.w;
+  // 画布高度严格跟随屏幕(不留溢出); 横屏时地面线抬高, 避免角色被屏幕底部/浏览器栏挡住
+  WORLD.h=clamp(Math.round(WORLD.w*h/w),400,1500);
+  const land=h<w;
+  WORLD.ground=Math.round(WORLD.h*(land?0.78:0.82));
+  cv.width=Math.floor(WORLD.w*viewScale*DPR);
+  cv.height=Math.floor(WORLD.h*viewScale*DPR);
+  cv.style.width=Math.floor(WORLD.w*viewScale)+'px';
+  cv.style.height=Math.floor(WORLD.h*viewScale)+'px';
+}
+window.addEventListener('resize',resize);
+if(window.visualViewport)window.visualViewport.addEventListener('resize',resize);
+resize();
+
+function toWorld(touch){
+  const r=cv.getBoundingClientRect();
+  return {x:(touch.clientX-r.left)/viewScale, y:(touch.clientY-r.top)/viewScale};
+}
+
+/* ============================================================
+   特效: 粒子 / 飘字 / 震屏 / 顿帧
+   ============================================================ */
+let particles=[], floaters=[], shock=0, hitstop=0;
+let uid=1; // 特效全局ID(联机快照去重用)
+function burst(x,y,color,n,spd,life,grav){
+  for(let i=0;i<n;i++){const a=rnd(0,TAU),s=rnd(spd*0.3,spd);
+    particles.push({id:uid++,x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-rnd(0,spd*0.4),life:rnd(life*0.5,life),t:0,color,size:rnd(2,5),grav:grav||700});}
+}
+function floatText(x,y,text,color,size){
+  floaters.push({id:uid++,x,y,text,color,size:size||18,t:0,life:0.9});
+}
+function shake(n){shock=Math.max(shock,Math.min(n,30));} // 震屏量设上限, 防止异常放大把画面震出屏幕
+function stop(t){hitstop=Math.max(hitstop,t);}
+
+/* ============================================================
+   角色定义
+   ============================================================ */
+const CHARS={
+  naruto:{ id:'naruto', name:'漩涡鸣人', mode:'仙人模式', aura:'#ff9d2e', skin:'#ffdfb0', hair:'#ffd23e', jacket:'#f7931e', jacketDark:'#d97710',
+    s1:'螺旋手里剑', s2:'尾兽之尾', ult:'超大玉螺旋手里剑' },
+  sasuke:{ id:'sasuke', name:'宇智波佐助', mode:'万花筒写轮眼', aura:'#9b6dff', skin:'#ffe2b0', hair:'#2b2b3c', jacket:'#3d4668', jacketDark:'#232a44',
+    s1:'天照', s2:'拔刀斩', ult:'须佐能乎·天照斩' },
+};
+
+class Fighter{
+  constructor(char, x, dir, isPlayer, skin){
+    this.c=char; this.isPlayer=isPlayer;
+    this.x=x; this.vx=0; this.vy=0; this.y=WORLD.ground; this.dir=dir; this.onGround=true;
+    this.cfg=CFG[char.id]||CFG.naruto;
+    this.skin=skin||0; this.skinC=SKINS[char.id][this.skin];
+    this.landT=0;
+    this.maxHp=this.cfg.hp; this.hp=this.maxHp; this.scale=this.cfg.scale; this.hitsToUlt=this.cfg.hitsToUlt;
+    this.skillHits=0; this.ultReady=false;
+    this.cd1=0; this.cd2=0; this.cdU=0; this.cdX=0;
+    this.s2Stage=0; this.s2Window=0; this.xLeft=this.cfg.stealthUses;
+    this.stealth=false; this.stealthT=0;
+    this.slow=0; this.dots=[];           // {name,dmg,interval,ticks,next}
+    this.state='idle'; this.st=0;
+    this.combo=0; this.comboT=0;
+    this.a1hit=false; this.a2hit=false; this.a3hit=false;
+    this.flash=0; this.grabbedBy=null; this.held={vx:0,vy:0};
+    this.animT=0; this.walkPhase=0;
+    this.dead=false;
+  }
+  get speed(){ const s=BALANCE.moveSpeed*(this.slow>0?BALANCE.sasukeS1SlowPct:1)*this.cfg.spd; return s; }
+  get busy(){ return !(this.state==='idle'||this.state==='run'); }
+  get inAir(){ return !this.onGround; }
+  canAct(){ return !this.busy && !this.dead && !this.stealth; }
+}
+
+/* 全局战斗状态 */
+let P=null, E=null;            // player / enemy
+let projs=[];                  // 投射物
+let tails=[];                  // 尾巴(抓取)
+let battle=null;               // {over,winner,...}
+let banner=null;
+const G={state:'menu',mode:'fight',charSel:'naruto',skins:{naruto:0,sasuke:0}};
+let paused=false;
+
+/* ============================================================
+   伤害结算
+   ============================================================ */
+function addSkillHit(f){
+  if(f.dead)return;
+  f.skillHits++;
+  if(f.skillHits>=f.hitsToUlt&&!f.ultReady){f.ultReady=true;floatText(f.x,f.y-110,'大招就绪!','#ffd75e',20);}
+}
+function tryHit(att,def,dmg,knockx,knocky,isSkill,color){
+  if(def.dead)return false;
+  if(def.stealth){ floatText(def.x,def.y-90,'MISS','#7dd8ff',15); SFX.miss(); return false; }
+  def.hp=Math.max(0,def.hp-dmg);
+  def.flash=0.12;
+  if(def.hp<=0){
+    if(G.mode==='practice'&&def===E){ def.hp=1; def.flash=0.12; return true; } // 练习模式: AI 不会死亡
+    koDefeated(def,att); return true;
+  }
+  if(knockx||knocky){
+    def.state='launch'; def.st=0.45; def.onGround=false;
+    def.vx=knockx; def.vy=-(knocky|| (knockx?220:0));
+  }else{
+    def.state='hurt'; def.st=BALANCE.hitstun;
+  }
+  if(isSkill && !att.dead && !def.dead) addSkillHit(att);
+  floatText(def.x,def.y-95, dmg, color||'#fff', 19);
+  burst(def.x,def.y-55,color||'#ffd75e',12,320,0.4);
+  SFX.hit(); shake(4); stop(0.045);
+  return true;
+}
+function koDefeated(def,att){
+  def.dead=true; def.state='dead'; def.st=999;
+  def.hp=0; cleanse(def);
+  def.onGround=false; def.vy=-320; def.vx=(att.x<def.x?1:-1)*360;
+  showBanner('K.O.!');
+  SFX.ko(); shake(14); stop(0.15);
+  if(G.mode==='online'&&ON.host&&!ON.ended){
+    ON.ended=true;
+    const hostWin=att===P;
+    // 房主侧也上报战绩(客机侧在 showOnlineKO 里上报)
+    if(ON.token&&!ON.rankSent){ ON.rankSent=true; onApi('/api/rank/report',{win:hostWin}).catch(()=>{}); }
+    onSend('END',JSON.stringify({hostWin:hostWin,reason:'ko'}));
+  }
+  setTimeout(()=>{ G.state='ko'; showKO(att); }, 1300);
+}
+function showKO(winner){
+  const isWin=winner.isPlayer;
+  musicSting(isWin);
+  document.getElementById('btnPause').classList.add('hidden');
+  document.getElementById('overlay').classList.remove('hidden');
+  const t=document.getElementById('koTitle');
+  t.textContent=isWin?'胜 利':'战 败';
+  t.className=isWin?'win':'lose';
+  const loser=winner.isPlayer?E:P;
+  document.getElementById('koSub').textContent=isWin?('你击败了 '+loser.name):('你被 '+winner.name+' 击败');
+}
+function applyDots(f){
+  for(let i=f.dots.length-1;i>=0;i--){
+    const d=f.dots[i];
+    if(f.now===undefined)f.now=performance.now();
+    if(f.now>=d.next){
+      d.next=f.now+d.interval; d.ticks--;
+      tryHit(P&&E&&(f===E?P:E),f,d.dmg,0,0,false,'#5a5a8a');
+      if(f.dead)return;
+      burst(f.x,rnd(f.y-90,f.y-30),'#2b2b3a',2,60,0.4,0);
+      if(d.ticks<=0)f.dots.splice(i,1);
+    }
+  }
+}
+function cleanse(f){
+  f.slow=0; f.dots=[]; f.grabbedBy=null;
+  if(f.state==='grabbed'){f.state='idle';}
+}
+
+/* ============================================================
+   玩家动作 (AI 复用)
+   ============================================================ */
+function faceEnemy(f,enemy){ f.dir=enemy.x>=f.x?1:-1; }
+function basicAttack(f,enemy){
+  if(!f.canAct())return;
+  faceEnemy(f,enemy);
+  const now=performance.now();
+  f.combo=(now<f.comboT)?f.combo+1:1; f.comboT=now+BALANCE.comboWindow;
+  if(f.combo>=3){
+    f.combo=0;
+    f.state='attack3'; f.st=0.4; f.vx=BALANCE.enhancedDashSpeed*f.dir*f.cfg.lunge; f.a3hit=false;
+    SFX.whoosh();
+  }else{
+    f.state=f.combo===1?'attack1':'attack2'; f.st=0.26;
+    if(f.combo===1)f.a1hit=false; else f.a2hit=false;
+    SFX.slash();
+  }
+}
+function skill1(f,enemy){
+  if(!f.canAct()||f.cd1>0)return;
+  faceEnemy(f,enemy); f.cd1=BALANCE.skill1Cd;
+  if(f.isPlayer)voiceLine(f,'s1');
+  if(f.c.id==='naruto'){
+    // 位移突进 + 手里剑
+    f.state='s1'; f.st=0.22; f.vx=BALANCE.narutoS1LungeSpeed*f.dir*f.cfg.lunge;
+    projs.push({type:'shuriken',from:f,x:f.x+f.dir*30,y:f.y-70,dir:f.dir,speed:BALANCE.shurikenSpeed,turn:BALANCE.shurikenTurn,life:BALANCE.shurikenLife,dmg:f.cfg.s1Dmg,angle:rnd(0,TAU)});
+    SFX.throwS();
+  }else{
+    // 天照: 减速+黑火
+    f.state='s1'; f.st=0.35;
+    if(enemy.stealth){ floatText(enemy.x,enemy.y-100,'MISS','#7dd8ff',15); SFX.miss(); return; }
+    enemy.slow=performance.now()+BALANCE.sasukeS1SlowMs;
+    enemy.dots.push({name:'amaterasu',dmg:f.cfg.s1Dmg,interval:BALANCE.amaterasuInterval,ticks:BALANCE.amaterasuTicks,next:performance.now()+BALANCE.amaterasuInterval});
+    burst(enemy.x,enemy.y-60,'#1b1b26',16,260,0.6,120);
+    floatText(enemy.x,enemy.y-100,'天照!','#6a5acd',16);
+    addSkillHit(f);
+    SFX.fire();
+  }
+}
+function skill2(f,enemy){
+  if(f.dead)return;
+  if(f.s2Stage===1){ skill2Second(f,enemy); return; }
+  if(f.cd2>0)return;
+  if(!f.canAct())return;
+  faceEnemy(f,enemy); f.cd2=BALANCE.skill2Cd;
+  if(f.isPlayer)voiceLine(f,'s2');
+  if(f.c.id==='naruto'){
+    f.state='s2'; f.st=0.3;
+    tails.push({from:f,target:enemy,x:f.x,y:f.y-58,dir:f.dir,speed:BALANCE.tailSpeed,max:f.cfg.skillRange,hit:false,hold:0,throw:false,throwVx:0,throwVy:0});
+    SFX.whoosh();
+  }else{
+    f.state='s2dash'; f.st=0.3; f.s2Stage=1; f.s2Window=performance.now()+BALANCE.sasukeS2WindowMs;
+    f.vx=BALANCE.sasukeS2DashSpeed*f.dir*f.cfg.lunge; f.s2Travel=0; f.s2HitDone=false;
+    SFX.whoosh();
+  }
+}
+function skill2Second(f,enemy){
+  if(f.c.id==='naruto'){
+    // 二段: 将被抓取的目标扔向摇杆方向
+    if(enemy.state!=='grabbed'||enemy.grabbedBy!==f){ f.s2Stage=0; return; }
+    f.s2Stage=0;
+    const jd=f.isPlayer?joystick.dir:{x:f.dir,y:0};
+    let dx=jd.x, dy=jd.y;
+    if(Math.hypot(dx,dy)<0.2){ dx=f.dir; dy=0; }
+    enemy.grabbedBy=null; enemy.state='launch'; enemy.st=0.5; enemy.onGround=false;
+    enemy.vx=dx*BALANCE.throwSpeed; enemy.vy=-Math.max(120,Math.abs(dy)*BALANCE.throwSpeed*0.6);
+    tryHit(f,enemy,f.cfg.s2Dmg,0,0,true,'#ff9d2e');
+    f.state='s2second'; f.st=0.3;
+    SFX.throwS(); shake(5);
+  }else{
+    if(!f.s2Stage)return;
+    f.s2Stage=0;
+    f.state='s2second'; f.st=0.35; f.vx=BALANCE.sasukeS2DashSpeed*f.dir*f.cfg.lunge; f.s2Travel2=0; f.s2Hit2=false;
+    SFX.slash();
+  }
+}
+function ult(f,enemy){
+  if(!f.ultReady||f.cdU>0||f.dead)return;
+  if(!f.canAct())return;
+  f.ultReady=false; f.cdU=BALANCE.ultCd; f.skillHits=0;
+  if(f.isPlayer)voiceLine(f,'ult');
+  faceEnemy(f,enemy);
+  if(f.c.id==='naruto'){
+    f.state='ult'; f.st=0.7;
+    projs.push({type:'rasengan',from:f,x:f.x+f.dir*40,y:f.y-70,dir:f.dir,speed:BALANCE.narutoUltSpeed,life:3,dmg:f.cfg.ultDmg,angle:0});
+  }else{
+    f.state='ult'; f.st=0.9;
+    if(dist(f,enemy)<=f.cfg.skillRange+60){
+      tryHit(f,enemy,f.cfg.ultDmg,f.dir*BALANCE.sasukeUltKnock,650,true,'#9b6dff');
+      enemy.dots.push({name:'amaterasu',dmg:Math.round(f.cfg.ultDmg/4),interval:400,ticks:4,next:performance.now()+400});
+    }else{ floatText(enemy.x,enemy.y-90,'MISS','#9aa7c0',15); }
+  }
+  SFX.ult(); shake(10); stop(0.09);
+}
+function stealth(f){
+  if(f.xLeft<=0||f.cdX>0||f.dead||f.busy)return;
+  f.xLeft--; f.cdX=BALANCE.stealthCd;
+  if(f.isPlayer)voiceLine(f,'stl');
+  f.stealth=true; f.stealthT=performance.now()+f.cfg.stealthMs;
+  cleanse(f);
+  burst(f.x,f.y-60,'#7dd8ff',14,240,0.5);
+  SFX.stealth();
+}
+
+/* ============================================================
+   投射物 & 尾巴
+   ============================================================ */
+function updateProjs(dt,now){
+  for(let i=projs.length-1;i>=0;i--){
+    const p=projs[i];
+    const enemy=p.from.isPlayer?E:P;
+    p.life-=dt; p.angle+=dt*18;
+    if(p.type==='shuriken'||p.type==='rasengan'){
+      // 追踪
+      p.dir=sign(enemy.x-p.x);
+      p.x+=p.speed*p.dir*dt;
+      p.y+=p.speed*dt*0.12;
+      p.y=clamp(p.y,WORLD.ground-230,WORLD.ground-20);
+    }
+    // 命中
+    if(!enemy.dead && !enemy.stealth && Math.abs(p.x-enemy.x)<42 && Math.abs(p.y-(enemy.y-60))<70){
+      if(p.type==='shuriken'){ tryHit(p.from,enemy,p.dmg,p.dir*320,260,true,'#8ecbff'); projs.splice(i,1); continue; }
+      else { tryHit(p.from,enemy,p.dmg,p.dir*BALANCE.narutoUltKnock,300,true,'#7db9ff'); burst(enemy.x,enemy.y-60,'#7db9ff',40,420,0.8,300); shake(12); projs.splice(i,1); continue; }
+    }
+    if(p.life<=0||p.x<-60||p.x>WORLD.w+60)projs.splice(i,1);
+  }
+  for(let i=tails.length-1;i>=0;i--){
+    const t=tails[i];
+    const enemy=t.target;
+    if(!t.hit){
+      t.x+=t.speed*t.dir*dt;
+      if(Math.abs(t.x-t.from.x)>t.max){ t.hit=true; t.hold=now+200; }
+      if(!enemy.dead&&!enemy.stealth&&Math.abs(t.x-enemy.x)<30&&Math.abs(t.y-(enemy.y-55))<55){
+        t.hit=true; t.hold=now+BALANCE.tailHoldMs;
+        tryHit(t.from,enemy,t.from.cfg.s2Dmg,0,0,true,'#ff9d2e');
+        enemy.state='grabbed'; enemy.st=999; enemy.grabbedBy=t.from; enemy.vx=0; enemy.vy=0;
+        t.from.s2Stage=1; t.from.s2Window=now+1200;
+      }
+    }else{
+      if(now>t.hold){
+        if(enemy.grabbedBy===t.from){ enemy.grabbedBy=null; if(enemy.state==='grabbed'){enemy.state='idle';} }
+        tails.splice(i,1);
+      }
+    }
+  }
+}
+
+/* ============================================================
+   AI
+   ============================================================ */
+let aiT=0;
+function aiUpdate(dt,now){
+  const me=E, en=P;
+  aiT-=dt;
+  if(me.dead||en.dead)return;
+  if(!en.stealth)faceEnemy(me,en);
+  if(aiT>0)return;
+  aiT=BALANCE.aiThink;
+  if(me.busy||me.stealth)return;
+  const d=dist(me,en);
+  // 残血隐身
+  if(me.hp<me.maxHp*BALANCE.aiStealthHp && me.xLeft>0 && Math.random()<0.5){ stealth(me); return; }
+  // 大招
+  if(!en.stealth){
+    if(me.ultReady && d<me.cfg.skillRange+60 && Math.random()<BALANCE.aiUltChance){ ult(me,en); return; }
+    if(Math.random()<BALANCE.aiSkillChance){
+      if(d<me.cfg.skillRange && me.cd1<=0 && Math.random()<0.5){ skill1(me,en); return; }
+      if(d<me.cfg.skillRange && me.cd2<=0){ skill2(me,en); return; }
+    }
+    if(d<me.cfg.basicRange+10 && Math.random()<BALANCE.aiAggro){ basicAttack(me,en); return; }
+  }
+  // 移动
+  if(en.stealth){
+    me.state='run';
+    me.vx=(d<130)?-me.dir*BALANCE.moveSpeed*0.8:0;
+  }else if(d>90){
+    me.state='run';
+    me.vx=sign(en.x-me.x)*me.speed*(0.75+rnd(0,0.35));
+  }else{
+    if(me.state==='run')me.state='idle';
+    me.vx=0;
+  }
+}
+
+/* ============================================================
+   更新主逻辑
+   ============================================================ */
+function updateFighter(f,dt,now){
+  f.now=now; f.animT+=dt;
+  // 计时器
+  f.cd1=Math.max(0,f.cd1-dt*1000);
+  f.cd2=Math.max(0,f.cd2-dt*1000);
+  f.cdU=Math.max(0,f.cdU-dt*1000);
+  f.cdX=Math.max(0,f.cdX-dt*1000);
+  f.flash=Math.max(0,f.flash-dt);
+  if(f.comboT<now)f.combo=0;
+  if(f.s2Stage===1&&f.s2Window<now){ f.s2Stage=0; if(f.c.id==='sasuke'&&f.state==='s2dash'){} }
+  if(f.slow>0&&f.slow<now)f.slow=0;
+  if(f.stealth){ if(now>f.stealthT){ f.stealth=false; burst(f.x,f.y-60,'#7dd8ff',8,180,0.3); } }
+  // 持续伤害
+  if(f.dots.length)applyDots(f);
+
+  // 状态机
+  f.st-=dt;
+  switch(f.state){
+    case 'idle': f.vx=0; break;
+    case 'run': f.walkPhase+=dt*10; break;
+    case 'attack1': case 'attack2': case 'attack3': case 's1': case 's2': case 'ult': {
+      if(f.st<=0){ f.state='idle'; f.vx=0; }
+      if(f.state==='attack1'||f.state==='attack2'){
+        const en=f.isPlayer?E:P;
+        const hit=f.state==='attack1'?'a1hit':'a2hit';
+        if(!f[hit]&&!en.dead&&Math.abs(en.x-f.x)<f.cfg.basicRange&&Math.abs(en.y-f.y)<90){
+          f[hit]=true; tryHit(f,en,f.cfg.basicDmg,f.dir*220,120,false,'#ffffff');
+        }
+      }
+      if(f.state==='attack3'){
+        const en=f.isPlayer?E:P;
+        if(!f.a3hit&&!en.dead&&Math.abs(en.x-f.x)<f.cfg.basicRange*1.5&&Math.abs(en.y-f.y)<90){
+          f.a3hit=true; tryHit(f,en,f.cfg.enhDmg,f.dir*420,260,false,'#ffd75e');
+          burst(en.x,en.y-60,'#ffe9a8',20,380,0.5,400);
+        }
+      }
+      break;
+    }
+    case 's2second': {
+      const en=f.isPlayer?E:P;
+      f.s2Travel2=(f.s2Travel2||0)+Math.abs(f.vx)*dt;
+      if(!f.s2Hit2&&!en.dead&&Math.abs(en.x-f.x)<50&&Math.abs(en.y-f.y)<85){
+        f.s2Hit2=true;
+        tryHit(f,en,f.cfg.s2Dmg,f.dir*BALANCE.sasukeS2SecondKnock,280,true,'#c9b8ff');
+        burst(en.x,en.y-60,'#c9b8ff',18,340,0.5);
+        f.vx=0; f.state='idle';
+      }
+      if(f.s2Travel2>=f.cfg.skillRange||f.st<=0){ f.state='idle'; f.vx=0; }
+      break;
+    }
+    case 's2dash': {
+      const en=f.isPlayer?E:P;
+      f.s2Travel+=Math.abs(f.vx)*dt;
+      if(!f.s2HitDone&&!en.dead&&Math.abs(en.x-f.x)<46&&Math.abs(en.y-f.y)<80){
+        f.s2HitDone=true; tryHit(f,en,f.cfg.s2Dmg,0,0,true,'#c9b8ff');
+        burst(f.x,f.y-60,'#c9b8ff',16,300,0.4);
+        f.vx=0;
+        f.state='idle'; f.st=0.2;
+        break;
+      }
+      if(f.s2Travel>=f.cfg.skillRange||f.st<=0){ f.state='idle'; f.vx=0; if(!f.s2HitDone)f.s2Stage=0; }
+      break;
+    }
+    case 'grabbed': { // 被抓住: 位置跟随尾巴
+      f.vx=0; f.vy=0;
+      if(f.grabbedBy){
+        const t=tails.find(t=>t.from===f.grabbedBy);
+        if(t){ f.x=t.x; f.y=t.y+30; }
+        else { f.grabbedBy=null; f.state='idle'; }
+      }else f.state='idle';
+      break;
+    }
+    case 'hurt': if(f.st<=0){ f.state='idle'; f.vx=0; } break;
+    case 'launch': {
+      if(f.onGround&&f.vy===0&&f.st<=0){ f.state='idle'; }
+      break;
+    }
+    case 'dead': f.vx=0; f.vy+=1500*dt; break;
+  }
+
+  // 物理
+  if(!f.onGround){
+    f.vy+=1600*dt;
+    f.y+=f.vy*dt;
+    if(f.y>=WORLD.ground){ const impact=f.vy; f.y=WORLD.ground; f.vy=0; f.onGround=true;
+      if(impact>250)f.landT=0.12;
+      if(f.state==='launch'){ f.st=Math.min(f.st,0.25); burst(f.x,f.y-10,'#9a8f80',8,150,0.3,0); }
+      if(f.state==='dead'){ f.state='ko'; }
+    }
+  }else{
+    f.y=WORLD.ground;
+    f.landT=0;
+  }
+  if(f.state==='run'||f.state==='attack1'||f.state==='attack2'||f.state==='attack3'||f.state==='s1'||f.state==='s2dash'||f.state==='s2second'||(f.state==='launch'&&f.onGround)){
+    f.x+=f.vx*dt;
+  }else if(f.state==='launch'&&!f.onGround){
+    f.x+=f.vx*dt;
+  }
+  if(f.state!=='run')f.vx*=Math.pow(0.002,dt); // 摩擦
+  f.x=clamp(f.x,46,ARENA_W-46);
+}
+
+function move(f,dx,dt){
+  if(f.dead||f.busy||f.inAir)return;
+  if(dx!==0){ f.state='run'; f.dir=dx>=0?1:-1; f.vx=dx*f.speed; }
+  else if(f.state==='run'){ f.state='idle'; f.vx=0; }
+}
+
+/* ============================================================
+   渲染
+   ============================================================ */
+function drawBg(){
+  const groundY=WORLD.ground;
+  const x0=camX-60, x1=camX+WORLD.w+60;
+  // 天空渐变
+  const g=ctx.createLinearGradient(0,0,0,WORLD.h);
+  g.addColorStop(0,'#060a16');g.addColorStop(0.45,'#0e1730');g.addColorStop(0.7,'#1c2947');g.addColorStop(1,'#2a3650');
+  ctx.fillStyle=g;ctx.fillRect(x0,0,x1-x0,WORLD.h);
+  // 星空(视差0.12)
+  for(let i=0;i<52;i++){
+    const wx=((i*137.5)-camX*0.12)%(WORLD.w+160);
+    const x=wx<0?wx+WORLD.w+160:wx;
+    const y=(i*61.7)%(WORLD.h*0.5);
+    const tw=0.35+0.55*Math.abs(Math.sin(performance.now()/900+i*1.7));
+    ctx.fillStyle='rgba(255,255,255,'+(0.2+0.45*tw)+')';
+    ctx.fillRect(x,y,tw*1.8+0.6,tw*1.8+0.6);
+  }
+  // 月亮+光晕(视差0.05)
+  const mx=WORLD.w*0.75-camX*0.05;
+  ctx.fillStyle='rgba(255,240,200,.1)';ctx.beginPath();ctx.arc(mx,86,72,0,TAU);ctx.fill();
+  ctx.fillStyle='rgba(255,240,200,.16)';ctx.beginPath();ctx.arc(mx,86,54,0,TAU);ctx.fill();
+  ctx.fillStyle='#f6ecc8';ctx.beginPath();ctx.arc(mx,86,36,0,TAU);ctx.fill();
+  ctx.fillStyle='rgba(200,190,160,.35)';ctx.beginPath();ctx.arc(mx-10,78,7,0,TAU);ctx.arc(mx+12,96,5,0,TAU);ctx.arc(mx+4,70,3.5,0,TAU);ctx.fill();
+  // 远山两层(视差0.18/0.3)
+  const ridge=function(off,amp,base,col){
+    ctx.fillStyle=col;ctx.beginPath();
+    ctx.moveTo(x0,groundY);
+    for(let x=x0;x<=x1;x+=40){
+      const y=groundY-base-amp*(0.5+0.5*Math.sin((x+off)*0.011))*Math.max(0.3,Math.sin((x+off)*0.003)+0.7);
+      ctx.lineTo(x,y);
+    }
+    ctx.lineTo(x1,groundY);ctx.closePath();ctx.fill();
+  };
+  ridge(-camX*0.3,120,90,'rgba(26,34,60,.95)');
+  ridge(-camX*0.18+300,150,170,'rgba(16,22,44,.98)');
+  // 树林/木叶剪影(视差0.5)
+  ctx.fillStyle='rgba(8,10,18,.62)';
+  for(let i=0;i<10;i++){
+    const bx=((i*263+37)-camX*0.5)%(WORLD.w+240);
+    const x=bx<0?bx+WORLD.w+240:bx;
+    const th=70+((i*53)%110);
+    ctx.fillRect(x,groundY-th,14,th);
+    ctx.beginPath();ctx.arc(x+7,groundY-th,26+(i%3)*10,0,TAU);ctx.fill();
+  }
+  // 房屋剪影+灯笼(视差0.5)
+  ctx.fillStyle='rgba(10,12,20,.5)';
+  ctx.fillRect(x0+170-camX*0.5,groundY-88,120,88);
+  ctx.beginPath();ctx.moveTo(x0+150-camX*0.5,groundY-88);ctx.lineTo(x0+230-camX*0.5,groundY-128);ctx.lineTo(x0+310-camX*0.5,groundY-88);ctx.closePath();ctx.fill();
+  ctx.fillStyle='rgba(255,190,90,.8)';
+  ctx.beginPath();ctx.arc(x0+195-camX*0.5,groundY-118,4,0,TAU);ctx.arc(x0+265-camX*0.5,groundY-118,4,0,TAU);ctx.fill();
+  // 地面主体(视差1)
+  const g2=ctx.createLinearGradient(0,groundY,0,WORLD.h);
+  g2.addColorStop(0,'#4d4438');g2.addColorStop(0.25,'#3a332c');g2.addColorStop(1,'#1c1915');
+  ctx.fillStyle=g2;ctx.fillRect(x0,groundY,x1-x0,WORLD.h-groundY);
+  // 地面纹理条
+  ctx.strokeStyle='rgba(255,255,255,.05)';ctx.lineWidth=1.5;
+  for(let i=0;i<9;i++){
+    const y=groundY+18+i*((WORLD.h-groundY-36)/8);
+    ctx.beginPath();ctx.moveTo(x0,y);ctx.lineTo(x1,y);ctx.stroke();
+  }
+  // 地表高光线
+  ctx.strokeStyle='rgba(255,235,190,.28)';ctx.lineWidth=2.5;
+  ctx.beginPath();ctx.moveTo(x0,groundY+1.5);ctx.lineTo(x1,groundY+1.5);ctx.stroke();
+  // 草与碎石(视差1)
+  for(let i=0;i<34;i++){
+    const gx=((i*97+13))%WORLD.w+camX%WORLD.w; // 简化平铺
+    const x=gx>=WORLD.w+camX?gx-WORLD.w:gx;
+    const y=groundY+4+((i*31)%14);
+    ctx.strokeStyle='rgba(110,140,90,'+(0.25+0.2*((i%3)/2))+')';
+    ctx.lineWidth=1.6;
+    ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+(i%2?2:-2),y-7-((i*7)%5));ctx.stroke();
+  }
+}
+
+const SKINS={
+  naruto:[
+    {name:'仙人模式',filter:'none',aura:'#ffd75e'},
+    {name:'九尾查克拉',filter:'hue-rotate(150deg) saturate(1.3)',aura:'#ff6a3d'},
+    {name:'暗夜之影',filter:'saturate(0.35) brightness(0.8) hue-rotate(30deg)',aura:'#7db8ff'}
+  ],
+  sasuke:[
+    {name:'万花筒',filter:'none',aura:'#7db8ff'},
+    {name:'咒印形态',filter:'hue-rotate(90deg) saturate(1.4) brightness(0.85)',aura:'#b06aff'},
+    {name:'晓·红云',filter:'hue-rotate(-40deg) saturate(1.5) brightness(0.9)',aura:'#ff5a5a'}
+  ]
+};
+function drawNameTags(){
+  if(G.state!=='fight'||!P||!E)return;
+  const fs=Math.max(11,Math.min(15,window.innerWidth/28))/viewScale;
+  ctx.font='bold '+Math.round(fs)+'px "Microsoft YaHei",sans-serif';
+  ctx.textAlign='center';
+  [P,E].forEach(f=>{
+    if(!f||f.dead)return;
+    const name=(G.mode==='online')?(f.isPlayer?ON.name:ON.peer)+'·'+f.c.name:f.c.name;
+    ctx.lineWidth=Math.max(3,fs*0.25);
+    ctx.strokeStyle='rgba(0,0,0,.8)';
+    ctx.strokeText(name,f.x,f.y-128);
+    ctx.fillStyle=f.isPlayer?'#ffd75e':'#ff8a80';
+    ctx.fillText(name,f.x,f.y-128);
+  });
+  ctx.textAlign='left';
+}
+function tint(c,f){ // 受击闪白
+  if(!f||f.flash<=0)return c;
+  return '#ffffff';
+}
+function drawHead(f,x,y,scale,flip){
+  ctx.save();ctx.translate(x,y);ctx.scale(scale*flip,scale);
+  // 头发(后)
+  const hair=f.c.hair;
+  ctx.fillStyle=tint(hair,f);
+  ctx.beginPath();ctx.arc(0,0,17,0,TAU);ctx.fill();
+  // 脸
+  ctx.fillStyle=tint(f.c.skin,f);
+  ctx.beginPath();ctx.arc(-1,1,14.5,0,TAU);ctx.fill();
+  // 刘海/刺发
+  ctx.fillStyle=tint(hair,f);
+  ctx.beginPath();
+  ctx.moveTo(-15,-6);ctx.lineTo(-18,-20);ctx.lineTo(-9,-11);
+  ctx.lineTo(-6,-24);ctx.lineTo(-1,-12);
+  ctx.lineTo(3,-25);ctx.lineTo(8,-12);
+  ctx.lineTo(13,-22);ctx.lineTo(16,-9);
+  ctx.lineTo(17,4);ctx.lineTo(12,-4);ctx.lineTo(12,8);
+  ctx.lineTo(4,-2);ctx.lineTo(-14,8);ctx.lineTo(-15,-3);
+  ctx.closePath();ctx.fill();
+  // 护额
+  ctx.fillStyle=tint('#4a4a58',f);ctx.fillRect(-15,-4,30,5.5);
+  ctx.fillStyle=tint('#8f9bb8',f);ctx.fillRect(-5,-3,10,3.5);
+  // 眼睛
+  const eyeCol=f.c.id==='naruto'?'#4db4ff':'#ff2d2d';
+  if(f.ultReady){ctx.fillStyle='rgba(255,60,60,.8)';ctx.beginPath();ctx.arc(4,-1,8,0,TAU);ctx.fill();}
+  ctx.fillStyle=tint(eyeCol,f);
+  ctx.fillRect(4,-2,3,2.6); // 侧脸一只眼
+  if(f.c.id==='sasuke'){ctx.fillStyle='#ff2d2d';ctx.beginPath();ctx.arc(5.5,-0.7,4.5,0,TAU);ctx.fill();ctx.fillStyle='#111';ctx.beginPath();ctx.arc(5.5,-0.7,1.8,0,TAU);ctx.fill();}
+  // 鸣人胡须
+  if(f.c.id==='naruto'){ctx.strokeStyle='rgba(90,50,20,.6)';ctx.lineWidth=1;ctx.beginPath();
+    ctx.moveTo(7,3);ctx.lineTo(12,4);ctx.moveTo(7,6);ctx.lineTo(12,7);ctx.stroke();}
+  // 仙人模式眼影
+  if(f.c.id==='naruto'){ctx.fillStyle=tint('rgba(255,120,30,.75)',f);ctx.fillRect(3,-4,4.6,3.4);}
+  ctx.restore();
+}
+function drawBody(f){
+  const c=f.c;
+  ctx.save();
+  const flip=f.dir<0?-1:1;
+  const bob=f.state==='idle'?Math.sin(f.animT*3)*2:0;
+  const legSwing=f.state==='run'?Math.sin(f.walkPhase)*14:0;
+  const airBend=f.inAir?-10:0;
+  // 腿
+  ctx.strokeStyle=tint('#2a2a34',f);ctx.lineWidth=7;ctx.lineCap='round';
+  ctx.beginPath();
+  ctx.moveTo(f.x-5*flip,f.y-30);ctx.lineTo(f.x-7*flip+legSwing,f.y-8+airBend);
+  ctx.moveTo(f.x+5*flip,f.y-30);ctx.lineTo(f.x+8*flip-legSwing,f.y-8+airBend);
+  ctx.stroke();
+  // 身体
+  const bodyW=24,bodyH=34;
+  const grd=ctx.createLinearGradient(0,f.y-70,0,f.y-28);
+  grd.addColorStop(0,tint(c.jacket,f));grd.addColorStop(1,tint(c.jacketDark,f));
+  ctx.fillStyle=grd;
+  roundRect(f.x-bodyW/2,f.y-30-bodyH+bob*0.5,bodyW,bodyH,7);ctx.fill();
+  // 上衣装饰
+  ctx.fillStyle=tint('rgba(255,255,255,.25)',f);
+  ctx.fillRect(f.x-6,f.y-58+bob*0.5,12,3);
+  // 手臂
+  let armX=0,armY=0;
+  if(f.state==='attack1'||f.state==='attack2'||f.state==='attack3'||f.state==='s2dash'||f.state==='s2second'){
+    armX=26*flip;armY=-52;
+  }else if(f.state==='s1'||f.state==='ult'||f.state==='s2'){
+    armX=30*flip;armY=-60;
+  }else if(f.state==='hurt'||f.state==='launch'||f.state==='grabbed'){
+    armX=-6*flip;armY=-46;
+  }else{
+    armX=2*flip;armY=-48;
+  }
+  ctx.strokeStyle=tint(c.jacketDark,f);ctx.lineWidth=7;
+  ctx.beginPath();
+  ctx.moveTo(f.x+4*flip,f.y-52+bob*0.5);
+  ctx.lineTo(f.x+armX,f.y+armY);
+  ctx.moveTo(f.x-4*flip,f.y-52+bob*0.5);
+  ctx.lineTo(f.x-2*flip,f.y-40+Math.sin(f.animT*3)*2);
+  ctx.stroke();
+  // 头
+  drawHead(f,f.x+2*flip,f.y-78+bob,1,flip);
+  // 佐助的刀
+  if(c.id==='sasuke'){
+    ctx.strokeStyle=tint('#b8c4d8',f);ctx.lineWidth=3;
+    ctx.beginPath();ctx.moveTo(f.x-10*flip,f.y-58+bob*0.5);ctx.lineTo(f.x-16*flip,f.y-96);ctx.stroke();
+    if(f.state==='s2dash'||f.state==='s2second'){
+      ctx.strokeStyle='rgba(200,220,255,.9)';ctx.lineWidth=4;
+      ctx.beginPath();ctx.moveTo(f.x,f.y-70);ctx.lineTo(f.x+40*flip,f.y-66);ctx.stroke();
+    }
+  }
+  // 隐身效果
+  ctx.restore();
+}
+function roundRect(x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();
+}
+function drawAura(f){
+  if(f.state==='ult'){
+    ctx.save();ctx.globalAlpha=0.35+rnd(0,0.15);
+    const g=ctx.createRadialGradient(f.x,f.y-55,10,f.x,f.y-55,80);
+    g.addColorStop(0,f.c.aura);g.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(f.x,f.y-55,80,0,TAU);ctx.fill();
+    ctx.restore();
+  }
+  if(f.c.id==='sasuke'&&f.state==='ult'){
+    // 须佐能乎骨架
+    ctx.save();ctx.globalAlpha=0.5;
+    ctx.strokeStyle='#9b6dff';ctx.lineWidth=5;
+    ctx.beginPath();
+    ctx.arc(f.x-f.dir*70,f.y-70,44,Math.PI*0.5,Math.PI*1.5);
+    ctx.stroke();
+    ctx.fillStyle='rgba(155,109,255,.25)';
+    ctx.beginPath();ctx.arc(f.x-f.dir*70,f.y-70,44,0,TAU);ctx.fill();
+    ctx.restore();
+  }
+  if(f.c.id==='naruto'&&f.ultReady){
+    ctx.save();ctx.globalAlpha=0.3+Math.sin(f.animT*8)*0.15;
+    const g=ctx.createRadialGradient(f.x,f.y-55,5,f.x,f.y-55,46);
+    g.addColorStop(0,'#ffb62e');g.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(f.x,f.y-55,46,0,TAU);ctx.fill();
+    ctx.restore();
+  }
+  // 黑火
+  const amat=f.dots.find(d=>d.name==='amaterasu');
+  if(amat){
+    for(let i=0;i<5;i++){
+      ctx.save();ctx.globalAlpha=rnd(0.4,0.8);
+      ctx.fillStyle=i%2?'#14141f':'#3b2b55';
+      const fx=f.x+rnd(-16,16),fy=f.y-rnd(20,80);
+      ctx.beginPath();ctx.arc(fx,fy,rnd(2,6),0,TAU);ctx.fill();
+      ctx.restore();
+    }
+  }
+  // 减速标记
+  if(f.slow>0){
+    ctx.save();ctx.globalAlpha=0.5+Math.sin(f.animT*10)*0.2;
+    ctx.fillStyle='rgba(155,109,255,.5)';
+    ctx.beginPath();ctx.arc(f.x,f.y-10,30,0,TAU);ctx.fill();
+    ctx.font='12px sans-serif';ctx.fillStyle='#c9b8ff';ctx.textAlign='center';
+    ctx.fillText('天照·减速',f.x,f.y+14);
+    ctx.restore();
+  }
+}
+function drawFighter(f){
+  // 脚下阴影(3D感, 跳起时缩小变淡)
+  const airH=clamp((WORLD.ground+6-f.y)/130,0,1);
+  ctx.fillStyle='rgba(0,0,0,'+(0.34*(1-airH*0.55))+')';
+  ctx.beginPath();ctx.ellipse(f.x,WORLD.ground+6,34*(1-airH*0.35),8*(1-airH*0.35),0,0,TAU);ctx.fill();
+  // 冲刺残影(贴近动漫的高速感)
+  if(f.state==='s1'||f.state==='s2dash'||f.state==='attack3'){
+    ctx.save();
+    ctx.globalAlpha=0.13;
+    ctx.translate(f.x-f.dir*24,f.y);
+    ctx.fillStyle='#9fd8ff';
+    ctx.beginPath();ctx.ellipse(0,-42,17,32,0,0,TAU);ctx.fill();
+    ctx.restore();
+  }
+  ctx.save();
+  const sc=f.scale||1;
+  ctx.translate(f.x,f.y);
+  if(f.landT>0){ // 落地挤压动画
+    const k=Math.min(1,f.landT/0.12);
+    const sq=1-0.16*Math.sin(k*Math.PI);
+    ctx.scale(1/sq,sq);
+  }
+  ctx.scale(sc,sc);
+  ctx.translate(-f.x,-f.y);
+  if(f.dead){
+    ctx.translate(f.x,f.y-14);
+    ctx.rotate(f.dir<0?1.2:-1.2);
+    ctx.translate(-f.x,-f.y+14);
+  }
+  if(f.stealth){ctx.globalAlpha=0.22;}
+  // 皮肤渲染滤镜(2D绘制+色彩渲染)
+  if(f.skinC&&f.skinC.filter&&f.skinC.filter!=='none'&&ctx.filter!==undefined){
+    try{ ctx.filter=f.skinC.filter; }catch(e){}
+  }
+  drawAura(f);
+  drawBody(f);
+  ctx.restore();
+  if(ctx.filter!==undefined){ try{ ctx.filter='none'; }catch(e){} }
+}
+function drawProjs(){
+  for(const p of projs){
+    ctx.save();
+    if(p.type==='shuriken'){
+      ctx.translate(p.x,p.y);ctx.rotate(p.angle);
+      ctx.fillStyle='#8ecbff';
+      for(let i=0;i<4;i++){ctx.rotate(Math.PI/2);ctx.beginPath();ctx.ellipse(14,0,14,5,0,0,TAU);ctx.fill();}
+      ctx.fillStyle='#cfe8ff';ctx.beginPath();ctx.arc(0,0,5,0,TAU);ctx.fill();
+    }else{
+      ctx.translate(p.x,p.y);ctx.rotate(p.angle);
+      const g=ctx.createRadialGradient(0,0,2,0,0,40);
+      g.addColorStop(0,'#ffffff');g.addColorStop(0.5,'#7db9ff');g.addColorStop(1,'rgba(80,150,255,0)');
+      ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,0,40,0,TAU);ctx.fill();
+      ctx.fillStyle='#bfe0ff';
+      for(let i=0;i<3;i++){ctx.rotate(TAU/3);ctx.beginPath();ctx.ellipse(22,0,20,7,0,0,TAU);ctx.fill();}
+    }
+    ctx.restore();
+  }
+  for(const t of tails){
+    ctx.save();
+    const segs=6;
+    for(let i=0;i<segs;i++){
+      const k=i/(segs-1);
+      const sx=t.from.x+(t.x-t.from.x)*k;
+      const sy=(t.from.y-62)+(t.y-(t.from.y-62))*k;
+      ctx.globalAlpha=1-k*0.4;
+      ctx.fillStyle='#ff9d2e';
+      ctx.beginPath();ctx.arc(sx,sy,i===segs-1?14:10-i,0,TAU);ctx.fill();
+    }
+    ctx.restore();
+  }
+}
+function drawParticles(dt){
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i];
+    p.t+=dt;p.life-=dt;
+    p.vy+=(p.grav||0)*dt;
+    p.x+=p.vx*dt;p.y+=p.vy*dt;
+    if(p.life<=0){particles.splice(i,1);continue;}
+    ctx.globalAlpha=Math.max(0,p.life*2);
+    ctx.fillStyle=p.color;
+    // 半径必须为正: p.t 超过存活期一半时按 0 收缩(真实浏览器 arc 负半径会抛异常→整帧黑屏)
+    ctx.beginPath();ctx.arc(p.x,p.y,Math.max(0.5,p.size*(1-p.t*2)),0,TAU);ctx.fill();
+  }
+  ctx.globalAlpha=1;
+}
+function drawFloaters(dt){
+  for(let i=floaters.length-1;i>=0;i--){
+    const fl=floaters[i];
+    fl.t+=dt;fl.life-=dt;
+    fl.y-=40*dt;
+    if(fl.life<=0){floaters.splice(i,1);continue;}
+    ctx.globalAlpha=Math.min(1,fl.life*3);
+    ctx.font='bold '+fl.size+'px "Microsoft YaHei",sans-serif';
+    ctx.textAlign='center';
+    ctx.lineWidth=3;ctx.strokeStyle='rgba(0,0,0,.7)';
+    ctx.strokeText(fl.text,fl.x,fl.y);
+    ctx.fillStyle=fl.color;
+    ctx.fillText(fl.text,fl.x,fl.y);
+  }
+  ctx.globalAlpha=1;
+}
+
+/* ============================================================
+   HUD
+   ============================================================ */
+function updateHUD(){
+  const pn=document.getElementById('nameL'),en=document.getElementById('nameR');
+  pn.textContent=P.c.name+' · '+P.c.mode;
+  en.textContent=E.c.name+' · '+E.c.mode;
+  const fL=document.getElementById('fillL'),fR=document.getElementById('fillR');
+  fL.style.width=(P.hp/P.maxHp*100)+'%';
+  fR.style.width=(E.hp/E.maxHp*100)+'%';
+  document.getElementById('hpTextL').textContent=Math.ceil(P.hp);
+  document.getElementById('hpTextR').textContent=Math.ceil(E.hp);
+  fillPips('enL',P);fillPips('enR',E);
+  document.getElementById('ultL').classList.toggle('on',P.ultReady);
+  document.getElementById('ultR').classList.toggle('on',E.ultReady);
+  document.getElementById('stL').textContent='隐身 ×'+P.xLeft;
+  document.getElementById('stR').textContent='隐身 ×'+E.xLeft;
+  updateBtn('bS1',P.cd1,BALANCE.skill1Cd);
+  if(P.s2Stage===1){
+    const b=document.getElementById('bS2');
+    b.querySelector('.cd').style.height='0%';
+    const t=b.querySelector('.cdt');
+    t.textContent='二段!';
+    t.classList.remove('hidden');
+  }else updateBtn('bS2',P.cd2,BALANCE.skill2Cd);
+  updateBtn('bU',P.cdU,BALANCE.ultCd);
+  updateBtn('bX',P.cdX,BALANCE.stealthCd);
+  document.getElementById('bU').classList.toggle('ready',P.ultReady);
+  document.getElementById('bS2').classList.toggle('twostage',P.s2Stage===1);
+  document.getElementById('bS2').querySelector('small').textContent=P.s2Stage===1?'二段·待命':'二段待命';
+  document.getElementById('xCnt').textContent=P.xLeft;
+  document.getElementById('s1name').textContent=P.c.s1;
+}
+function fillPips(id,f){
+  const el=document.getElementById(id);
+  let html='';
+  for(let i=0;i<f.hitsToUlt;i++){
+    html+='<div class="pip'+(i<f.skillHits?' on':'')+'"></div>';
+  }
+  el.innerHTML=html;
+}
+function updateBtn(id,cd,max){
+  const b=document.getElementById(id);
+  const m=b.querySelector('.cd'),t=b.querySelector('.cdt');
+  if(cd>0){
+    m.style.height=(cd/max*100)+'%';
+    t.textContent=(cd/1000).toFixed(1);
+    t.classList.remove('hidden');
+  }else{
+    m.style.height='0%';
+    t.textContent='';
+    t.classList.add('hidden');
+  }
+}
+
+/* ============================================================
+   输入
+   ============================================================ */
+const joystick={active:false,id:null,sx:0,sy:0,dir:{x:0,y:0}};
+const stickEl=document.getElementById('stick');
+function stickDown(t){
+  if(t.clientX>window.innerWidth*0.45)return false;
+  joystick.active=true;joystick.id=t.identifier;
+  const r=cv.getBoundingClientRect();
+  joystick.sx=t.clientX-r.left;joystick.sy=t.clientY-r.top;
+  stickEl.classList.remove('hidden');
+  stickEl.style.left=joystick.sx+'px';stickEl.style.top=joystick.sy+'px';
+  return true;
+}
+function stickMove(t){
+  if(!joystick.active||t.identifier!==joystick.id)return;
+  const r=cv.getBoundingClientRect();
+  let dx=(t.clientX-r.left)-joystick.sx,dy=(t.clientY-r.top)-joystick.sy;
+  const len=Math.hypot(dx,dy),max=52;
+  if(len>max){dx=dx/len*max;dy=dy/len*max;}
+  const knob=stickEl.querySelector('.knob');
+  knob.style.left=(55+dx)+'px';knob.style.top=(55+dy)+'px';
+  joystick.dir.x=dx/max;joystick.dir.y=dy/max;
+}
+function stickUp(t){
+  if(joystick.active&&t.identifier===joystick.id){
+    joystick.active=false;joystick.dir.x=0;joystick.dir.y=0;
+    stickEl.classList.add('hidden');
+  }
+}
+const stageEl=document.getElementById('stage');
+stageEl.addEventListener('touchstart',e=>{
+  // 菜单/结算界面/参数面板/暂停按钮/联机面板/排行榜上的触摸不拦截, 保证浏览器正常合成 click(手机才能点按钮)
+  if(e.target.closest('#menu')||e.target.closest('#overlay')||e.target.closest('#cfgPanel')||e.target.closest('#btnPause')||e.target.closest('#pausePanel')||e.target.closest('#onlinePanel')||e.target.closest('#rankPanel'))return;
+  SFX.ensure();
+  for(const t of e.changedTouches){
+    if(t.target.closest('#btns'))continue;
+    if(!joystick.active&&stickDown(t))continue;
+  }
+  e.preventDefault();
+},{passive:false});
+stageEl.addEventListener('touchmove',e=>{
+  if(e.target.closest('#menu')||e.target.closest('#overlay')||e.target.closest('#cfgPanel')||e.target.closest('#btnPause')||e.target.closest('#pausePanel')||e.target.closest('#onlinePanel')||e.target.closest('#rankPanel'))return;
+  for(const t of e.changedTouches)stickMove(t);
+  e.preventDefault();
+},{passive:false});
+stageEl.addEventListener('touchend',e=>{
+  for(const t of e.changedTouches)stickUp(t);
+});
+stageEl.addEventListener('touchcancel',e=>{
+  for(const t of e.changedTouches)stickUp(t);
+});
+// 键盘
+const keys={};
+window.addEventListener('keydown',e=>{
+  const k=e.key.toLowerCase();
+  keys[k]=true;
+  if(k==='p'||e.key==='Escape'){ togglePause(); return; }
+  if(G.state!=='fight')return;
+  if(e.key.toLowerCase()==='j')basicAttack(P,E);
+  if(e.key.toLowerCase()==='k')skill1(P,E);
+  if(e.key.toLowerCase()==='l')skill2(P,E);
+  if(e.key.toLowerCase()==='u')ult(P,E);
+  if(e.key.toLowerCase()==='i')stealth(P);
+});
+window.addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;});
+// 按钮
+function bindBtn(id,fn){
+  const b=document.getElementById(id);
+  b.addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();SFX.ensure();fn();},{passive:false});
+  b.addEventListener('mousedown',e=>{e.preventDefault();SFX.ensure();fn();});
+}
+bindBtn('bA',()=>{ if(onAct('atk'))return; basicAttack(P,E); });
+bindBtn('bS1',()=>{ if(onAct('s1'))return; skill1(P,E); });
+bindBtn('bS2',()=>{ if(onAct('s2'))return; skill2(P,E); });
+bindBtn('bU',()=>{ if(onAct('ult'))return; ult(P,E); });
+bindBtn('bX',()=>{ if(onAct('stl'))return; stealth(P); });
+
+/* ============================================================
+   场景流程
+   ============================================================ */
+function startBattle(){ startBattleInner('fight'); }
+function startPractice(){ startBattleInner('practice'); }
+function startBattleInner(mode){
+  G.mode=mode;
+  const pick=CHARS[G.charSel];
+  const foeChar=G.charSel==='naruto'?CHARS.sasuke:CHARS.naruto;
+  camX=0;
+  P=new Fighter(pick,WORLD.w*0.3,1,true,G.skins[pick.id]||0);
+  E=new Fighter(foeChar,WORLD.w*0.7,-1,false,mode==='practice'?0:Math.floor(Math.random()*3));
+  projs=[];tails=[];particles=[];floaters=[];
+  document.getElementById('menu').classList.add('hidden');
+  document.getElementById('onlinePanel').classList.add('hidden');
+  document.getElementById('hud').classList.remove('hidden');
+  document.getElementById('btns').classList.remove('hidden');
+  document.getElementById('stick').classList.add('hidden');
+  document.getElementById('overlay').classList.add('hidden');
+  const tag=document.getElementById('modeTag');
+  if(mode==='fight'){ tag.classList.add('hidden'); }
+  else { tag.classList.remove('hidden'); tag.textContent=mode==='practice'?'🥋 练习模式(AI不死)':'🌐 联机对战'; }
+  G.state='fight';
+  paused=false;
+  document.getElementById('pausePanel').classList.add('hidden');
+  if(mode==='online')document.getElementById('btnPause').classList.add('hidden');
+  else document.getElementById('btnPause').classList.remove('hidden');
+  showBanner(mode==='practice'?'练习模式: AI 不会死亡!':'战斗开始!');
+  updateHUD();
+  if(mode!=='online')musicPlay(Math.floor(Math.random()*MUSIC.T.length));
+}
+function showBanner(text){
+  banner=document.getElementById('banner');
+  banner.classList.remove('hidden');
+  const s=banner.querySelector('span');
+  s.textContent=text;
+  s.style.animation='none';void s.offsetWidth;s.style.animation='';
+  setTimeout(()=>banner.classList.add('hidden'),1000);
+}
+function backToMenu(){
+  paused=false;
+  document.getElementById('pausePanel').classList.add('hidden');
+  document.getElementById('btnPause').classList.add('hidden');
+  document.getElementById('modeTag').classList.add('hidden');
+  document.getElementById('onTimer').classList.add('hidden');
+  document.getElementById('overlay').classList.add('hidden');
+  document.getElementById('hud').classList.add('hidden');
+  document.getElementById('btns').classList.add('hidden');
+  document.getElementById('menu').classList.remove('hidden');
+  G.state='menu';
+  G.mode='fight';
+  musicStop();
+  onFightCleanup();
+}
+document.getElementById('cardN').addEventListener('click',()=>{G.charSel='naruto';SFX.select();syncCards();});
+document.getElementById('cardS').addEventListener('click',()=>{G.charSel='sasuke';SFX.select();syncCards();});
+function syncCards(){
+  document.getElementById('cardN').classList.toggle('sel',G.charSel==='naruto');
+  document.getElementById('cardS').classList.toggle('sel',G.charSel==='sasuke');
+  document.getElementById('goBtn').disabled=false;
+  // 皮肤选择状态
+  document.querySelectorAll('.skinDot').forEach(d=>{
+    d.classList.toggle('sel',G.skins[d.dataset.c]===parseInt(d.dataset.s));
+  });
+  document.getElementById('skinNameN').textContent=SKINS.naruto[G.skins.naruto].name;
+  document.getElementById('skinNameS').textContent=SKINS.sasuke[G.skins.sasuke].name;
+}
+syncCards();
+document.querySelectorAll('.skinDot').forEach(d=>{
+  d.addEventListener('click',()=>{
+    G.skins[d.dataset.c]=parseInt(d.dataset.s);
+    SFX.select();
+    syncCards();
+  });
+});
+document.getElementById('goBtn').addEventListener('click',()=>{SFX.ensure();SFX.select();startBattle();});
+document.getElementById('btnPractice').addEventListener('click',()=>{SFX.ensure();SFX.select();startPractice();});
+document.getElementById('btnAgain').addEventListener('click',()=>{
+  SFX.select();
+  if(G.mode==='online'){ backToMenu(); return; }
+  if(G.mode==='practice')startPractice(); else startBattle();
+});
+document.getElementById('btnMenu').addEventListener('click',backToMenu);
+/* ============================================================
+   参数设置面板(按角色分节)
+   ============================================================ */
+const cfgRowsEl=document.getElementById('cfgRows');
+const PANEL_SECTIONS=[
+  {key:'btn',title:'⚙ 通用(按键布局)'},
+  {key:'naruto',title:'🟠 漩涡鸣人'},
+  {key:'sasuke',title:'🟣 宇智波佐助'}
+];
+const rowMeta=[];
+PANEL_SECTIONS.forEach(sec=>{
+  const defs=sec.key==='btn'?BTN_CFG:CHAR_CFG;
+  const h=document.createElement('div'); h.className='cfgSec'; h.textContent=sec.title;
+  cfgRowsEl.appendChild(h);
+  defs.forEach(d=>{
+    const row=document.createElement('div'); row.className='cfgRow';
+    row.innerHTML='<label>'+d.label+'</label><input type="range" min="'+d.min+'" max="'+d.max+'" step="'+d.step+'"><span class="val"></span>';
+    const input=row.querySelector('input'), val=row.querySelector('.val');
+    input.value=CFG[sec.key][d.key];
+    val.textContent=d.fmt(CFG[sec.key][d.key]);
+    input.addEventListener('input',()=>{
+      CFG[sec.key][d.key]=parseFloat(input.value);
+      val.textContent=d.fmt(CFG[sec.key][d.key]);
+      if(sec.key==='btn'){
+        applyBtnLayout();
+        if(d.key==='bgmVol')musicSetVol(CFG.btn.bgmVol/100);
+        if(d.key==='voiceVol')VOICE.vol=CFG.btn.voiceVol/100;
+      }
+      saveCfg();
+    });
+    cfgRowsEl.appendChild(row);
+    rowMeta.push({sec:sec.key,key:d.key,def:d,input,val});
+  });
+});
+function applyBtnLayout(){
+  const b=document.getElementById('btns');
+  b.style.transform='scale('+CFG.btn.scale+')';
+  b.style.transformOrigin='bottom right';
+  b.style.right=(2+CFG.btn.x)+'%';
+  b.style.bottom=(4+CFG.btn.y)+'%';
+}
+applyBtnLayout();
+document.getElementById('cfgReset').addEventListener('click',()=>{
+  ['btn','naruto','sasuke'].forEach(sec=>Object.assign(CFG[sec],JSON.parse(JSON.stringify(CFG_DEFAULTS[sec]))));
+  rowMeta.forEach(r=>{
+    r.input.value=CFG[r.sec][r.key];
+    r.val.textContent=r.def.fmt(CFG[r.sec][r.key]);
+  });
+  applyBtnLayout();
+  saveCfg();
+});
+document.getElementById('cfgClose').addEventListener('click',()=>{
+  document.getElementById('cfgPanel').classList.add('hidden');
+});
+document.getElementById('btnCfg').addEventListener('click',()=>{
+  SFX.select();
+  document.getElementById('cfgPanel').classList.remove('hidden');
+});
+
+/* ============================================================
+   暂停
+   ============================================================ */
+function togglePause(){
+  if(G.state!=='fight')return;
+  if(G.mode==='online')return; // 联机不可暂停
+  paused=!paused;
+  document.getElementById('pausePanel').classList.toggle('hidden',!paused);
+}
+document.getElementById('btnPause').addEventListener('click',togglePause);
+document.getElementById('btnResume').addEventListener('click',togglePause);
+document.getElementById('btnPauseMenu').addEventListener('click',()=>{
+  paused=false;
+  document.getElementById('pausePanel').classList.add('hidden');
+  backToMenu();
+});
+
+/* ============================================================
+   联机对战(基于极简聊天 v3.0.5 私聊信令)
+   房主(邀请方)权威模拟战斗并发快照; 客机上报操作
+   ============================================================ */
+const ON={
+  state:'off', srv:'http://127.0.0.1:3777', token:'', name:'',
+  friends:[], peer:'', host:false, lastId:0, seq:0, lastSeq:0,
+  mode:'draw', timeLimit:90, timeLeft:0,
+  picker:'', picks:{}, myChar:'', peerChar:'',
+  snap:null, snapTime:0, prevSnap:null, prevSnapTime:0,
+  remote:{x:0,pend:[]},
+  pollTimer:null, pingTimer:null, actTimer:null, snapTimer:null,
+  ended:false, pollCount:0, pollBusy:false, seen:new Set(), started:false,
+  seenFx:new Set(), lastMyHp:null, lastHpA:null, pendAge:0,
+  friendRequests:[], rankSent:false
+};
+function fmtTime(s){ const m=Math.floor(s/60),ss=Math.floor(s%60); return m+':'+(ss<10?'0':'')+ss; }
+function onShow(which){
+  ['onLogin','onLobby','onSetup','onPick','onInviteBox'].forEach(id=>{
+    document.getElementById(id).classList.toggle('hidden',id!==which);
+  });
+}
+async function onApi(path,body){
+  const sep=path.includes('?')?'&':'?';
+  const url=ON.srv+path+sep+'token='+encodeURIComponent(ON.token);
+  const opt=body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{};
+  const r=await fetch(url,opt);
+  return r.json();
+}
+async function onSend(verb,data,to){
+  const text='⛩NR:'+verb+(data?'|'+data:'');
+  for(let i=0;i<2;i++){
+    try{ await onApi('/api/messages',{text,to:to||ON.peer}); break; }catch(e){ await new Promise(r=>setTimeout(r,300)); }
+  }
+  // 关键控制消息发出后立即拉取一次, 降低选人/邀请的响应延迟
+  if(verb!=='ACT'&&verb!=='SNAP')setTimeout(onPoll,60);
+}
+function onMsg(t){
+  if(!t||t.type!=='text'||typeof t.text!=='string'||t.from===ON.name)return;
+  if(!t.text.startsWith('⛩NR:'))return;
+  const body=t.text.slice(4);
+  const sp=body.indexOf('|');
+  const verb=sp<0?body:body.slice(0,sp);
+  const data=sp<0?'':body.slice(sp+1);
+  if(verb==='INV'){
+    if(ON.state==='lobby'){
+      ON.peer=t.from; ON.host=false;
+      document.getElementById('onInviteText').textContent='⚔️ '+t.from+' 向你发起忍界对决挑战!';
+      document.getElementById('onInviteBox').classList.remove('hidden');
+    }else{ onSend('REJ','',t.from); }
+    return;
+  }
+  if(verb==='ACC'&&t.from===ON.peer&&ON.state==='waiting'){
+    ON.host=true;
+    ON.state='pick';
+    ON.mode=document.getElementById('onSelMode').value;
+    ON.timeLimit=parseInt(document.getElementById('onTime').value)||0;
+    ON.picker=ON.mode==='draw'?(Math.random()<0.5?ON.name:ON.peer):'';
+    ON.picks={};
+    const cfg={naruto:JSON.parse(JSON.stringify(CFG.naruto)),sasuke:JSON.parse(JSON.stringify(CFG.sasuke))};
+    onSend('CFG',JSON.stringify({mode:ON.mode,timeLimit:ON.timeLimit,picker:ON.picker,cfg}),ON.peer);
+    onShow('onPick');
+    document.getElementById('onPickTip').textContent=
+      ON.mode==='draw'?('🎲 抽签结果: '+(ON.picker===ON.name?'你':'对方')+' 中签, 先选角色'):'自由选择: 双方各自选人(可相同)';
+    onRenderPickButtons();
+    return;
+  }
+  if(verb==='REJ'&&t.from===ON.peer){
+    document.getElementById('onPickTip').textContent='😔 '+ON.peer+' 拒绝了挑战';
+    onShow('onPick'); onResetMatch(true);
+    return;
+  }
+  if(verb==='CFG'&&t.from===ON.peer&&!ON.host){
+    let c={};
+    try{ c=JSON.parse(data||'{}'); }catch(e){}
+    ON.mode=c.mode||'free'; ON.timeLimit=c.timeLimit||0; ON.picker=c.picker||'';
+    if(c.cfg){ CFG.naruto=Object.assign({},CFG.naruto,c.cfg.naruto); CFG.sasuke=Object.assign({},CFG.sasuke,c.cfg.sasuke); }
+    ON.picks={}; ON.state='pick';
+    onShow('onPick');
+    document.getElementById('onPickTip').textContent=
+      ON.mode==='draw'?('🎲 抽签结果: '+(ON.picker===ON.name?'你':'对方')+' 中签, 先选角色'):'自由选择: 双方各自选人(可相同)';
+    onRenderPickButtons();
+    return;
+  }
+  if(verb==='PICK'&&t.from===ON.peer){
+    const pp=String(data).split('|');
+    const pc=pp[0]||'naruto', psk=parseInt(pp[1]||'0',10);
+    ON.picks[ON.peer]=pc; ON.peerSkin=psk;
+    if(ON.host){
+      if(ON.mode==='draw'){ ON.picks[ON.name]=pc==='naruto'?'sasuke':'naruto'; onAllPicked(); }
+      else if(ON.picks[ON.name])onAllPicked();
+    }
+    return;
+  }
+  if(verb==='START'&&t.from===ON.peer){
+    if(ON.started)return; // 防重复开局
+    let c={};
+    try{ c=JSON.parse(data||'{}'); }catch(e){}
+    const mine=c.B&&c.B.c?c.B:(c.A||{}), peer=c.A&&c.A.c?c.A:(c.B||{});
+    ON.myChar=mine.c||'naruto'; ON.mySkin=parseInt(mine.sk||'0',10);
+    ON.peerChar=peer.c||'sasuke'; ON.peerSkin=parseInt(peer.sk||'0',10);
+    ON.musicIdx=parseInt(c.m||'0',10);
+    document.getElementById('onlinePanel').classList.add('hidden');
+    onStartOnlineFight();
+    return;
+  }
+  if(verb==='ACT'&&ON.host&&ON.state==='fight'){
+    let a={};
+    try{ a=JSON.parse(data||'{}'); }catch(e){}
+    if(a.seq<=ON.lastSeq)return;
+    ON.lastSeq=a.seq;
+    ON.remote.x=a.x||0;
+    if(a.act)ON.remote.pend.push(a.act);
+    return;
+  }
+  if(verb==='SNAP'&&!ON.host&&ON.state==='fight'){
+    ON.prevSnap=ON.snap; ON.prevSnapTime=ON.snapTime;
+    try{ ON.snap=JSON.parse(data||'{}'); }catch(e){}
+    ON.snapTime=performance.now();
+    return;
+  }
+  if(verb==='END'&&t.from===ON.peer&&ON.state==='fight'){
+    let e={};
+    try{ e=JSON.parse(data||'{}'); }catch(e){}
+    showOnlineKO(ON.host?!!e.hostWin:!e.hostWin,e.reason||'ko');
+    return;
+  }
+}
+async function onPoll(){
+  if(!ON.token||ON.pollBusy)return;
+  ON.pollBusy=true;
+  try{
+    const r=await onApi('/api/messages?after='+ON.lastId);
+    if(r.latestId)ON.lastId=Math.max(ON.lastId,r.latestId);
+    (r.messages||[]).forEach(t=>{
+      // 消息去重: 轮询重叠/重发时不重复处理同一条协议消息
+      if(t&&t.id!==undefined){
+        if(ON.seen.has(t.id))return;
+        ON.seen.add(t.id);
+        if(ON.seen.size>500){
+          const it=ON.seen.values();
+          for(let i=0;i<250;i++)ON.seen.delete(it.next().value);
+        }
+      }
+      onMsg(t);
+    });
+    if(ON.state==='lobby'&&(++ON.pollCount%20===0))onRefreshFriends();
+  }catch(e){}
+  ON.pollBusy=false;
+}
+function onStartPoll(){
+  if(ON.pollTimer)return;
+  ON.pollTimer=setInterval(onPoll,120);
+  ON.pingTimer=setInterval(()=>{ onApi('/api/ping').catch(()=>{}); },10000);
+}
+function onStopPoll(){
+  if(ON.pollTimer){ clearInterval(ON.pollTimer); ON.pollTimer=null; }
+  if(ON.pingTimer){ clearInterval(ON.pingTimer); ON.pingTimer=null; }
+}
+async function onDoLogin(reg){
+  const srv=document.getElementById('onSrv').value.trim().replace(/\/+$/,'');
+  const n=document.getElementById('onName').value.trim();
+  const p=document.getElementById('onPass').value;
+  const msg=document.getElementById('onMsg');
+  if(!srv||!n||!p){ msg.textContent='请填写服务器地址、账号和密码'; return; }
+  ON.srv=srv;
+  try{ localStorage.setItem('naruto-on-srv',srv); localStorage.setItem('naruto-on-name',n); }catch(e){}
+  msg.textContent='连接中...';
+  let r=null;
+  try{ r=await onApi(reg?'/api/register':'/api/login',{name:n,password:p}); }catch(e){}
+  if(r&&r.ok){ onLoggedIn(r,n); }
+  else{ msg.textContent='失败: '+((r&&r.error)||'无法连接服务器(检查地址, 确认极简聊天 v3.0.5 已开启)'); }
+}
+function onLoggedIn(r,n){
+  ON.token=r.token; ON.name=n; ON.state='lobby'; ON.lastId=0;
+  document.getElementById('onMe').textContent='已登录: '+n+' ('+ON.srv+')';
+  onShow('onLobby');
+  onRefreshFriends();
+  onStartPoll();
+}
+async function onRefreshFriends(){
+  try{
+    const r=await onApi('/api/friends');
+    ON.friends=(r&&r.friends)||[];
+    ON.friendRequests=(r&&r.requests)||[];
+    const box=document.getElementById('onFriends');
+    box.innerHTML='';
+    ON.friendRequests.forEach(fr=>{
+      const it=document.createElement('div');
+      it.className='friendItem';
+      it.innerHTML='<span><span class="dot" style="background:#ffd75e"></span>'+fr.name+' 申请加你好友</span>';
+      const wrap=document.createElement('span');
+      const acc=document.createElement('button'); acc.textContent='接受';
+      acc.style.cssText='margin:0 4px;padding:4px 12px;border-radius:8px;border:none;background:#3fd05a;color:#fff;font-size:12px;cursor:pointer';
+      acc.addEventListener('click',async(ev)=>{ ev.stopPropagation(); await onApi('/api/friends/accept',{name:fr.name}); onRefreshFriends(); });
+      const rej=document.createElement('button'); rej.textContent='拒绝';
+      rej.style.cssText='padding:4px 12px;border-radius:8px;border:none;background:rgba(255,255,255,.2);color:#fff;font-size:12px;cursor:pointer';
+      rej.addEventListener('click',async(ev)=>{ ev.stopPropagation(); await onApi('/api/friends/reject',{name:fr.name}); onRefreshFriends(); });
+      wrap.appendChild(acc); wrap.appendChild(rej);
+      it.appendChild(wrap);
+      box.appendChild(it);
+    });
+    if(!ON.friends.length&&!ON.friendRequests.length){
+      box.innerHTML='<div class="cfgTip">暂无好友 — 输入对方昵称点「添加」，对方接受后即可挑战</div>';
+      return;
+    }
+    ON.friends.forEach(fr=>{
+      const it=document.createElement('div');
+      it.className='friendItem '+(fr.online?'online':'offline');
+      it.innerHTML='<span><span class="dot"></span>'+fr.name+'</span><span style="font-size:11px;color:#9fb3d8">'+(fr.online?'在线':'离线')+'</span>';
+      if(fr.online&&fr.name!==ON.name){
+        it.addEventListener('click',()=>{
+          ON.peer=fr.name;
+          document.getElementById('onPeerTip').textContent='挑战对象: '+fr.name;
+          onShow('onSetup');
+        });
+      }
+      box.appendChild(it);
+    });
+  }catch(e){}
+}
+function onRenderPickButtons(){
+  const box=document.getElementById('onPickBtns');
+  box.innerHTML='';
+  // 已选过就不再显示按钮, 避免误触改选
+  const canPick=ON.mode==='free'
+    ? !ON.picks[ON.name]
+    : (ON.mode==='draw'&&ON.picker===ON.name&&!ON.picks[ON.name]);
+  if(!canPick){ return; }
+  ['naruto','sasuke'].forEach(cid=>{
+    const b=document.createElement('button');
+    b.textContent=cid==='naruto'?'🟠 漩涡鸣人':'🟣 宇智波佐助';
+    b.style.background=cid==='naruto'?'linear-gradient(180deg,#f7931e,#c86a0a)':'linear-gradient(180deg,#7a5ad6,#4a3488)';
+    b.style.padding='10px 22px'; b.style.borderRadius='999px'; b.style.border='none';
+    b.style.color='#fff'; b.style.fontSize='14px'; b.style.cursor='pointer';
+    b.addEventListener('click',()=>onPickChar(cid));
+    box.appendChild(b);
+  });
+}
+function onPickChar(c){
+  if(ON.picks[ON.name])return; // 防重复选人
+  ON.picks[ON.name]=c;
+  onSend('PICK',c+'|'+(G.skins[c]||0),ON.peer);
+  document.getElementById('onPickTip').textContent='已选择, 等待对方...';
+  onRenderPickButtons();
+  if(ON.host){
+    if(ON.mode==='draw'){ ON.picks[ON.peer]=c==='naruto'?'sasuke':'naruto'; onAllPicked(); }
+    else if(ON.picks[ON.peer])onAllPicked();
+  }
+}
+function onAllPicked(){
+  if(ON.started)return; // 防重复开局
+  ON.started=true;
+  ON.myChar=ON.picks[ON.name]||'naruto'; ON.peerChar=ON.picks[ON.peer]||'sasuke';
+  ON.mySkin=G.skins[ON.myChar]||0;
+  ON.musicIdx=Math.floor(Math.random()*MUSIC.T.length);
+  const start={m:ON.musicIdx,A:{c:ON.myChar,sk:ON.mySkin},B:{c:ON.peerChar,sk:ON.peerSkin||0}};
+  document.getElementById('onlinePanel').classList.add('hidden');
+  onSend('START',JSON.stringify(start),ON.peer);
+  onStartOnlineFight();
+}
+function onStartOnlineFight(){
+  ON.started=true;
+  ON.rankSent=false;
+  ON.seenFx.clear(); ON.lastMyHp=null; ON.lastHpA=null;
+  G.mode='online'; ON.state='fight'; ON.ended=false;
+  ON.snap=null; ON.prevSnap=null; ON.remote={x:0,pend:[]};
+  const myChar=CHARS[ON.myChar]||CHARS.naruto;
+  const peerChar=CHARS[ON.peerChar]||CHARS.sasuke;
+  if(ON.host){
+    P=new Fighter(myChar,WORLD.w*0.3,1,true,ON.mySkin||0);
+    E=new Fighter(peerChar,WORLD.w*0.7,-1,false,ON.peerSkin||0);
+  }else{
+    P=new Fighter(myChar,WORLD.w*0.7,-1,true,ON.mySkin||0);
+    E=new Fighter(peerChar,WORLD.w*0.3,1,false,ON.peerSkin||0);
+  }
+  projs=[];tails=[];particles=[];floaters=[];
+  document.getElementById('menu').classList.add('hidden');
+  document.getElementById('onlinePanel').classList.add('hidden');
+  document.getElementById('hud').classList.remove('hidden');
+  document.getElementById('btns').classList.remove('hidden');
+  document.getElementById('overlay').classList.add('hidden');
+  const tag=document.getElementById('modeTag');
+  tag.classList.remove('hidden'); tag.textContent='🌐 联机对战 · '+(ON.host?'房主':'客机');
+  document.getElementById('btnPause').classList.add('hidden');
+  document.getElementById('pausePanel').classList.add('hidden');
+  if(ON.timeLimit>0){
+    ON.timeLeft=ON.timeLimit;
+    document.getElementById('onTimer').classList.remove('hidden');
+  }else{
+    document.getElementById('onTimer').classList.add('hidden');
+  }
+  G.state='fight';
+  paused=false;
+  camX=0;
+  showBanner('联机对战开始!');
+  musicPlay(ON.musicIdx!=null?ON.musicIdx:Math.floor(Math.random()*MUSIC.T.length));
+  updateHUD();
+  if(ON.host){
+    ON.snapTimer=setInterval(onSendSnap,100);
+  }else{
+    ON.actTimer=setInterval(()=>{
+      if(G.state!=='fight'||G.mode!=='online')return;
+      if(Math.abs(ON.remote.x)>0.02){
+        ON.seq++;
+        onSend('ACT',JSON.stringify({seq:ON.seq,x:Math.round(ON.remote.x*100)/100}));
+      }
+    },80);
+  }
+}
+function onSendSnap(){
+  if(G.state!=='fight'||G.mode!=='online'||!ON.host)return;
+  if(!P||!E)return;
+  const fA={x:Math.round(P.x),y:Math.round(P.y),dir:P.dir,state:P.state,stealth:P.stealth,dead:P.dead,s2Stage:P.s2Stage,flash:P.flash,scale:P.scale,dots:P.dots.length>0?1:0,slow:P.slow>0?1:0};
+  const fB={x:Math.round(E.x),y:Math.round(E.y),dir:E.dir,state:E.state,stealth:E.stealth,dead:E.dead,s2Stage:E.s2Stage,flash:E.flash,scale:E.scale,dots:E.dots.length>0?1:0,slow:E.slow>0?1:0};
+  const pl=projs.map(p=>({type:p.type,x:Math.round(p.x),y:Math.round(p.y),dir:p.dir})).slice(0,20);
+  // 特效同步: 飘字/粒子(带ID供客机去重) + 震屏量 + 尾巴(抓取视觉)
+  const fl=floaters.slice(-8).map(f=>({id:f.id,x:Math.round(f.x),y:Math.round(f.y),text:f.text,color:f.color,size:f.size,age:f.t}));
+  const pt=particles.slice(-20).map(p=>({id:p.id,x:Math.round(p.x),y:Math.round(p.y),vx:Math.round(p.vx),vy:Math.round(p.vy),color:p.color,size:p.size,life:p.life,t:p.t,grav:p.grav||0}));
+  const tl2=tails.slice(-4).map(t=>({x:Math.round(t.x),y:Math.round(t.y),sx:Math.round(t.from.x),sy:Math.round(t.from.y-62)}));
+  onSend('SNAP',JSON.stringify({
+    hpA:Math.ceil(P.hp),hpB:Math.ceil(E.hp),
+    skillHitsA:P.skillHits,skillHitsB:E.skillHits,
+    ultA:P.ultReady,ultB:E.ultReady,xLeftA:P.xLeft,xLeftB:E.xLeft,
+    tl:Math.max(0,Math.ceil(ON.timeLeft)),fA,fB,projs:pl,
+    shock:Math.round(shock*10)/10,floaters:fl,particles:pt,tails:tl2
+  }));
+}
+function applyF(f,fs,hp,hits,ult,xLeft,dt){
+  if(!fs)return;
+  f.x+=(fs.x-f.x)*Math.min(1,dt*10);
+  f.y+=(fs.y-f.y)*Math.min(1,dt*10);
+  f.dir=fs.dir; f.state=fs.state; f.stealth=fs.stealth; f.dead=fs.dead;
+  f.s2Stage=fs.s2Stage; f.flash=fs.flash; f.scale=fs.scale;
+  f.hp=hp; f.maxHp=f.cfg.hp; f.skillHits=hits; f.ultReady=ult; f.xLeft=xLeft;
+}
+function onApplySnap(dt){
+  if(!ON.snap)return;
+  const s=ON.snap, prev=ON.prevSnap, nowT=performance.now();
+  // 快照间隔内插值系数
+  const k=prev?Math.min(1,(nowT-ON.snapTime)/160):1;
+  // 对方(房主角色 E): 在前后快照间插值 → 画面顺滑不跳变
+  if(prev){
+    E.x=prev.fA.x+(s.fA.x-prev.fA.x)*k;
+    E.y=prev.fA.y+(s.fA.y-prev.fA.y)*k;
+  }else{ E.x=s.fA.x; E.y=s.fA.y; }
+  E.dir=s.fA.dir; E.state=s.fA.state; E.stealth=s.fA.stealth; E.dead=s.fA.dead;
+  E.s2Stage=s.fA.s2Stage; E.flash=s.fA.flash; E.scale=s.fA.scale;
+  E.hp=s.hpA; E.maxHp=E.cfg.hp; E.skillHits=s.skillHitsA; E.ultReady=s.ultA; E.xLeft=s.xLeftA;
+  // 自己(P): 本地预测移动 + 快照柔和校正(更快收敛)
+  P.x+=(s.fB.x-P.x)*Math.min(1,dt*20);
+  P.y+=(s.fB.y-P.y)*Math.min(1,dt*20);
+  // 移动相关状态(idle/run)保留本地预测, 技能/受击/死亡以房主为准
+  const sb=s.fB.state;
+  if(!((sb==='run'||sb==='idle')&&(P.state==='run'||P.state==='idle')))P.state=sb;
+  P.dir=s.fB.dir; P.stealth=s.fB.stealth; P.dead=s.fB.dead;
+  P.s2Stage=s.fB.s2Stage; P.flash=s.fB.flash; P.scale=s.fB.scale;
+  P.hp=s.hpB; P.maxHp=P.cfg.hp; P.skillHits=s.skillHitsB; P.ultReady=s.ultB; P.xLeft=s.xLeftB;
+  // 持续特效同步: 黑火灼烧/减速标记(双方一致)
+  E.dots=s.fA.dots?[{name:'amaterasu'}]:[]; E.slow=s.fA.slow?performance.now()+9999:0;
+  P.dots=s.fB.dots?[{name:'amaterasu'}]:[]; P.slow=s.fB.slow?performance.now()+9999:0;
+  // 尾巴(抓取视觉)同步
+  if(s.tails&&Array.isArray(s.tails)){
+    tails=s.tails.map(p=>({from:{x:p.sx,y:p.sy+62},x:p.x,y:p.y,dir:1,speed:0,max:1,hit:true,hold:0}));
+  }
+  // 特效同步: 飘字/粒子/震屏/命中音效
+  if(s.floaters&&Array.isArray(s.floaters)){
+    s.floaters.forEach(f=>{
+      if(ON.seenFx.has('fl'+f.id))return;
+      ON.seenFx.add('fl'+f.id);
+      if(floaters.length>20)floaters.shift();
+      floaters.push({x:f.x,y:f.y,text:f.text,color:f.color,size:f.size,t:f.age,life:0.9-f.age});
+    });
+  }
+  if(s.particles&&Array.isArray(s.particles)){
+    s.particles.forEach(p=>{
+      if(ON.seenFx.has('pt'+p.id))return;
+      ON.seenFx.add('pt'+p.id);
+      if(particles.length>60)particles.shift();
+      particles.push({x:p.x,y:p.y,vx:p.vx,vy:p.vy,color:p.color,size:p.size,t:p.t,life:p.life,grav:p.grav});
+    });
+  }
+  if(ON.seenFx.size>4000)ON.seenFx.clear();
+  if(s.shock>0&&shock<s.shock)shock=s.shock*0.7;
+  if(ON.lastMyHp!==null&&s.hpB<ON.lastMyHp)SFX.hit();
+  if(ON.lastHpA!==null&&s.hpA<ON.lastHpA)SFX.hit();
+  ON.lastMyHp=s.hpB; ON.lastHpA=s.hpA;
+  projs=s.projs.map(p=>({type:p.type,x:p.x,y:p.y,dir:p.dir,angle:0,speed:0,life:0.4,from:P,dmg:0}));
+  const t=document.getElementById('onTimer');
+  if(s.tl>0){ t.classList.remove('hidden'); t.textContent='⏱ '+fmtTime(s.tl); }
+  else t.classList.add('hidden');
+}
+function onAct(act){
+  if(G.mode==='online'&&!ON.host){
+    ON.seq++;
+    onSend('ACT',JSON.stringify({seq:ON.seq,x:ON.remote.x,act}));
+    SFX.slash();
+    voiceLine(P,act==='s1'?'s1':act==='s2'?'s2':act==='ult'?'ult':act==='stl'?'stl':null);
+    return true;
+  }
+  return false;
+}
+function onlineEndByTime(){
+  if(ON.ended)return;
+  const aP=P.hp/P.maxHp, bP=E.hp/E.maxHp;
+  const hostWin=aP>=bP;
+  ON.ended=true;
+  onSend('END',JSON.stringify({hostWin,reason:'time'}));
+  showOnlineKO(hostWin,'time');
+}
+function showOnlineKO(win,reason){
+  if(ON.ended&&G.state==='ko')return;
+  ON.ended=true;
+  // 对局结果上报排行榜(云服务端支持; 本地服务端 404 静默忽略)
+  if(ON.token&&!ON.rankSent){
+    ON.rankSent=true;
+    onApi('/api/rank/report',{win:win}).catch(()=>{});
+  }
+  if(ON.state==='fight')ON.state='lobby';
+  G.state='ko';
+  musicSting(win);
+  document.getElementById('btnPause').classList.add('hidden');
+  const t=document.getElementById('koTitle');
+  t.textContent=win?'胜 利':'战 败';
+  t.className=win?'win':'lose';
+  document.getElementById('koSub').textContent=win
+    ?(reason==='time'?'⏱ 时间到! 血量占优获胜':'你击败了 '+ON.peer+'!')
+    :(reason==='time'?'⏱ 时间到! 血量落后惜败':'你被 '+ON.peer+' 击败');
+  document.getElementById('overlay').classList.remove('hidden');
+  document.getElementById('onTimer').classList.add('hidden');
+}
+function onFightCleanup(){
+  if(ON.actTimer){ clearInterval(ON.actTimer); ON.actTimer=null; }
+  if(ON.snapTimer){ clearInterval(ON.snapTimer); ON.snapTimer=null; }
+  if(ON.state==='fight')ON.state='lobby';
+  ON.snap=null; ON.prevSnap=null; ON.remote={x:0,pend:[]};
+  ON.started=false;
+}
+function onResetMatch(keepPanel){
+  ON.peer=''; ON.host=false; ON.picks={}; ON.picker='';
+  ON.started=false;
+  if(ON.token){ ON.state='lobby'; }
+  else{ ON.state='off'; }
+  document.getElementById('onInviteBox').classList.add('hidden');
+  if(keepPanel&&ON.state==='lobby')onShow('onLobby');
+}
+document.getElementById('onLoginBtn').addEventListener('click',()=>onDoLogin(false));
+document.getElementById('onRegBtn').addEventListener('click',()=>onDoLogin(true));
+document.getElementById('onLogoutBtn').addEventListener('click',async()=>{
+  try{ await onApi('/api/logout'); }catch(e){}
+  ON.token=''; ON.name=''; ON.state='off';
+  onStopPoll();
+  onShow('onLogin');
+});
+document.getElementById('btnOnline').addEventListener('click',()=>{
+  SFX.select();
+  document.getElementById('onlinePanel').classList.remove('hidden');
+  if(ON.token&&ON.state!=='off')onShow('onLobby'); else onShow('onLogin');
+});
+document.getElementById('onAddBtn').addEventListener('click',async()=>{
+  const n=document.getElementById('onAddName').value.trim();
+  const msg=document.getElementById('onAddMsg');
+  if(!n){ msg.textContent='请输入对方昵称'; return; }
+  msg.textContent='添加中...';
+  try{
+    const r=await onApi('/api/friends/add',{name:n});
+    if(r&&r.ok){ document.getElementById('onAddName').value=''; msg.textContent='好友申请已发送, 等对方接受'; onRefreshFriends(); }
+    else msg.textContent=(r&&r.error)||'添加失败';
+  }catch(e){ msg.textContent='添加失败: 无法连接服务器'; }
+});
+/* ============================================================
+   排行榜
+   ============================================================ */
+document.getElementById('btnRank').addEventListener('click',async()=>{
+  SFX.select();
+  document.getElementById('rankPanel').classList.remove('hidden');
+  const list=document.getElementById('rankList');
+  list.innerHTML='<div class="cfgTip">加载中...</div>';
+  try{
+    const r=await onApi('/api/rank');
+    if(!r||!r.ok){ list.innerHTML='<div class="cfgTip">该服务器暂不支持排行榜</div>'; return; }
+    let html='';
+    (r.top||[]).forEach((x,i)=>{
+      const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'.';
+      html+='<div style="display:flex;justify-content:space-between;padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.08)"><span>'+medal+' '+x.name+'</span><span style="color:#ffd75e">'+x.pts+'分 ('+x.wins+'胜'+x.losses+'负)</span></div>';
+    });
+    if(!html)html='<div class="cfgTip">暂无战绩, 打完联机对局自动上榜</div>';
+    if(r.me&&r.me.name)html+='<div style="margin-top:8px;padding:6px 8px;background:rgba(255,217,94,.12);border-radius:8px;color:#ffd75e">我的战绩: '+r.me.pts+'分 · '+r.me.wins+'胜 '+r.me.losses+'负</div>';
+    list.innerHTML=html;
+  }catch(e){ list.innerHTML='<div class="cfgTip">该服务器暂不支持排行榜</div>'; }
+});
+document.getElementById('rankClose').addEventListener('click',()=>{
+  document.getElementById('rankPanel').classList.add('hidden');
+});
+document.getElementById('onCloseBtn').addEventListener('click',()=>document.getElementById('onlinePanel').classList.add('hidden'));
+document.getElementById('onBackBtn').addEventListener('click',()=>document.getElementById('onlinePanel').classList.add('hidden'));
+document.getElementById('onStartBtn').addEventListener('click',()=>{
+  ON.state='waiting';
+  onSend('INV',ON.name);
+  onShow('onPick');
+  document.getElementById('onPickTip').textContent='邀请已发出, 等待 '+ON.peer+' 接受...';
+});
+document.getElementById('onAccBtn').addEventListener('click',()=>{
+  document.getElementById('onInviteBox').classList.add('hidden');
+  ON.state='pick';
+  onSend('ACC','',ON.peer);
+  document.getElementById('onPickTip').textContent='已接受, 等待房主开局...';
+  onShow('onPick');
+});
+document.getElementById('onRejBtn').addEventListener('click',()=>{
+  document.getElementById('onInviteBox').classList.add('hidden');
+  onSend('REJ','',ON.peer);
+  onResetMatch(false);
+});
+document.getElementById('onCancelBtn').addEventListener('click',()=>onResetMatch(true));
+document.getElementById('onPickCancel').addEventListener('click',()=>onResetMatch(true));
+try{
+  ON.srv=localStorage.getItem('naruto-on-srv')||ON.srv;
+  document.getElementById('onSrv').value=ON.srv;
+  document.getElementById('onName').value=localStorage.getItem('naruto-on-name')||'';
+}catch(e){}
+stageEl.addEventListener('contextmenu',function(e){e.preventDefault();});
+setTimeout(function(){var t=document.getElementById('tip');if(t)t.classList.add('hidden');},6000);
+
+/* ============================================================
+   主循环
+   ============================================================ */
+let lastT=performance.now();
+function loop(now){
+  requestAnimationFrame(loop);
+  let dt=(now-lastT)/1000;lastT=now;
+  dt=Math.max(0,Math.min(dt,0.05)); // 防御: 时钟异常回跳时 dt 不得为负
+  const frozen=hitstop>0;
+  if(!paused){
+    if(frozen)hitstop-=dt;
+    shock=Math.max(0,shock-dt*22);
+  }
+  // 每帧先复位变换再绘制, 不用 save/restore 包整帧:
+  // 否则任何一帧中途异常都会让 canvas 状态栈无限增长, 最终黑屏
+  ctx.setTransform(viewScale*DPR,0,0,viewScale*DPR,0,0);
+  ctx.clearRect(0,0,WORLD.w,WORLD.h);
+  if(shock>0){ctx.translate(rnd(-shock,shock),rnd(-shock,shock));}
+  ctx.translate(-camX,0); // 横向卷轴摄像机
+  drawBg();
+  if(G.state==='fight'&&!frozen){
+    if(!paused){
+      if(G.mode==='online'&&!ON.host){
+        // 客机: 本地预测移动(立即响应) + 上报 + 应用房主快照校正
+        let ldx=0;
+        if(joystick.active)ldx=joystick.dir.x;
+        if(keys['a']||keys['arrowleft'])ldx=-1;
+        if(keys['d']||keys['arrowright'])ldx=1;
+        ON.remote.x=ldx;
+        if(P&&!P.dead&&ldx!==0)move(P,ldx,dt);
+        onApplySnap(dt);
+      }else{
+        // 输入 → 移动
+        if(P&&!P.dead){
+          let dx=0;
+          if(joystick.active)dx=joystick.dir.x;
+          if(keys['a']||keys['arrowleft'])dx=-1;
+          if(keys['d']||keys['arrowright'])dx=1;
+          move(P,dx,dt);
+        }
+        if(G.mode!=='online')aiUpdate(dt,now);
+        updateProjs(dt,now);
+        updateFighter(P,dt,now);
+        updateFighter(E,dt,now);
+        if(G.mode==='online'&&ON.host){
+          // 房主: 应用客机输入(输入缓冲: 角色忙时下一帧重试, 不丢操作) + 倒计时
+          if(E&&!E.dead)move(E,ON.remote.x,dt);
+          if(ON.remote.pend.length){
+            const a=ON.remote.pend[0];
+            const st0=E.state, cdX0=E.cdX, cd10=E.cd1, cd20=E.cd2, cdU0=E.cdU;
+            if(a==='atk')basicAttack(E,P);
+            else if(a==='s1'){skill1(E,P); voiceLine(E,'s1');}
+            else if(a==='s2'){skill2(E,P); voiceLine(E,'s2');}
+            else if(a==='ult'){ult(E,P); voiceLine(E,'ult');}
+            else if(a==='stl'){stealth(E); voiceLine(E,'stl');}
+            ON.pendAge=(ON.pendAge||0)+1;
+            const acted=E.state!==st0||E.cdX>cdX0||E.cd1>cd10||E.cd2>cd20||E.cdU>cdU0||E.dead;
+            if(acted||ON.pendAge>45){ ON.remote.pend.shift(); ON.pendAge=0; }
+          }
+          if(ON.timeLimit>0&&G.state==='fight'){
+            ON.timeLeft-=dt;
+            if(ON.timeLeft<=0)onlineEndByTime();
+          }
+          const tEl=document.getElementById('onTimer');
+          if(ON.timeLimit>0&&G.state==='fight'&&!ON.ended){
+            tEl.classList.remove('hidden');
+            tEl.textContent='⏱ '+fmtTime(Math.max(0,Math.ceil(ON.timeLeft)));
+          }
+        }
+      }
+    }
+    if(!paused){
+      // 摄像机跟随双方中点(横向卷轴) + BGM紧张度随血量切换
+      const camT=clamp((P.x+E.x)/2-WORLD.w/2,0,ARENA_W-WORLD.w);
+      camX+=(camT-camX)*Math.min(1,dt*5);
+      const tense=(P.hp/P.maxHp<0.35)||(E.hp/E.maxHp<0.35);
+      if(tense!==MUSIC.tense){ MUSIC.tense=tense; musicSetPhase(tense?'tense':'calm'); }
+    }
+    drawFighter(E);drawFighter(P);
+    drawNameTags();
+    drawProjs();
+    try{ updateHUD(); }catch(e){}  // 兜底: HUD 异常绝不允许中断整帧渲染
+  }
+  drawParticles((frozen||paused)?0:dt);
+  drawFloaters((frozen||paused)?0:dt);
+  ctx.setTransform(viewScale*DPR,0,0,viewScale*DPR,0,0);
+  ctx.globalAlpha=1;
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
