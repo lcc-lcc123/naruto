@@ -122,6 +122,40 @@ header .title{flex:0 0 auto;font-weight:600;font-size:15px}
 .voicebubble .vdur{font-size:12px;opacity:.7;min-width:24px;text-align:right;flex-shrink:0}
 .vtrans{margin-top:4px;max-width:74%;font-size:12px;color:var(--sub);background:var(--other);border:1px solid var(--border);border-radius:8px;padding:6px 9px;line-height:1.5;word-break:break-word}
 .mine .vtrans{background:var(--inputbg)}
+/* ---------- 底部导航 / 通讯录 / 我的 ---------- */
+#tabbar{flex-shrink:0;display:flex;background:var(--top);border-top:1px solid var(--border);padding-bottom:env(safe-area-inset-bottom)}
+#tabbar>button{flex:1;border:none;background:none;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0 4px;font-size:11px;color:var(--sub)}
+#tabbar>button.on{color:var(--green)}
+#tabbar button svg{display:block}
+#tabbar .tbwrap{position:relative}
+#tabbar .badge{position:absolute;top:-4px;right:-12px;background:#fa5151;color:#fff;font-size:10px;border-radius:9px;min-width:16px;height:16px;line-height:16px;padding:0 4px;text-align:center;font-weight:600}
+#contactsView{flex:1;min-height:0;display:flex;flex-direction:column}
+.contactsScroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:20px}
+.cblock{margin-top:10px;background:var(--top);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.csec{font-size:12px;color:var(--sub);padding:8px 16px;background:var(--bg)}
+.crow{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--top);width:100%;border-left:none;border-right:none;border-top:none;text-align:left;font:inherit}
+.crow:last-child{border-bottom:none}
+.crow:active{background:var(--inputbg)}
+.cico{width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;flex-shrink:0}
+.cico.add{background:#fa9d3b}
+.cico.grp{background:#07c160}
+.cico.req{background:#f0b23d}
+.cinfo{flex:1;min-width:0}
+.cname{font-size:15px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.csub{font-size:12px;color:var(--sub);margin-top:2px}
+.crow .av{width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:17px;font-weight:600;flex-shrink:0}
+.crow .chev{color:var(--sub);font-size:18px}
+.cbadge{background:#fa5151;color:#fff;font-size:11px;border-radius:9px;padding:1px 6px;margin-left:auto}
+.crow .moreBtn{border:none;background:none;color:var(--sub);font-size:19px;padding:6px 2px 6px 8px;line-height:1}
+#meView{flex:1;min-height:0;overflow-y:auto;padding-bottom:20px}
+.meCard{display:flex;align-items:center;gap:14px;padding:22px 18px;background:var(--top);border-bottom:1px solid var(--border)}
+.meAvatar{width:60px;height:60px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:600}
+.meName{font-size:19px;font-weight:600;color:var(--text)}
+.meSub{font-size:12px;color:var(--sub);margin-top:4px}
+.crow.danger .cname{color:#fa5151}
+.actrow{padding:13px 6px;font-size:15px;border-bottom:1px solid var(--border);color:var(--text);cursor:pointer}
+.actrow:last-child{border-bottom:none}
+.actrow.danger{color:#fa5151}
 /* ---------- 聊天信息页 ---------- */
 #chatInfo,#chatSearch{position:fixed;inset:0;z-index:140;background:var(--bg);display:flex;flex-direction:column}
 .infohead{flex-shrink:0;display:flex;align-items:center;padding:0 6px;min-height:52px;background:var(--top);border-bottom:1px solid var(--border);padding-top:env(safe-area-inset-top)}
@@ -269,7 +303,7 @@ body.emoji-open #toLatest{display:none}
       <div class="link" id="modeLink">没有账号？注册一个</div>
       <div class="err" id="loginMsg"></div>
       <div id="connStatus" class="conn">正在检测连接...</div>
-      <div class="ver">手机端版本 v3.2.1</div>
+      <div class="ver">手机端版本 v3.3.0</div>
     </div>
   </div>
   <div id="mainView" class="hidden">
@@ -281,10 +315,67 @@ body.emoji-open #toLatest{display:none}
     </header>
     <div id="sessionView">
       <div id="sessionList"></div>
-      <div id="sessionActions">
-        <button id="btnFriends">＋ 好友</button>
-        <button id="btnCreateGroup" class="primary">＋ 建群</button>
+    </div>
+    <div id="contactsView" class="hidden">
+      <div class="contactsScroll">
+        <div class="cblock">
+          <div class="crow" id="crowRequests">
+            <div class="cico req">👥</div>
+            <div class="cinfo"><div class="cname">新的朋友</div></div>
+            <span class="cbadge hidden" id="reqBadge">0</span>
+            <span class="chev">›</span>
+          </div>
+          <button class="crow" id="btnFriends" type="button">
+            <div class="cico add">＋</div>
+            <div class="cinfo"><div class="cname">添加好友</div></div>
+            <span class="chev">›</span>
+          </button>
+          <button class="crow" id="btnCreateGroup" type="button">
+            <div class="cico grp">＋</div>
+            <div class="cinfo"><div class="cname">新建群</div></div>
+            <span class="chev">›</span>
+          </button>
+        </div>
+        <div class="cblock">
+          <div class="csec">群聊 <span id="grpCount"></span></div>
+          <div id="groupList"></div>
+        </div>
+        <div class="cblock">
+          <div class="csec">好友 <span id="friCount"></span></div>
+          <div id="friendList"></div>
+        </div>
       </div>
+    </div>
+    <div id="meView" class="hidden">
+      <div class="meCard">
+        <div class="meAvatar" id="meBigAvatar">我</div>
+        <div><div class="meName" id="meBigName"></div><div class="meSub" id="meSub">极简聊天</div></div>
+      </div>
+      <div class="cblock">
+        <div class="crow">
+          <div class="cinfo"><div class="cname">深色模式</div></div>
+          <label class="sw"><input type="checkbox" id="optDark"><i></i></label>
+        </div>
+        <div class="crow" id="rowAbout">
+          <div class="cinfo"><div class="cname">关于</div></div>
+          <span class="chev">›</span>
+        </div>
+      </div>
+      <div class="cblock"><div class="crow danger" id="rowLogout"><div class="cinfo"><div class="cname">退出登录</div></div></div></div>
+    </div>
+    <div id="tabbar">
+      <button type="button" data-tab="chats" class="on">
+        <span class="tbwrap"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M4 5.4h16a1 1 0 0 1 1 1v9.2a1 1 0 0 1-1 1H9l-4 3v-3H4a1 1 0 0 1-1-1V6.4a1 1 0 0 1 1-1z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg><span class="badge hidden" id="tabUnread"></span></span>
+        <span>信息</span>
+      </button>
+      <button type="button" data-tab="contacts">
+        <span class="tbwrap"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="9.4" cy="8" r="3.2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M3.4 19.6c.5-3.2 3-5.3 6-5.3s5.5 2.1 6 5.3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="17.2" cy="9.2" r="2.3" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".7"/><path d="M16 14.7c2.4.2 4.1 2 4.5 4.9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".7"/></svg></span>
+        <span>通讯录</span>
+      </button>
+      <button type="button" data-tab="me">
+        <span class="tbwrap"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="12" cy="7.6" r="4" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M4 20.4c0-3.9 3.6-6.4 8-6.4s8 2.5 8 6.4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
+        <span>我的</span>
+      </button>
     </div>
     <div id="chatView" class="hidden">
       <div class="chathead">
@@ -486,6 +577,7 @@ function doLogin(){
       $('#mainView').classList.remove('hidden');
       loadPrefs();
       loadKeepConvs();
+      switchTab('chats');
       poll();pollFriends();
       loadCallConfig();startCallPolling();
       setInterval(poll,900);
@@ -587,6 +679,8 @@ function markRead(key,upToId){api('/api/read','POST',{peer:key,upToId:upToId}).c
 function render(){
   renderSessions();
   if(state.currentChat){renderChat();renderTitle();}
+  renderTabBadge();
+  if(currentTab==='contacts'&&!$('#contactsView').classList.contains('hidden'))renderContacts();
 }
 function groupName(key){
   if(!isGroupKey(key))return key;
@@ -846,6 +940,9 @@ function openChat(key){
   state.currentChat=key;
   if(state.sessions[key])state.sessions[key].unread=0;
   $('#sessionView').classList.add('hidden');
+  $('#contactsView').classList.add('hidden');
+  $('#meView').classList.add('hidden');
+  $('#tabbar').classList.add('hidden');
   $('#chatView').classList.remove('hidden');
   closeEmojiPanel(false);
   setVoiceMode(false,false);
@@ -863,7 +960,8 @@ function openChat(key){
 function backToList(){
   state.currentChat=null;
   $('#chatView').classList.add('hidden');
-  $('#sessionView').classList.remove('hidden');
+  $('#tabbar').classList.remove('hidden');
+  switchTab(currentTab);
   closeEmojiPanel(false);
   render();
 }
@@ -1787,6 +1885,171 @@ function bindChatInfoUI(){
   $('#rowReport').addEventListener('click',openReport);
 }
 
+/* ---------- 底部导航 / 通讯录 / 我的 ---------- */
+var currentTab='chats';
+function switchTab(tab){
+  currentTab=tab;
+  $('#sessionView').classList.toggle('hidden',tab!=='chats');
+  $('#contactsView').classList.toggle('hidden',tab!=='contacts');
+  $('#meView').classList.toggle('hidden',tab!=='me');
+  Array.prototype.forEach.call(document.querySelectorAll('#tabbar>button'),function(b){
+    b.classList.toggle('on',b.getAttribute('data-tab')===tab);
+  });
+  var tt=document.querySelector('#mainView header .title');
+  if(tt)tt.textContent=tab==='chats'?'极简聊天':(tab==='contacts'?'通讯录':'我的');
+  var lb=$('#logoutBtn');
+  if(lb)lb.classList.toggle('hidden',tab!=='chats');
+  if(tab==='contacts')renderContacts();
+  if(tab==='me')renderMe();
+  renderTabBadge();
+}
+function renderTabBadge(){
+  var n=0;
+  Object.keys(state.sessions||{}).forEach(function(k){ if(k!=='sys')n+=state.sessions[k].unread||0; });
+  var b=$('#tabUnread');
+  if(b){ if(n>0){b.textContent=n>99?'99+':n;b.classList.remove('hidden');}else b.classList.add('hidden'); }
+  var rq=(state.requests||[]).length;
+  var rb=$('#reqBadge');
+  if(rb){ if(rq){rb.textContent=rq;rb.classList.remove('hidden');}else rb.classList.add('hidden'); }
+}
+function renderContacts(){
+  var fr=Object.keys(state.users||{}).filter(function(n){return n!==state.me;}).sort(function(a,b){return String(a).localeCompare(String(b),'zh');});
+  var garr=Object.keys(state.groups||{}).map(function(id){return state.groups[id];}).sort(function(a,b){return String(a.name||'').localeCompare(String(b.name||''),'zh');});
+  $('#friCount').textContent=fr.length?'('+fr.length+')':'';
+  $('#grpCount').textContent=garr.length?'('+garr.length+')':'';
+  $('#friendList').innerHTML=fr.map(function(n){
+    var u=state.users[n]||{};
+    return '<div class="crow" data-friend="'+esc(n)+'">'
+      +'<div class="av" style="background:'+(u.color||'#8a8def')+'">'+esc(String(n||'?').charAt(0))+'</div>'
+      +'<div class="cinfo"><div class="cname">'+esc(n)+'</div><div class="csub">'+(u.online?'在线':'离线')+'</div></div>'
+      +'<button class="moreBtn" type="button" data-more="'+esc(n)+'">⋯</button></div>';
+  }).join('')||'<div class="stempty" style="padding:22px">暂无好友，点上面「添加好友」</div>';
+  $('#groupList').innerHTML=garr.map(function(g){
+    var owner=g.admin===state.me;
+    return '<div class="crow" data-group="'+esc(g.id)+'">'
+      +'<div class="av" style="background:#07c160">群</div>'
+      +'<div class="cinfo"><div class="cname">'+esc(g.name||('群'+g.id))+'</div><div class="csub">'+((g.members||[]).length)+' 人'+(owner?' · 我是群主':'')+'</div></div>'
+      +'<button class="moreBtn" type="button" data-gmore="'+esc(g.id)+'">⋯</button></div>';
+  }).join('')||'<div class="stempty" style="padding:22px">暂无群聊，点上面「新建群」</div>';
+  bindContactRows();
+  renderTabBadge();
+}
+function bindContactRows(){
+  Array.prototype.forEach.call(document.querySelectorAll('#friendList .crow'),function(row){
+    row.addEventListener('click',function(ev){
+      if(ev.target.closest('.moreBtn'))return;
+      openChat(row.getAttribute('data-friend'));
+    });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('#friendList .moreBtn'),function(b){
+    b.addEventListener('click',function(ev){ev.stopPropagation();openFriendActions(b.getAttribute('data-more'));});
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('#groupList .crow'),function(row){
+    row.addEventListener('click',function(ev){
+      if(ev.target.closest('.moreBtn'))return;
+      openChat('g:'+row.getAttribute('data-group'));
+    });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('#groupList .moreBtn'),function(b){
+    b.addEventListener('click',function(ev){ev.stopPropagation();openGroupActions(b.getAttribute('data-gmore'));});
+  });
+}
+function openFriendActions(name){
+  openModal(name);
+  $('#modalBody').innerHTML='<div style="padding:2px 2px 6px">'
+    +'<div class="actrow" data-act="chat">发消息</div>'
+    +'<div class="actrow danger" data-act="del">删除好友</div></div>';
+  $('#modalBody').querySelector('[data-act="chat"]').addEventListener('click',function(){closeModal();openChat(name);});
+  $('#modalBody').querySelector('[data-act="del"]').addEventListener('click',function(){
+    closeModal();
+    if(!confirm('删除好友「'+name+'」？\n（聊天记录仍保留在服务器，重新加回后可继续查看）'))return;
+    api('/api/friends/remove','POST',{name:name}).then(function(){
+      delete state.sessions[name];
+      delete state.users[name];
+      state.friends=(state.friends||[]).filter(function(x){return x!==name;});
+      if(state.currentChat===name)backToList();
+      pollFriends();renderContacts();renderSessions();
+      toast('已删除好友');
+    }).catch(function(e){alert('删除失败: '+e.message);});
+  });
+  footBtn('取消','',closeModal);
+}
+function openGroupActions(id){
+  var g=state.groups[id]||{};
+  var owner=g.admin===state.me;
+  openModal(g.name||'群聊');
+  $('#modalBody').innerHTML='<div style="padding:2px 2px 6px">'
+    +'<div class="actrow" data-act="chat">进入群聊</div>'
+    +'<div class="actrow" data-act="members">群成员</div>'
+    +'<div class="actrow danger" data-act="leave">退出群聊</div>'
+    +(owner?'<div class="actrow danger" data-act="dismiss">解散群聊</div>':'')+'</div>';
+  function on(act,fn){var el=$('#modalBody').querySelector('[data-act="'+act+'"]');if(el)el.addEventListener('click',fn);}
+  on('chat',function(){closeModal();openChat('g:'+id);});
+  on('members',function(){closeModal();openGroupMembersModal(id);});
+  on('leave',function(){
+    closeModal();
+    if(!confirm('退出群聊「'+(g.name||'')+'」？'))return;
+    api('/api/groups/leave','POST',{id:id}).then(function(){
+      if(state.currentChat==='g:'+id)backToList();
+      delete state.sessions['g:'+id];
+      delete state.groups[id];
+      pollFriends();renderContacts();renderSessions();
+      toast('已退出群聊');
+    }).catch(function(e){alert('退出失败: '+e.message);});
+  });
+  on('dismiss',function(){
+    closeModal();
+    if(!confirm('解散群聊「'+(g.name||'')+'」？所有成员都会被移出。'))return;
+    api('/api/groups/dismiss','POST',{id:id}).then(function(){
+      if(state.currentChat==='g:'+id)backToList();
+      delete state.sessions['g:'+id];
+      delete state.groups[id];
+      pollFriends();renderContacts();renderSessions();
+      toast('群聊已解散');
+    }).catch(function(e){alert('解散失败: '+e.message);});
+  });
+  footBtn('取消','',closeModal);
+}
+function nameColor(n){
+  var cs=['#5a8def','#7a5af8','#e06c75','#2f9e6e','#c58a2b','#3aa0a8'];
+  var h=0;
+  n=String(n||'');
+  for(var i=0;i<n.length;i++)h=(h*31+n.charCodeAt(i))%997;
+  return cs[h%cs.length];
+}
+function renderMe(){
+  $('#meBigName').textContent=state.me||'';
+  var el=$('#meBigAvatar');
+  if(el){ el.textContent=String(state.me||'我').charAt(0); el.style.background=nameColor(state.me); }
+  var od=$('#optDark');
+  if(od)od.checked=!!dark;
+  var sub=$('#meSub');
+  if(sub)sub.textContent='极简聊天 · v3.3.0';
+}
+function bindTabsUI(){
+  Array.prototype.forEach.call(document.querySelectorAll('#tabbar>button'),function(b){
+    b.addEventListener('click',function(){switchTab(b.getAttribute('data-tab'));});
+  });
+  $('#crowRequests').addEventListener('click',function(){openFriendsModal();});
+  $('#optDark').addEventListener('change',function(){
+    dark=this.checked;
+    applyTheme(dark);
+  });
+  $('#rowAbout').addEventListener('click',function(){
+    openModal('关于');
+    $('#modalBody').innerHTML='<div style="font-size:13px;line-height:1.8;padding:4px 2px">'
+      +'<div><b>极简聊天</b> v3.3.0</div>'
+      +'<div style="color:var(--sub);margin-top:6px">服务器 101.200.171.33:3777<br>语音/通话 101.200.171.33:3778 (HTTPS)</div>'
+      +'<div style="color:var(--sub);margin-top:6px">聊天记录保存在你自己的服务器 data/ 目录，不做第三方云存储。</div></div>';
+    footBtn('知道了','primary',closeModal);
+  });
+  $('#rowLogout').addEventListener('click',function(){
+    if(!confirm('退出登录？'))return;
+    try{localStorage.removeItem('jj-token');}catch(e){}
+    location.reload();
+  });
+}
+
 /* ---------- 弹窗 ---------- */
 function openModal(title){
   $('#modalTitle').textContent=title;
@@ -2011,6 +2274,7 @@ holdBtn.addEventListener('pointercancel',holdEnd);
 holdBtn.addEventListener('contextmenu',function(e){e.preventDefault();});
 $('#callAudioBtn').addEventListener('click',function(){startCall('audio');});
 bindChatInfoUI();
+bindTabsUI();
 $('#callVideoBtn').addEventListener('click',function(){startCall('video');});
 $('#acceptBtn').addEventListener('click',acceptCall);
 $('#rejectBtn').addEventListener('click',rejectCall);
