@@ -1227,21 +1227,6 @@ function move(f,dx,dy,dt){
     f.state='idle'; f.vx=0; f.vd=0;
   }
 }
-// 客机端本地预测移动(仅客机使用; 房主/单机端位置积分由 updateFighter 完成)
-function moveLocal(f,dx,dy,dt){
-  move(f,dx,dy,dt);
-  if(f.state==='run'){
-    f.x+=f.vx*dt; f.x=clamp(f.x,46,ARENA_W-46);
-    f.d+=f.vd*dt; f.d=clamp(f.d,0,DEPTH);
-  }
-}
-// 客机端仅推进动画/闪烁计时(状态与物理由房主快照权威), 修复客机角色动画冻结
-function updateAnimOnly(f,dt,now){
-  if(!f)return;
-  f.now=now; f.animT+=dt;
-  if(f.state==='run')f.walkPhase+=dt*10;
-  f.flash=Math.max(0,f.flash-dt);
-}
 
 /* ============================================================
    渲染
@@ -1926,18 +1911,16 @@ document.getElementById('btnPauseMenu').addEventListener('click',()=>{
 
 /* ============================================================
    联机对战(基于极简聊天 v3.0.5 私聊信令)
-   房主(邀请方)权威模拟战斗并发快照; 客机上报操作
+   服务器中转帧同步(lockstep): 服务器只收/包/转输入, 双方本地各自演算
+   无房主/客机权威 —— ON.host 仅作为房间 A/B 侧标识用于输入配对
    ============================================================ */
 const ON={
   state:'off', srv:'http://127.0.0.1:3777', token:'', name:'',
-  friends:[], peer:'', host:false, lastId:0, seq:0, lastSeq:0,
+  friends:[], peer:'', host:false, lastId:0,
   mode:'draw', timeLimit:90, timeLeft:0,
   picker:'', picks:{}, myChar:'', peerChar:'',
-  snap:null, snapTime:0, prevSnap:null, prevSnapTime:0, lastActT:0, lastSnapT:0,
-  remote:{x:0,y:0,pend:[]},
-  pollTimer:null, pingTimer:null, actTimer:null, snapTimer:null,
+  pollTimer:null, pingTimer:null,
   ended:false, pollCount:0, pollBusy:false, seen:new Set(), started:false,
-  seenFx:new Set(), lastMyHp:null, lastHpA:null, pendAge:0,
   friendRequests:[], rankSent:false
 };
 function fmtTime(s){ const m=Math.floor(s/60),ss=Math.floor(s%60); return m+':'+(ss<10?'0':'')+ss; }
@@ -1959,7 +1942,7 @@ async function onSend(verb,data,to){
     try{ await onApi('/api/messages',{text,to:to||ON.peer}); break; }catch(e){ await new Promise(r=>setTimeout(r,300)); }
   }
   // 关键控制消息发出后立即拉取一次, 降低选人/邀请的响应延迟
-  if(verb!=='ACT'&&verb!=='SNAP')setTimeout(onPoll,60);
+  setTimeout(onPoll,60);
 }
 function onMsg(t){
   if(!t||t.type!=='text'||typeof t.text!=='string'||t.from===ON.name)return;
@@ -2029,31 +2012,6 @@ function onMsg(t){
     ON.musicIdx=parseInt(c.m||'0',10);
     document.getElementById('onlinePanel').classList.add('hidden');
     onStartOnlineFight();
-    return;
-  }
-  if(verb==='ACT'&&ON.host&&ON.state==='fight'){
-    let a={};
-    try{ a=JSON.parse(data||'{}'); }catch(e){}
-    if(a.seq<=ON.lastSeq)return;
-    ON.lastSeq=a.seq;
-    ON.lastActT=performance.now();
-    ON.remote.x=a.x||0;
-    ON.remote.y=a.y||0;
-    if(a.act)ON.remote.pend.push(a.act);
-    // 收到客机输入立即回快照(节流50ms), 缩短客机反馈回路
-    if(!ON.lastSnapT||performance.now()-ON.lastSnapT>50)onSendSnap();
-    return;
-  }
-  if(verb==='SNAP'&&!ON.host&&ON.state==='fight'){
-    ON.prevSnap=ON.snap; ON.prevSnapTime=ON.snapTime;
-    try{ ON.snap=JSON.parse(data||'{}'); }catch(e){}
-    ON.snapTime=performance.now();
-    return;
-  }
-  if(verb==='END'&&t.from===ON.peer&&ON.state==='fight'){
-    let e={};
-    try{ e=JSON.parse(data||'{}'); }catch(e){}
-    showOnlineKO(ON.host?!!e.hostWin:!e.hostWin,e.reason||'ko');
     return;
   }
 }
@@ -2195,9 +2153,7 @@ function onAllPicked(){
 function onStartOnlineFight(){
   ON.started=true;
   ON.rankSent=false;
-  ON.seenFx.clear(); ON.lastMyHp=null; ON.lastHpA=null;
   G.mode='online'; ON.state='fight'; ON.ended=false;
-  ON.snap=null; ON.prevSnap=null; ON.remote={x:0,y:0,pend:[]};
   const myChar=CHARS[ON.myChar]||CHARS.naruto;
   const peerChar=CHARS[ON.peerChar]||CHARS.sasuke;
   if(ON.host){
@@ -2219,7 +2175,7 @@ function onStartOnlineFight(){
   document.getElementById('btns').classList.remove('hidden');
   document.getElementById('overlay').classList.add('hidden');
   const tag=document.getElementById('modeTag');
-  tag.classList.remove('hidden'); tag.textContent='🌐 联机对战 · '+(ON.host?'房主':'客机');
+  tag.classList.remove('hidden'); tag.textContent='🌐 联机对战';
   document.getElementById('btnPause').classList.add('hidden');
   document.getElementById('pausePanel').classList.add('hidden');
   if(ON.timeLimit>0){
@@ -2239,101 +2195,6 @@ function onStartOnlineFight(){
     FS.room=ON.room;
     fsInit();
   }
-}
-function onSendSnap(){
-  if(G.state!=='fight'||G.mode!=='online'||!ON.host)return;
-  if(!P||!E)return;
-  ON.lastSnapT=performance.now();
-  const fA={x:Math.round(P.x),d:Math.round(P.d),y:Math.round(P.y),dir:P.dir,state:P.state,stealth:P.stealth,dead:P.dead,s2Stage:P.s2Stage,flash:P.flash,scale:P.scale,dots:P.dots.length>0?1:0,slow:P.slow>0?1:0,cd1:Math.round(P.cd1),cd2:Math.round(P.cd2),cdU:Math.round(P.cdU),cdX:Math.round(P.cdX)};
-  const fB={x:Math.round(E.x),d:Math.round(E.d),y:Math.round(E.y),dir:E.dir,state:E.state,stealth:E.stealth,dead:E.dead,s2Stage:E.s2Stage,flash:E.flash,scale:E.scale,dots:E.dots.length>0?1:0,slow:E.slow>0?1:0,cd1:Math.round(E.cd1),cd2:Math.round(E.cd2),cdU:Math.round(E.cdU),cdX:Math.round(E.cdX)};
-  const pl=projs.map(p=>({type:p.type,x:Math.round(p.x),y:Math.round(p.y),dir:p.dir})).slice(0,12);
-  // 特效同步: 飘字/粒子(带ID供客机去重) + 震屏量 + 尾巴(抓取视觉)
-  const fl=floaters.slice(-4).map(f=>({id:f.id,x:Math.round(f.x),y:Math.round(f.y),text:f.text,color:f.color,size:f.size,age:f.t}));
-  const pt=particles.slice(-8).map(p=>({id:p.id,x:Math.round(p.x),y:Math.round(p.y),vx:Math.round(p.vx),vy:Math.round(p.vy),color:p.color,size:p.size,life:p.life,t:p.t,grav:p.grav||0}));
-  const tl2=tails.slice(-2).map(t=>({x:Math.round(t.x),y:Math.round(t.y),sx:Math.round(t.from.x),sy:Math.round(t.from.y-62)}));
-  onSend('SNAP',JSON.stringify({
-    hpA:Math.ceil(P.hp),hpB:Math.ceil(E.hp),
-    skillHitsA:P.skillHits,skillHitsB:E.skillHits,
-    ultA:P.ultReady,ultB:E.ultReady,xLeftA:P.xLeft,xLeftB:E.xLeft,
-    tl:Math.max(0,Math.ceil(ON.timeLeft)),fA,fB,projs:pl,
-    shock:Math.round(shock*10)/10,floaters:fl,particles:pt,tails:tl2
-  }));
-}
-function applyF(f,fs,hp,hits,ult,xLeft,dt){
-  if(!fs)return;
-  f.x+=(fs.x-f.x)*Math.min(1,dt*10);
-  f.y+=(fs.y-f.y)*Math.min(1,dt*10);
-  f.dir=fs.dir; f.state=fs.state; f.stealth=fs.stealth; f.dead=fs.dead;
-  f.s2Stage=fs.s2Stage; f.flash=fs.flash; f.scale=fs.scale;
-  f.hp=hp; f.maxHp=f.cfg.hp; f.skillHits=hits; f.ultReady=ult; f.xLeft=xLeft;
-}
-function onApplySnap(dt){
-  if(!ON.snap)return;
-  const s=ON.snap, prev=ON.prevSnap, nowT=performance.now();
-  // 快照间隔内插值系数
-  const k=prev?Math.min(1,(nowT-ON.snapTime)/160):1;
-  // 对方(房主角色 E): 在前后快照间插值 → 画面顺滑不跳变
-  if(prev){
-    E.x=prev.fA.x+(s.fA.x-prev.fA.x)*k;
-    E.y=prev.fA.y+(s.fA.y-prev.fA.y)*k;
-    E.d=(prev.fA.d||0)+(s.fA.d-(prev.fA.d||0))*k;
-  }else{ E.x=s.fA.x; E.y=s.fA.y; E.d=s.fA.d||0; }
-  E.dir=s.fA.dir; E.state=s.fA.state; E.stealth=s.fA.stealth; E.dead=s.fA.dead;
-  E.s2Stage=s.fA.s2Stage; E.flash=s.fA.flash; E.scale=s.fA.scale;
-  E.hp=s.hpA; E.maxHp=E.cfg.hp; E.skillHits=s.skillHitsA; E.ultReady=s.ultA; E.xLeft=s.xLeftA;
-  // 自己(P): 本地预测移动 + 快照校正(操作中弱校正防回拉, 松手后快速收敛)
-  const movingNow=Math.abs(ON.remote.x)>0.02;
-  const pc=movingNow?dt*6:dt*15;
-  P.x+=(s.fB.x-P.x)*Math.min(1,pc);
-  P.y+=(s.fB.y-P.y)*Math.min(1,pc);
-  P.d+=((s.fB.d||0)-P.d)*Math.min(1,pc);
-  P.d=clamp(P.d,0,DEPTH);
-  // 状态: 本地刚触发的技能动画不被房主 idle/run 快照打断(伤害仍以房主为准); 受击/死亡立即权威
-  const sb=s.fB.state;
-  const LOCAL_SKILL={'s1':1,'s2':1,'ult':1,'attack1':1,'attack2':1,'attack3':1,'s2dash':1,'s2second':1};
-  const keepLocal=LOCAL_SKILL[P.state]&&(sb==='idle'||sb==='run')&&(performance.now()-(P.locSkillT||0)<450);
-  if(keepLocal){
-    // 保留本地技能动作(位置仍按上面收敛)
-  }else if(!((sb==='run'||sb==='idle')&&(P.state==='run'||P.state==='idle'))){
-    P.state=sb;
-  }
-  if(s.fB.cd1!==undefined){ P.cd1=s.fB.cd1; P.cd2=s.fB.cd2; P.cdU=s.fB.cdU; P.cdX=s.fB.cdX; }
-  P.dir=s.fB.dir; P.stealth=s.fB.stealth; P.dead=s.fB.dead;
-  P.s2Stage=s.fB.s2Stage; P.flash=s.fB.flash; P.scale=s.fB.scale;
-  P.hp=s.hpB; P.maxHp=P.cfg.hp; P.skillHits=s.skillHitsB; P.ultReady=s.ultB; P.xLeft=s.xLeftB;
-  // 持续特效同步: 黑火灼烧/减速标记(双方一致)
-  E.dots=s.fA.dots?[{name:'amaterasu'}]:[]; E.slow=s.fA.slow?performance.now()+9999:0;
-  P.dots=s.fB.dots?[{name:'amaterasu'}]:[]; P.slow=s.fB.slow?performance.now()+9999:0;
-  // 尾巴(抓取视觉)同步
-  if(s.tails&&Array.isArray(s.tails)){
-    tails=s.tails.map(p=>({from:{x:p.sx,y:p.sy+62},x:p.x,y:p.y,dir:1,speed:0,max:1,hit:true,hold:0}));
-  }
-  // 特效同步: 飘字/粒子/震屏/命中音效
-  if(s.floaters&&Array.isArray(s.floaters)){
-    s.floaters.forEach(f=>{
-      if(ON.seenFx.has('fl'+f.id))return;
-      ON.seenFx.add('fl'+f.id);
-      if(floaters.length>20)floaters.shift();
-      floaters.push({x:f.x,y:f.y,text:f.text,color:f.color,size:f.size,t:f.age,life:0.9-f.age});
-    });
-  }
-  if(s.particles&&Array.isArray(s.particles)){
-    s.particles.forEach(p=>{
-      if(ON.seenFx.has('pt'+p.id))return;
-      ON.seenFx.add('pt'+p.id);
-      if(particles.length>60)particles.shift();
-      particles.push({x:p.x,y:p.y,vx:p.vx,vy:p.vy,color:p.color,size:p.size,t:p.t,life:p.life,grav:p.grav});
-    });
-  }
-  if(ON.seenFx.size>4000)ON.seenFx.clear();
-  if(s.shock>0&&shock<s.shock)shock=s.shock*0.7;
-  if(ON.lastMyHp!==null&&s.hpB<ON.lastMyHp)SFX.hit();
-  if(ON.lastHpA!==null&&s.hpA<ON.lastHpA)SFX.hit();
-  ON.lastMyHp=s.hpB; ON.lastHpA=s.hpA;
-  projs=s.projs.map(p=>({type:p.type,x:p.x,y:p.y,dir:p.dir,angle:0,speed:0,life:0.4,from:P,dmg:0}));
-  const t=document.getElementById('onTimer');
-  if(s.tl>0){ t.classList.remove('hidden'); t.textContent='⏱ '+fmtTime(s.tl); }
-  else t.classList.add('hidden');
 }
 function onAct(act){
   if(G.mode==='online'&&FS.on){
@@ -2374,11 +2235,8 @@ function showOnlineKO(win,reason){
   });
 }
 function onFightCleanup(){
-  if(ON.actTimer){ clearInterval(ON.actTimer); ON.actTimer=null; }
-  if(ON.snapTimer){ clearInterval(ON.snapTimer); ON.snapTimer=null; }
   fsStop();
   if(ON.state==='fight')ON.state='lobby';
-  ON.snap=null; ON.prevSnap=null; ON.remote={x:0,y:0,pend:[]};
   ON.started=false;
 }
 function onResetMatch(keepPanel){
@@ -2449,7 +2307,7 @@ document.getElementById('onAccBtn').addEventListener('click',()=>{
   document.getElementById('onInviteBox').classList.add('hidden');
   ON.state='pick';
   onSend('ACC','',ON.peer);
-  document.getElementById('onPickTip').textContent='已接受, 等待房主开局...';
+  document.getElementById('onPickTip').textContent='已接受, 等待开局...';
   onShow('onPick');
 });
 document.getElementById('onRejBtn').addEventListener('click',()=>{
