@@ -41,7 +41,8 @@ canvas{display:block;width:100%;height:100%}
 #stL{left:2%}#stR{right:2%}
 
 /* ---- 菜单 ---- */
-#menu{position:absolute;inset:0;z-index:20;background:radial-gradient(ellipse at 50% 20%,#2b3550,#0c0e18 70%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3vh;color:#fff}
+#menu{position:absolute;inset:0;z-index:20;background:radial-gradient(ellipse at 50% 20%,#2b3550,#0c0e18 70%);overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y}
+.menuIn{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3vh;color:#fff;padding:14px 0}
 #menu h1{font-size:clamp(24px,6vw,42px);letter-spacing:6px;background:linear-gradient(180deg,#ffd75e,#ff7b00);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 0 24px rgba(255,150,0,.35)}
 #menu .sub{color:#9fb3d8;font-size:clamp(11px,2.6vw,14px);margin-top:-2vh}
 .cards{display:flex;gap:4vw;flex-wrap:wrap;justify-content:center}
@@ -55,7 +56,7 @@ canvas{display:block;width:100%;height:100%}
 #goBtn{font-size:clamp(15px,3.6vw,20px);padding:12px 44px;border-radius:999px;border:none;color:#fff;font-weight:700;background:linear-gradient(180deg,#ff9d2e,#e5600a);box-shadow:0 4px 18px rgba(230,100,0,.5);cursor:pointer;letter-spacing:2px}
 #goBtn:disabled{opacity:.35}
 .ctrlhint{font-size:clamp(9px,2.2vw,12px);color:#7d8fb0;text-align:center;line-height:1.7}
-#btnCfg{padding:8px 26px;border-radius:999px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.08);color:#fff;font-size:14px;cursor:pointer;letter-spacing:1px}
+#btnPractice,#btnOnline,#btnRank,#btnCfg{padding:8px 26px;border-radius:999px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.08);color:#fff;font-size:14px;cursor:pointer;letter-spacing:1px}
 
 .skinRow{display:flex;align-items:center;gap:6px;justify-content:center;margin-top:8px}
 .skinDot{width:22px;height:22px;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.06);color:#fff;font-size:11px;line-height:22px;text-align:center;cursor:pointer}
@@ -64,7 +65,7 @@ canvas{display:block;width:100%;height:100%}
 
 /* ---- 参数设置面板 ---- */
 #cfgPanel{position:absolute;inset:0;z-index:30;background:rgba(6,10,22,.6);display:flex;align-items:center;justify-content:center}
-.cfgCard{background:#1a2138;border:1px solid rgba(255,255,255,.2);border-radius:14px;padding:16px 18px;width:min(92vw,420px);max-height:88vh;overflow-y:auto;color:#fff}
+.cfgCard{background:#1a2138;border:1px solid rgba(255,255,255,.2);border-radius:14px;padding:16px 18px;width:min(92vw,420px);max-height:88vh;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;color:#fff}
 .cfgCard h2{font-size:18px;margin-bottom:10px;text-align:center}
 .cfgRow{display:flex;align-items:center;gap:8px;margin:10px 0;font-size:13px}
 .cfgRow label{flex:0 0 112px;text-align:right;color:#c8d4ea}
@@ -85,7 +86,7 @@ canvas{display:block;width:100%;height:100%}
 .friendItem.online .dot{background:#3fd05a}
 .friendItem.offline .dot{background:#666}
 .friendItem.offline{opacity:.5;cursor:default}
-#onFriends{max-height:30vh;overflow-y:auto}
+#onFriends{max-height:30vh;overflow-y:auto;touch-action:pan-y;-webkit-overflow-scrolling:touch}
 
 /* ---- 操作按钮 ---- */
 #btns{position:absolute;right:2%;bottom:4%;z-index:6;display:grid;grid-template-columns:repeat(3,64px);grid-template-rows:repeat(2,64px);gap:10px;pointer-events:none}
@@ -135,6 +136,39 @@ canvas{display:block;width:100%;height:100%}
 
 /* ---- 参数面板分节标题 ---- */
 .cfgSec{font-weight:700;color:#ffd75e;margin:14px 0 6px;border-bottom:1px solid rgba(255,255,255,.15);padding-bottom:4px;font-size:14px}
+
+/* ---- 菜单按钮组(横向排布, 节省纵向空间) ---- */
+.menuBtns{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;width:min(92vw,720px)}
+
+/* ---- 矮横屏(手机横放): 分级整体缩小, 三个模块一屏完整居中显示 ---- */
+@media (max-height:520px){
+  .menuIn{gap:1.2vh;padding:10px 0}
+  #menu h1{font-size:clamp(15px,4.6vh,19px);letter-spacing:3px}
+  #menu .sub{font-size:10px;margin-top:-0.4vh}
+  .cards{gap:2vw}
+  .card{width:min(40vw,160px);padding:7px 10px 8px;border-radius:12px}
+  .card h3{font-size:clamp(12px,4vh,14px);margin:3px 0 1px}
+  .card .mode{font-size:9px;margin-bottom:2px}
+  .card p{font-size:clamp(8px,2.8vh,9.5px);line-height:1.35}
+  .avatar{width:34px;height:34px}
+  .skinRow{margin-top:3px;gap:3px}
+  .skinDot{width:16px;height:16px;line-height:16px;font-size:9px}
+  .skinName{font-size:9px}
+  #goBtn{font-size:13px;padding:7px 30px}
+  #btnPractice,#btnOnline,#btnRank,#btnCfg{font-size:11px;padding:5px 16px}
+  .menuBtns{gap:8px}
+  .ctrlhint{font-size:clamp(8px,2.8vh,10px);line-height:1.5}
+  .cfgCard{max-height:86vh;padding:12px 14px}
+  #btns{grid-template-columns:repeat(3,50px);grid-template-rows:repeat(2,50px);gap:6px}
+  .gbtn{font-size:11px}
+  .gbtn small{font-size:8px}
+}
+@media (max-height:380px){
+  #menu .sub{display:none}
+  .card p{font-size:8px;line-height:1.3}
+  .ctrlhint{font-size:8px}
+  .menuIn{gap:0.9vh;padding:6px 0}
+}
 </style>
 </head>
 <body>
@@ -171,7 +205,7 @@ canvas{display:block;width:100%;height:100%}
 <div id="banner" class="hidden"><span></span></div>
 <div id="tip">🕹 左侧滑动移动 · 右侧按钮出招</div>
 
-<div id="menu">
+<div id="menu"><div class="menuIn">
   <h1>火影忍者 · 忍界对决</h1>
   <div class="sub">同人小游戏 · 选择你的忍者（对战 AI）</div>
   <div class="cards">
@@ -188,13 +222,15 @@ canvas{display:block;width:100%;height:100%}
       <p>① 万花筒·天照：减速50%+黑火持续灼烧<br>② 拔刀斩：锁定突刺 → 二段击退<br>③ 须佐能乎·天照斩</p>
     </div>
   </div>
-  <button id="goBtn" disabled>开始对战</button>
-  <button id="btnPractice">🥋 练习模式(AI不死)</button>
-  <button id="btnOnline">🌐 联机对战</button>
-  <button id="btnRank">🏆 排行榜</button>
-  <button id="btnCfg">⚙ 参数设置</button>
+  <div class="menuBtns">
+    <button id="goBtn" disabled>开始对战</button>
+    <button id="btnPractice">🥋 练习模式(AI不死)</button>
+    <button id="btnOnline">🌐 联机对战</button>
+    <button id="btnRank">🏆 排行榜</button>
+    <button id="btnCfg">⚙ 参数设置</button>
+  </div>
   <div class="ctrlhint">🕹 左侧屏幕滑动=移动 &nbsp;|&nbsp; 右侧按钮=普攻/技能/大招/隐身<br>技能命中5次积满能量激活大招 · 隐身每局2次(无敌+解控)<br>📱 仅支持横屏 · 界面自动适配手机屏幕<br>💻 电脑键盘: A/D移动 J普攻 K技能1 L技能2 U大招 I隐身</div>
-</div>
+</div></div>
 
 <div id="cfgPanel" class="hidden">
   <div class="cfgCard">
@@ -739,12 +775,34 @@ function updOrientation(){
     if(rotPausedByMe){ paused=false; rotPausedByMe=false; }
     resize();
   }
+  fitMenu();
 }
 window.addEventListener('resize',updOrientation);
 window.addEventListener('orientationchange',updOrientation);
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden)updOrientation(); });
 ['click','touchstart'].forEach(ev=>document.addEventListener(ev,e=>{ if(!e.target.closest('#rotate'))tryLockLandscape(); },{passive:true}));
 updOrientation();
+
+/* 菜单自适应缩放: 内容装不下时按比例缩小, 居中显示在屏幕中间 */
+function fitMenu(){
+  const menu=document.getElementById('menu');
+  const m=menu.querySelector('.menuIn');
+  if(!m)return;
+  m.style.transform='none';
+  const st=document.getElementById('stage');
+  const r=m.getBoundingClientRect();
+  const k=Math.min(1,(st.clientWidth-16)/r.width,(st.clientHeight-16)/r.height);
+  if(k<1){
+    m.style.transform='scale('+k+')';
+    m.style.transformOrigin='center center';
+    menu.style.overflowY='hidden';
+  }else{
+    menu.style.overflowY='auto';
+  }
+}
+window.addEventListener('resize',fitMenu);
+window.addEventListener('load',fitMenu);
+fitMenu();
 
 /* ============================================================
    伤害结算

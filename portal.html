@@ -6,10 +6,12 @@
 <title>忍界云 · 首页</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{min-height:100vh;background:radial-gradient(ellipse at 50% 0%,#2b3550,#0c0e18 70%);color:#fff;font-family:"PingFang SC","Microsoft YaHei",sans-serif;display:flex;flex-direction:column;align-items:center;padding:40px 20px;gap:24px}
+body{min-height:100vh;background:radial-gradient(ellipse at 50% 0%,#2b3550,#0c0e18 70%);color:#fff;font-family:"PingFang SC","Microsoft YaHei",sans-serif;display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto}
+#all{display:flex;flex-direction:column;align-items:center;gap:20px;max-width:100%}
+.mods{display:flex;flex-direction:column;gap:16px;width:min(92vw,380px);align-items:stretch}
 h1{font-size:26px;letter-spacing:4px;background:linear-gradient(180deg,#ffd75e,#ff7b00);-webkit-background-clip:text;background-clip:text;color:transparent}
 .sub{color:#9fb3d8;font-size:13px;text-align:center}
-.card{width:min(92vw,380px);border-radius:18px;padding:20px;text-decoration:none;color:#fff;display:flex;flex-direction:column;gap:8px;border:2px solid rgba(255,255,255,.15);transition:all .15s}
+.card{width:100%;border-radius:18px;padding:20px;text-decoration:none;color:#fff;display:flex;flex-direction:column;gap:8px;border:2px solid rgba(255,255,255,.15);transition:all .15s}
 .card:active{transform:scale(.97)}
 .card .ico{font-size:34px}
 .card .t{font-size:20px;font-weight:700}
@@ -18,11 +20,22 @@ h1{font-size:26px;letter-spacing:4px;background:linear-gradient(180deg,#ffd75e,#
 #c-chat{background:linear-gradient(135deg,rgba(7,193,96,.25),rgba(5,120,60,.15))}
 #c-rank{background:linear-gradient(135deg,rgba(155,109,255,.25),rgba(90,50,180,.15))}
 .foot{margin-top:auto;color:#7d8fb0;font-size:11px;text-align:center;line-height:1.8}
+@media (orientation:landscape){
+  .mods{flex-direction:row;width:auto;max-width:96vw;gap:14px}
+  .mods .card{width:clamp(190px,29vw,300px);padding:14px}
+  h1{font-size:20px;letter-spacing:3px}
+  .sub{font-size:11px}
+  .card .ico{font-size:26px}
+  .card .t{font-size:16px}
+  .card .d{font-size:11px;line-height:1.5}
+  .foot{font-size:10px;line-height:1.6}
+}
 </style>
 </head>
-<body>
+<body><div id="all">
 <h1>⛩ 忍界云</h1>
 <div class="sub">你和朋友的小天地 · 7×24 在线</div>
+<div class="mods">
 <a class="card" id="c-game" href="/game">
   <span class="ico">🎮</span>
   <span class="t">火影忍者 · 忍界对决</span>
@@ -38,10 +51,28 @@ h1{font-size:26px;letter-spacing:4px;background:linear-gradient(180deg,#ffd75e,#
   <span class="t">排行榜</span>
   <span class="d">联机对战战绩自动结算，打开游戏点「🏆 排行榜」查看</span>
 </a>
+</div>
 <div class="foot">服务器时间由本机提供 · 登录账号与本地极简聊天独立<br>如需修改页面请联系管理员</div>
   <footer style="color:#7d8fb0;font-size:11px;text-align:center;line-height:1.8">
     <div>游戏BGM/配音: 用户自备 · 仅供朋友间交流使用</div>
     <div>同人作品, 与火影忍者原作无关 · 仅供学习交流</div>
   </footer>
+</div>
+<script>
+(function(){
+  function fit(){
+    var a=document.getElementById('all');
+    a.style.transform='none';
+    var r=a.getBoundingClientRect();
+    var k=Math.min(1,(innerWidth-24)/r.width,(innerHeight-24)/r.height);
+    document.body.style.overflow=(k<1)?'hidden':'auto';
+    if(k<1){a.style.transform='scale('+k+')';a.style.transformOrigin='center center';}
+  }
+  addEventListener('resize',fit);
+  addEventListener('orientationchange',fit);
+  addEventListener('load',fit);
+  fit();
+})();
+</script>
 </body>
 </html>
