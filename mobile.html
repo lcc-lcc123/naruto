@@ -64,6 +64,11 @@ header .title{flex:0 0 auto;font-weight:600;font-size:15px}
 .chatsub{font-size:12px;color:var(--sub);flex-shrink:0}
 #membersBtn{border-color:var(--border);color:var(--text);background:var(--inputbg)}
 #msgList{flex:1;min-height:0;overflow-y:auto;padding:12px 10px;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+#msgList::-webkit-scrollbar{width:8px}
+#msgList::-webkit-scrollbar-thumb{background:rgba(0,0,0,.25);border-radius:8px}
+#msgList::-webkit-scrollbar-track{background:transparent}
+#toLatest{position:absolute;right:14px;bottom:82px;z-index:6;padding:8px 14px;border-radius:999px;border:none;background:#0f9d58;color:#fff;font-size:13px;box-shadow:0 4px 14px rgba(0,0,0,.25);cursor:pointer}
+#chatView{position:relative}
 .msg-row{display:flex;flex-direction:column;margin-bottom:12px}
 .msg-row.mine{align-items:flex-end}
 .msg-row.other{align-items:flex-start}
@@ -153,6 +158,7 @@ header .title{flex:0 0 auto;font-weight:600;font-size:15px}
         <button class="icon-btn" id="membersBtn">成员</button>
       </div>
       <div id="msgList"></div>
+      <button id="toLatest" class="hidden">⬇ 返回最新</button>
       <div class="inputbar" id="inputbar">
         <button class="bar-btn" id="emojiBtn">😊</button>
         <input id="msgInput" placeholder="输入消息...">
@@ -281,6 +287,8 @@ function poll(){
         // 去重: 网络慢时可能多次拉到同一条消息(全局ID集合)
         if(state.ids[m.id])return;
         state.ids[m.id]=true;
+        // 跳过游戏联机协议消息(⛩NR:...), 它们只用于游戏信令, 不进入聊天界面
+        if(m.type==='text'&&typeof m.text==='string'&&m.text.indexOf('⛩NR:')===0)return;
         state.allMsgs.push(m);
         var key;
         if(m.to&&m.to.indexOf('g:')===0)key=m.to;
@@ -485,7 +493,8 @@ function renderChat(){
   Array.prototype.forEach.call(box.querySelectorAll('[data-save]'),function(b){
     b.addEventListener('click',function(){downloadFile(b.getAttribute('data-save'),b.getAttribute('data-name'));});
   });
-  box.scrollTop=box.scrollHeight;
+  if(stickBottom){ box.scrollTop=box.scrollHeight; $('#toLatest').classList.add('hidden'); }
+  else { $('#toLatest').classList.remove('hidden'); }
 }
 function loadImg(fid){
   if(imgPromise[fid])return imgPromise[fid];
@@ -513,7 +522,21 @@ function downloadFile(fid,name){
 }
 
 /* ---------- 会话切换 ---------- */
+var stickBottom=true;
+(function(){
+  var box=$('#msgList'), btn=$('#toLatest');
+  box.addEventListener('scroll',function(){
+    stickBottom=(box.scrollHeight-box.scrollTop-box.clientHeight)<70;
+    if(stickBottom)btn.classList.add('hidden');
+  },{passive:true});
+  btn.addEventListener('click',function(){
+    stickBottom=true;
+    btn.classList.add('hidden');
+    try{ box.scrollTo({top:box.scrollHeight,behavior:'smooth'}); }catch(e){ box.scrollTop=box.scrollHeight; }
+  });
+})();
 function openChat(key){
+  stickBottom=true; // 切换会话时回到最新
   state.currentChat=key;
   if(state.sessions[key])state.sessions[key].unread=0;
   $('#sessionView').classList.add('hidden');
