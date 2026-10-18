@@ -133,6 +133,7 @@ canvas{display:block;width:100%;height:100%}
 /* ---- 暂停 ---- */
 #btnPause{position:absolute;top:2%;left:50%;transform:translateX(-50%);z-index:8;padding:6px 16px;border-radius:999px;border:1px solid rgba(255,255,255,.4);background:rgba(20,24,40,.6);color:#fff;font-size:14px;cursor:pointer}
 #modeTag{position:absolute;top:2%;left:calc(50% + 100px);z-index:8;padding:6px 12px;border-radius:999px;background:rgba(20,24,40,.65);border:1px solid rgba(255,255,255,.3);color:#ffd75e;font-size:12px;white-space:nowrap}
+#netStat{position:absolute;top:2%;left:2%;z-index:8;padding:5px 10px;border-radius:999px;background:rgba(20,24,40,.65);border:1px solid rgba(255,255,255,.22);color:#9fe8ff;font-size:11px;font-family:monospace;white-space:nowrap}
 #onTimer{position:absolute;top:2%;left:calc(50% - 150px);z-index:8;padding:6px 12px;border-radius:999px;background:rgba(20,24,40,.65);border:1px solid rgba(255,255,255,.3);color:#7dd8ff;font-size:12px;white-space:nowrap}
 #pausePanel{position:absolute;inset:0;z-index:30;background:rgba(6,10,22,.55);display:flex;align-items:center;justify-content:center}
 #btnResume{background:linear-gradient(180deg,#ff9d2e,#e5600a)}
@@ -203,6 +204,7 @@ canvas{display:block;width:100%;height:100%}
 
 <button id="btnPause" class="hidden">⏸ 暂停</button>
 <div id="modeTag" class="hidden"></div>
+<div id="netStat" class="hidden"></div>
 <div id="onTimer" class="hidden"></div>
 
 <div id="stick" class="hidden"><div class="base"></div><div class="knob"></div></div>
@@ -887,22 +889,31 @@ function playWinVideo(win,thenShow){
     src='video/'+P.c.id+'_win'+idx+'.mp4';
   }
   if(!src){ thenShow(); return; }
-  if(AUDIO.curBgm){ try{ AUDIO.curBgm.pause(); }catch(e){} }
-  v.src=src; v.currentTime=0; v.muted=false;
-  vbox.classList.remove('hidden');
-  v.play().catch(()=>{ v.muted=true; v.play().catch(()=>{}); });
-  let done=false;
-  const finish=()=>{
-    if(done)return; done=true;
-    try{ v.pause(); }catch(e){}
-    vbox.classList.add('hidden');
-    if(AUDIO.curBgm){ try{ AUDIO.curBgm.play(); }catch(e){} }
-    thenShow();
-  };
-  v.onended=finish;
-  v.onerror=finish;
-  vbox.onclick=finish;
-  setTimeout(finish,20000); // 兜底: 任何异常20秒后必出结算
+  let objUrl=null;
+  // KO结算优先从手机本地缓存播放(登录时已校验下载)
+  vcGet(src).then(rec=>{
+    if(rec&&rec.blob){ try{ objUrl=URL.createObjectURL(rec.blob); }catch(e){} }
+    start(objUrl||src);
+  }).catch(()=>start(src));
+  function start(vsrc){
+    if(AUDIO.curBgm){ try{ AUDIO.curBgm.pause(); }catch(e){} }
+    v.src=vsrc; v.currentTime=0; v.muted=false;
+    vbox.classList.remove('hidden');
+    v.play().catch(()=>{ v.muted=true; v.play().catch(()=>{}); });
+    let done=false;
+    const finish=()=>{
+      if(done)return; done=true;
+      try{ v.pause(); }catch(e){}
+      vbox.classList.add('hidden');
+      if(objUrl){ try{ URL.revokeObjectURL(objUrl); }catch(e){} }
+      if(AUDIO.curBgm){ try{ AUDIO.curBgm.play(); }catch(e){} }
+      thenShow();
+    };
+    v.onended=finish;
+    v.onerror=finish;
+    vbox.onclick=finish;
+    setTimeout(finish,20000); // 兜底: 任何异常20秒后必出结算
+  }
 }
 function applyDots(f){
   for(let i=f.dots.length-1;i>=0;i--){
@@ -1829,9 +1840,17 @@ document.getElementById('goBtn').addEventListener('click',()=>{SFX.ensure();SFX.
 document.getElementById('btnPractice').addEventListener('click',()=>{SFX.ensure();SFX.select();startPractice();});
 document.getElementById('btnAgain').addEventListener('click',()=>{
   SFX.select();
-  if(G.mode==='online'){ backToMenu(); return; }
+  if(G.mode==='online'){ startRematch(); return; }
   if(G.mode==='practice')startPractice(); else startBattle();
 });
+// 免邀请再来一局: 生成新房间号广播给对手, 双方直接开始(保持角色/皮肤/参数)
+function startRematch(){
+  if(!ON.peer||!ON.token){ backToMenu(); return; }
+  const room='r'+Date.now().toString(36)+Math.floor(Math.random()*1e6).toString(36);
+  ON.room=room;
+  onSend('REM',JSON.stringify({room}));
+  onStartOnlineFight();
+}
 document.getElementById('btnMenu').addEventListener('click',backToMenu);
 /* ============================================================
    参数设置面板(按角色分节)
@@ -2014,6 +2033,13 @@ function onMsg(t){
     onStartOnlineFight();
     return;
   }
+  if(verb==='REM'&&t.from===ON.peer){
+    // 免邀请再来一局: 对手发起, 使用新房间号直接开战
+    let e={};
+    try{ e=JSON.parse(data||'{}'); }catch(err){}
+    if(e.room){ ON.room=e.room; onStartOnlineFight(); }
+    return;
+  }
 }
 async function onPoll(){
   if(!ON.token||ON.pollBusy)return;
@@ -2066,6 +2092,7 @@ function onLoggedIn(r,n){
   onShow('onLobby');
   onRefreshFriends();
   onStartPoll();
+  vcSync();   // 登录时校验/下载胜利奥义视频到手机本地
 }
 async function onRefreshFriends(){
   try{
@@ -2324,6 +2351,95 @@ try{
 }catch(e){}
 stageEl.addEventListener('contextmenu',function(e){e.preventDefault();});
 setTimeout(function(){var t=document.getElementById('tip');if(t)t.classList.add('hidden');},6000);
+
+/* ============================================================
+   胜利奥义视频本地缓存: 登录时校验与服务器文件大小是否一致,
+   不一致则下载存 IndexedDB; KO结算优先从本地缓存播放
+   ============================================================ */
+const VCACHE={db:null, syncing:false};
+const WIN_VIDEOS=['naruto_win1','naruto_win2','naruto_win3','naruto_win4','sasuke_win1','sasuke_win2','sasuke_win3'];
+function vcOpen(){
+  return new Promise(res=>{
+    if(VCACHE.db)return res(VCACHE.db);
+    try{
+      const req=indexedDB.open('naruto-cache',1);
+      req.onupgradeneeded=()=>{ if(!req.result.objectStoreNames.contains('files'))req.result.createObjectStore('files'); };
+      req.onsuccess=()=>{ VCACHE.db=req.result; res(VCACHE.db); };
+      req.onerror=()=>res(null);
+    }catch(e){ res(null); }
+  });
+}
+function vcGet(key){
+  return new Promise(async res=>{
+    const db=await vcOpen(); if(!db)return res(null);
+    try{
+      const r=db.transaction('files','readonly').objectStore('files').get(key);
+      r.onsuccess=()=>res(r.result||null);
+      r.onerror=()=>res(null);
+    }catch(e){ res(null); }
+  });
+}
+function vcSet(key,blob){
+  return new Promise(async res=>{
+    const db=await vcOpen(); if(!db)return res(false);
+    try{
+      const t=db.transaction('files','readwrite');
+      t.objectStore('files').put({blob,size:blob.size,ts:Date.now()},key);
+      t.oncomplete=()=>res(true);
+      t.onerror=()=>res(false);
+    }catch(e){ res(false); }
+  });
+}
+async function vcSync(){
+  if(VCACHE.syncing)return; VCACHE.syncing=true;
+  let changed=0, failed=0;
+  try{
+    for(const name of WIN_VIDEOS){
+      const url='video/'+name+'.mp4';
+      try{
+        const h=await fetch(url,{method:'HEAD',cache:'no-store'});
+        if(!h.ok){ failed++; continue; }
+        const size=parseInt(h.headers.get('Content-Length')||'0',10)||0;
+        const cur=await vcGet(url);
+        if(!cur||cur.size!==size){
+          const r=await fetch(url,{cache:'no-store'});
+          if(!r.ok){ failed++; continue; }
+          const b=await r.blob();
+          if(await vcSet(url,b))changed++;
+        }
+      }catch(e){ failed++; }
+    }
+    console.log('🎬 奥义视频缓存同步完成: 更新', changed, '个, 失败', failed, '个');
+  }finally{ VCACHE.syncing=false; }
+}
+
+/* ============================================================
+   对战界面状态条: 联机延时(ms) + 渲染帧率(FPS)
+   ============================================================ */
+let netPing=0, netFps=0;
+(function netStatInit(){
+  let frames=0, last=performance.now();
+  function tick(){
+    frames++;
+    const t=performance.now();
+    if(t-last>=500){
+      netFps=Math.round(frames*1000/(t-last));
+      frames=0; last=t;
+      const el=document.getElementById('netStat');
+      if(el&&G.state==='fight'){
+        el.classList.remove('hidden');
+        el.textContent=(G.mode==='online'?'📶 '+(netPing||'--')+'ms · ':'')+'🎞 '+netFps+'fps';
+      }else if(el)el.classList.add('hidden');
+    }
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+})();
+setInterval(async()=>{
+  if(G.mode!=='online'||!ON.token)return;
+  const t0=performance.now();
+  try{ await onApi('/api/ping'); netPing=Math.round(performance.now()-t0); }catch(e){}
+},2000);
 
 /* ============================================================
    帧同步(lokstep): 服务器只中转输入, 双方同初始状态同输入序列本地演算

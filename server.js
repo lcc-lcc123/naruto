@@ -189,6 +189,7 @@ const server = http.createServer(async function (req, res) {
         const stat = fs.statSync(file);
         cors(res);
         res.writeHead(200, { 'Content-Type': mime, 'Cache-Control': 'public, max-age=86400', 'Accept-Ranges': 'bytes', 'Content-Length': stat.size });
+        if (req.method === 'HEAD') { res.end(); return; }  // HEAD: 只回头(供客户端校验文件大小做缓存比对)
         fs.createReadStream(file).pipe(res);
         return;
       }
