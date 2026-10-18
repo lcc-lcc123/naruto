@@ -24,7 +24,7 @@ const PORTALHTML = args.portal || path.join(__dirname, 'portal.html');
 try { fs.mkdirSync(FILESDIR, { recursive: true }); } catch (e) {}
 
 // ---------- 状态 ----------
-const state = { users: {}, friends: {}, requests: {}, groups: [], messages: [], nextId: 1, rank: {} };
+const state = { users: {}, friends: {}, requests: {}, groups: [], messages: [], nextId: 1, rank: {}, cleared: {}, reports: [] };
 const fsRooms = {};   // 火影帧同步房间: id -> {a,b,frames:{},next}
 const stateFile = path.join(DATADIR, 'state.json');
 function loadState() {
@@ -37,6 +37,8 @@ function loadState() {
     state.messages = s.messages || [];
     state.nextId = s.nextId || 1;
     state.rank = s.rank || {};
+    state.cleared = s.cleared || {};
+    state.reports = s.reports || [];
   } catch (e) {}
 }
 function saveState() {
@@ -428,7 +430,14 @@ async function handle(req, res) {
         if (m.deliveredTo.indexOf(name) < 0) { m.deliveredTo.push(name); changed = true; }
       }
     }
-    const vis = state.messages.filter(function (m) { return canSee(m, name); });
+    const clearMap = (state.cleared && state.cleared[name]) || {};
+    const convKey = function (m) {
+      if (m.to && m.to.indexOf('g:') === 0) return m.to;
+      return m.from === name ? m.to : m.from;
+    };
+    const vis = state.messages.filter(function (m) {
+      return canSee(m, name) && m.id > (clearMap[convKey(m)] || 0);
+    });
     const list = after > 0 ? vis.filter(function (m) { return m.id > after; }) : vis.slice(-200);
     const updates = [];
     for (let i = 0; i < state.messages.length; i++) {
@@ -463,6 +472,45 @@ async function handle(req, res) {
     const m = addMsg(name, to, 'text', text);
     saveState();
     return ok(res, { ok: true, message: m });
+  }
+
+  // 清空聊天记录(只影响自己这一侧)
+  if (p === '/api/messages/clear' && req.method === 'POST') {
+    const name = auth(req);
+    if (!name) return fail(res, 401, '请先登录');
+    const b = JSON.parse(((await readBody(req)) || '{}').toString());
+    let to = String(b.to || '').trim();
+    if (!to) return fail(res, 400, '参数错误');
+    const g = groupById(to.indexOf('g:') === 0 ? to.slice(2) : to);
+    if (g) to = 'g:' + g.id;
+    else if (to.indexOf('g:') === 0) return fail(res, 404, '群聊不存在');
+    else if (!state.users[to]) return fail(res, 404, '用户不存在');
+    if (!state.cleared) state.cleared = {};
+    if (!state.cleared[name]) state.cleared[name] = {};
+    state.cleared[name][to] = state.nextId;
+    saveState();
+    return ok(res, { ok: true, clearedTo: state.nextId });
+  }
+
+  // 投诉 / 反馈
+  if (p === '/api/report' && req.method === 'POST') {
+    const name = auth(req);
+    if (!name) return fail(res, 401, '请先登录');
+    const b = JSON.parse(((await readBody(req)) || '{}').toString());
+    const rec = {
+      id: crypto.randomBytes(6).toString('hex'),
+      from: name,
+      to: String(b.to || '').slice(0, 80),
+      reason: String(b.reason || '').slice(0, 60),
+      text: String(b.text || '').slice(0, 2000),
+      time: now()
+    };
+    if (!state.reports) state.reports = [];
+    state.reports.push(rec);
+    if (state.reports.length > 1000) state.reports.splice(0, state.reports.length - 1000);
+    saveState();
+    console.log('REPORT ' + JSON.stringify(rec));
+    return ok(res, { ok: true, id: rec.id });
   }
 
   // ---------- 火影帧同步(lockstep): 服务器只收集/打包/广播双方输入, 不做战斗模拟 ----------
