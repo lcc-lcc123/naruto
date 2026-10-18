@@ -96,9 +96,25 @@ header .title{flex:0 0 auto;font-weight:600;font-size:15px}
 .bar-btn{width:40px;height:38px;border:1px solid var(--border);border-radius:8px;background:var(--inputbg);font-size:16px;flex-shrink:0}
 #sendBtn{width:60px;height:38px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;flex-shrink:0}
 #sysHint{padding:10px;text-align:center;font-size:12px;color:var(--sub);background:var(--top);border-top:1px solid var(--border);flex-shrink:0}
-/* ---------- 表情 ---------- */
-#emojiPanel{position:fixed;left:0;right:0;bottom:0;background:var(--top);border-top:1px solid var(--border);padding:8px;display:grid;grid-template-columns:repeat(8,1fr);gap:2px;z-index:50;max-height:210px;overflow-y:auto}
-#emojiPanel button{font-size:24px;background:none;border:none;padding:5px 0;cursor:pointer}
+/* ---------- 表情(微信式面板: 输入栏下方的独立区域) ---------- */
+#emojiPanel{flex:0 0 auto;height:min(44vh,300px);min-height:184px;display:flex;flex-direction:column;background:var(--top);border-top:1px solid var(--border);padding-bottom:env(safe-area-inset-bottom,0px);z-index:20}
+body.emoji-open #inputbar{padding-bottom:8px}
+body.emoji-open #toLatest{display:none}
+#emojiScroll{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:0 10px 8px}
+#emojiScroll::-webkit-scrollbar{width:6px}
+#emojiScroll::-webkit-scrollbar-thumb{background:rgba(0,0,0,.22);border-radius:6px}
+#emojiScroll::-webkit-scrollbar-track{background:transparent}
+.emoji-sec{font-size:12px;color:var(--sub);padding:10px 2px 4px}
+.emoji-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:2px}
+.emoji-grid button{height:44px;font-size:28px;line-height:1;background:none;border:none;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
+.emoji-grid button:active{background:rgba(0,0,0,.08);transform:scale(.9)}
+#emojiBar{display:flex;align-items:center;gap:2px;padding:4px 8px;border-top:1px solid var(--border);background:var(--top);flex-shrink:0}
+#emojiBar .etab{width:44px;height:34px;border:none;background:none;font-size:20px;line-height:1;border-radius:8px;opacity:.5;cursor:pointer}
+#emojiBar .etab.on{opacity:1;background:var(--inputbg);box-shadow:inset 0 0 0 1px var(--border)}
+#emojiBar .spacer{flex:1}
+#emojiBar .ebtn{width:44px;height:34px;border:none;background:none;font-size:18px;color:var(--text);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+#emojiBar .ebtn svg{display:block}
+#emojiBar .ebtn:active{background:rgba(0,0,0,.08)}
 /* ---------- 弹窗 ---------- */
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;display:flex;align-items:flex-end}
 .modal{width:100%;max-width:560px;margin:0 auto;max-height:78vh;background:var(--panel);border-radius:16px 16px 0 0;display:flex;flex-direction:column;overflow:hidden}
@@ -135,7 +151,7 @@ header .title{flex:0 0 auto;font-weight:600;font-size:15px}
       <div class="link" id="modeLink">没有账号？注册一个</div>
       <div class="err" id="loginMsg"></div>
       <div id="connStatus" class="conn">正在检测连接...</div>
-      <div class="ver">手机端版本 v3.0.3</div>
+      <div class="ver">手机端版本 v3.0.6</div>
     </div>
   </div>
   <div id="mainView" class="hidden">
@@ -170,10 +186,22 @@ header .title{flex:0 0 auto;font-weight:600;font-size:15px}
         <button id="sendBtn">发送</button>
       </div>
       <div id="sysHint" class="hidden">这里是系统通知，不能发送消息</div>
+      <div id="emojiPanel" class="hidden">
+        <div id="emojiScroll"></div>
+        <div id="emojiBar">
+          <button class="etab" type="button" data-tab="0">😊</button>
+          <button class="etab" type="button" data-tab="1">👌</button>
+          <button class="etab" type="button" data-tab="2">🐼</button>
+          <button class="etab" type="button" data-tab="3">🍰</button>
+          <button class="etab" type="button" data-tab="4">⚽</button>
+          <span class="spacer"></span>
+          <button class="ebtn" type="button" id="emojiDel" title="删除"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M9 4.5h11A1.5 1.5 0 0 1 21.5 6v12a1.5 1.5 0 0 1-1.5 1.5H9L1.8 12z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M12.2 9.3l5.4 5.4m0-5.4l-5.4 5.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+          <button class="ebtn" type="button" id="emojiKb" title="切到键盘"><svg viewBox="0 0 24 24" width="23" height="23" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2.2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M6 10h.01M9.4 10h.01M12.8 10h.01M16.2 10h.01M6 13.2h.01M9.4 13.2h.01M12.8 13.2h.01M16.2 13.2h.01M7.6 15.9h8.8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
-<div id="emojiPanel" class="hidden"></div>
 <div id="modalBg" class="modal-bg hidden">
   <div class="modal">
     <div class="modal-head"><span id="modalTitle">标题</span><button class="icon-btn" id="modalClose">关闭</button></div>
@@ -187,7 +215,13 @@ header .title{flex:0 0 auto;font-weight:600;font-size:15px}
 (function(){
 'use strict';
 var $=function(s){return document.querySelector(s);};
-var EMOJIS=["😀","😁","😂","🤣","😊","😍","🤔","😎","🥳","😭","😡","😴","🤗","😜","😱","🤝","👌","✌️","👍","👎","🙏","👏","💪","❤️","💔","🔥","✨","🎉","🎁","🌹","🌸","🌈","⭐","🌙","☀️","⚡","🍎","🍉","🍓","🍰","🎂","🍺","☕","🚀","⚽","🏀","🎮","🎵","💰","🐶","🐱","🐼","🦊","👑","💯","✅","❌"];
+var EMOJI_CATS=[
+  {name:'表情',list:["😀","😁","😂","🤣","😊","😍","🥰","😘","😉","😌","🤔","😎","🥳","😭","😡","😴","🤗","😜","😱","😅","😳","🙄","😤","😷","🤒","🤕","😇","🤐","😬","😑","😐","😶","🙃","😋","😛","😝","🤪","🥴","😵","🤯","🥺","😢","😥","😓","😞","😟","😕","🫤"]},
+  {name:'手势',list:["🤝","👌","✌️","👍","👎","🙏","👏","💪","👋","🤙","🙌","👊","✊","🫶","🤞","🤟","☝️","👇","👆","👈","👉","🖐️","🤷","🙋","🧑","👶","💁","🙇","🫡","🧎","🤌","🤏","🫰","🫱","🫲","🫳","🫴","🫵","💅","👂","👃","👀","🦵","🦶"]},
+  {name:'动物 · 自然',list:["🐶","🐱","🐼","🦊","🐷","🐸","🐵","🦁","🐯","🐰","🐻","🐨","🐹","🐔","🐧","🦄","🐲","🐝","🦋","🐺","🐗","🐴","🦓","🦒","🐘","🐪","🐄","🐑","🐐","🦌","🐦","🦆","🦅","🦉","🐤","🌸","🌹","🌻","🌷","🌵","🌲","🌴","🍀","🍁","🌈","⭐","🌙","☀️","⚡","🔥","❄️","💧","🌊"]},
+  {name:'美食',list:["🍎","🍉","🍓","🍰","🎂","🍺","☕","🍔","🍕","🍜","🍚","🍦","🍬","🍭","🍩","🍗","🍿","🥤","🍇","🍌","🍊","🥭","🍑","🍍","🥥","🍫","🥟","🍣","🍤","🍱","🍞","🥐","🧀","🥚","🥓","🍟","🌭","🌮","🥗","🍝","🍲","🍛","🍵","🧃","🍹","🍷","🥂","🍒"]},
+  {name:'物品 · 活动',list:["🎁","🎉","🎊","🎮","🎵","🚀","⚽","🏀","🏓","🎯","📱","💻","✏️","📷","💰","👑","💯","✅","❌","❤️","💔","❓","❗","🌍","🚗","✈️","🎸","🏆","🌟","🔔","🎈","🎆","🏈","⚾","🎾","🏐","🎱","🏸","🥊","⛳","🎿","🛹","🎻","🥁","🎺","🎤","🎧","📚","🚲","🛵","🕰"]}
+];
 var state={me:null,token:null,users:{},sessions:{},groups:{},allMsgs:[],ids:{},currentChat:null,lastSeenId:0,registerMode:false,authFailed:false,requests:[]};
 var imgPromise={};
 var actx=null;
@@ -576,7 +610,7 @@ function openChat(key){
   if(state.sessions[key])state.sessions[key].unread=0;
   $('#sessionView').classList.add('hidden');
   $('#chatView').classList.remove('hidden');
-  $('#emojiPanel').classList.add('hidden');
+  closeEmojiPanel(false);
   var isSys=key==='sys';
   $('#inputbar').classList.toggle('hidden',isSys);
   $('#sysHint').classList.toggle('hidden',!isSys);
@@ -589,7 +623,7 @@ function backToList(){
   state.currentChat=null;
   $('#chatView').classList.add('hidden');
   $('#sessionView').classList.remove('hidden');
-  $('#emojiPanel').classList.add('hidden');
+  closeEmojiPanel(false);
   render();
 }
 
@@ -601,12 +635,10 @@ function sendText(){
   $('#msgInput').value='';
   api('/api/messages','POST',{to:state.currentChat,text:text}).then(function(){
     poll();
-    var inp=$('#msgInput');
-    inp.focus();
+    if(!emojiOpen)$('#msgInput').focus();
   }).catch(function(e){
     alert('发送失败: '+e.message);
-    var inp=$('#msgInput');
-    inp.focus();
+    if(!emojiOpen)$('#msgInput').focus();
   });
 }
 function uploadFile(file){
@@ -626,21 +658,120 @@ function recall(id){
 }
 
 /* ---------- 表情 ---------- */
-function initEmoji(){
-  var ep=$('#emojiPanel');
-  EMOJIS.forEach(function(e){
-    var b=document.createElement('button');
-    b.textContent=e;
-    b.addEventListener('click',function(){
-      var inp=$('#msgInput');
-      var sel=inp.selectionStart||inp.value.length;
-      inp.value=inp.value.slice(0,sel)+e+inp.value.slice(sel);
-      inp.focus();
-      inp.selectionStart=inp.selectionEnd=sel+e.length;
-      $('#emojiPanel').classList.add('hidden'); // 选完表情收起面板, 光标回到输入框
-    });
-    ep.appendChild(b);
+var emojiOpen=false, emojiTab=0, emojiSel={s:null,e:null};
+var recentEmoji=[];
+try{var _re=JSON.parse(localStorage.getItem('jj-recent-emoji')||'[]');if(_re&&_re.length)recentEmoji=_re.slice(0,16);}catch(e){}
+var GRAPHEME_END_RE;
+try{GRAPHEME_END_RE=/(?:\p{Extended_Pictographic}(?:\u200D\p{Extended_Pictographic})*[\uFE0F\u{1F3FB}-\u{1F3FF}\u{20E3}]*|[\u{1F1E6}-\u{1F1FF}]{2}|.)$/u;}
+catch(e){GRAPHEME_END_RE=/[\uD800-\uDBFF][\uDC00-\uDFFF]|$/;}
+function saveRecentEmoji(e){
+  var i=recentEmoji.indexOf(e);
+  if(i>=0)recentEmoji.splice(i,1);
+  recentEmoji.unshift(e);
+  if(recentEmoji.length>16)recentEmoji.length=16;
+  try{localStorage.setItem('jj-recent-emoji',JSON.stringify(recentEmoji));}catch(err){}
+}
+function emojiCellHTML(e){return '<button type="button" data-emoji="'+e+'">'+e+'</button>';}
+function renderEmojiPanel(){
+  var box=$('#emojiScroll');
+  if(!box)return;
+  var html='';
+  if(emojiTab===0&&recentEmoji.length){
+    html+='<div class="emoji-sec">最近使用</div><div class="emoji-grid">'+recentEmoji.map(emojiCellHTML).join('')+'</div>';
+  }
+  var cat=EMOJI_CATS[emojiTab]||EMOJI_CATS[0];
+  html+='<div class="emoji-sec">'+cat.name+'</div><div class="emoji-grid">'+cat.list.map(emojiCellHTML).join('')+'</div>';
+  box.innerHTML=html;
+  box.scrollTop=0;
+  Array.prototype.forEach.call(document.querySelectorAll('#emojiBar .etab'),function(b){
+    b.classList.toggle('on',+b.getAttribute('data-tab')===emojiTab);
   });
+}
+function emojiCursor(){
+  var inp=$('#msgInput'), len=inp.value.length, s, t;
+  if(emojiOpen&&emojiSel.s!=null){
+    // 面板打开时输入框已失焦, 以打开面板/上次插入时记录的光标为准
+    s=emojiSel.s; t=emojiSel.e==null?emojiSel.s:emojiSel.e;
+  }else{
+    s=inp.selectionStart; t=inp.selectionEnd;
+    if(s==null||s<0)s=t=len;
+  }
+  s=Math.max(0,Math.min(s,len)); t=Math.max(0,Math.min(t,len));
+  if(t<s)t=s;
+  return {s:s,t:t};
+}
+function insertEmoji(e){
+  var inp=$('#msgInput'), c=emojiCursor();
+  inp.value=inp.value.slice(0,c.s)+e+inp.value.slice(c.t);
+  var p=c.s+e.length;
+  emojiSel.s=emojiSel.e=p;
+  try{inp.setSelectionRange(p,p);}catch(err){}
+  saveRecentEmoji(e);
+  renderEmojiPanel();
+  if(!emojiOpen){try{inp.focus();}catch(err){}}
+}
+function delEmojiChar(){
+  var inp=$('#msgInput'), c=emojiCursor();
+  if(c.s!==c.t){
+    inp.value=inp.value.slice(0,c.s)+inp.value.slice(c.t);
+  }else if(c.s>0){
+    var m=inp.value.slice(0,c.s).match(GRAPHEME_END_RE);
+    var cut=m?m[0].length:1;
+    inp.value=inp.value.slice(0,c.s-cut)+inp.value.slice(c.s);
+    c.s-=cut;
+  }
+  emojiSel.s=emojiSel.e=c.s;
+  try{inp.setSelectionRange(c.s,c.s);}catch(err){}
+}
+function openEmojiPanel(){
+  if(emojiOpen)return;
+  emojiOpen=true;
+  var inp=$('#msgInput'), c=emojiCursor();
+  emojiSel.s=c.s;emojiSel.e=c.t;
+  try{inp.blur();}catch(e){}
+  $('#emojiPanel').classList.remove('hidden');
+  document.body.classList.add('emoji-open');
+  renderEmojiPanel();
+  var b=$('#msgList');
+  if(stickBottom){b.scrollTop=b.scrollHeight;}
+  setTimeout(updScrollRail,60);
+}
+function closeEmojiPanel(focusInput){
+  var inp=$('#msgInput');
+  if(emojiOpen){
+    emojiOpen=false;
+    $('#emojiPanel').classList.add('hidden');
+    document.body.classList.remove('emoji-open');
+    setTimeout(updScrollRail,60);
+    if(stickBottom){var b=$('#msgList');b.scrollTop=b.scrollHeight;}
+  }
+  if(focusInput){
+    try{
+      inp.focus();
+      var p=emojiSel.s==null?inp.value.length:emojiSel.s;
+      inp.setSelectionRange(p,p);
+    }catch(e){}
+  }
+}
+function initEmoji(){
+  var box=$('#emojiScroll');
+  box.addEventListener('click',function(ev){
+    var n=ev.target;
+    while(n&&n!==box&&!n.getAttribute('data-emoji'))n=n.parentNode;
+    if(!n||n===box)return;
+    insertEmoji(n.getAttribute('data-emoji'));
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('#emojiBar .etab'),function(b){
+    b.addEventListener('click',function(){emojiTab=+b.getAttribute('data-tab')||0;renderEmojiPanel();});
+  });
+  $('#emojiDel').addEventListener('click',delEmojiChar);
+  $('#emojiKb').addEventListener('click',function(){closeEmojiPanel(true);});
+  var inp=$('#msgInput');
+  inp.addEventListener('focus',function(){if(emojiOpen)closeEmojiPanel(false);});
+  ['click','keyup','select','input'].forEach(function(t){
+    inp.addEventListener(t,function(){emojiSel.s=inp.selectionStart;emojiSel.e=inp.selectionEnd;});
+  });
+  renderEmojiPanel();
 }
 
 /* ---------- 弹窗 ---------- */
@@ -857,7 +988,7 @@ $('#passInput2').addEventListener('keydown',function(e){if(e.key==='Enter')doLog
 $('#sendBtn').addEventListener('click',sendText);
 $('#msgInput').addEventListener('keydown',function(e){if(e.key==='Enter')sendText();});
 $('#backBtn').addEventListener('click',backToList);
-$('#emojiBtn').addEventListener('click',function(){$('#emojiPanel').classList.toggle('hidden');});
+$('#emojiBtn').addEventListener('click',function(){if(emojiOpen)closeEmojiPanel(true);else openEmojiPanel();});
 $('#imgBtn').addEventListener('click',function(){$('#imgInput').click();});
 $('#imgInput').addEventListener('change',function(){if(this.files&&this.files[0])uploadFile(this.files[0]);this.value='';});
 $('#fileBtn').addEventListener('click',function(){$('#fileInput').click();});
