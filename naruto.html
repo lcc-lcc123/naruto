@@ -12,6 +12,13 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0a12;font-family:
 canvas{display:block;width:100%;height:100%}
 .hidden{display:none!important}
 
+/* ---- 横屏提示层 ---- */
+#rotate{position:fixed;inset:0;z-index:60;background:radial-gradient(ellipse at 50% 30%,#2b3550,#0c0e18 70%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;color:#fff;text-align:center;padding:0 24px}
+#rotate .ico{font-size:72px;animation:rot 1.8s ease-in-out infinite}
+@keyframes rot{0%,15%{transform:rotate(0deg)}55%,85%{transform:rotate(90deg)}100%{transform:rotate(90deg)}}
+#rotate b{font-size:20px;color:#ffd75e;letter-spacing:3px}
+#rotate small{color:#9fb3d8;font-size:13px;line-height:1.9}
+
 /* ---- HUD ---- */
 #hud{position:absolute;inset:0;pointer-events:none;z-index:5}
 .hpwrap{position:absolute;top:3%;width:38%;height:5.5%}
@@ -131,6 +138,11 @@ canvas{display:block;width:100%;height:100%}
 </style>
 </head>
 <body>
+<div id="rotate" class="hidden">
+  <div class="ico">📱</div>
+  <b>请横屏游玩</b>
+  <small>火影对决仅支持横屏<br>旋转手机后自动恢复</small>
+</div>
 <div id="wrap"><div id="stage">
 <canvas id="cv"></canvas>
 
@@ -181,7 +193,7 @@ canvas{display:block;width:100%;height:100%}
   <button id="btnOnline">🌐 联机对战</button>
   <button id="btnRank">🏆 排行榜</button>
   <button id="btnCfg">⚙ 参数设置</button>
-  <div class="ctrlhint">🕹 左侧屏幕滑动=移动 &nbsp;|&nbsp; 右侧按钮=普攻/技能/大招/隐身<br>技能命中5次积满能量激活大招 · 隐身每局2次(无敌+解控)<br>🔄 横/竖拿手机自动切换擂台方向(需关闭手机方向锁定)<br>💻 电脑键盘: A/D移动 J普攻 K技能1 L技能2 U大招 I隐身</div>
+  <div class="ctrlhint">🕹 左侧屏幕滑动=移动 &nbsp;|&nbsp; 右侧按钮=普攻/技能/大招/隐身<br>技能命中5次积满能量激活大招 · 隐身每局2次(无敌+解控)<br>📱 仅支持横屏 · 界面自动适配手机屏幕<br>💻 电脑键盘: A/D移动 J普攻 K技能1 L技能2 U大招 I隐身</div>
 </div>
 
 <div id="cfgPanel" class="hidden">
@@ -698,6 +710,41 @@ let battle=null;               // {over,winner,...}
 let banner=null;
 const G={state:'menu',mode:'fight',charSel:'naruto',skins:{naruto:0,sasuke:0}};
 let paused=false;
+
+/* ============================================================
+   横屏锁定: 仅横屏游玩, 竖屏显示提示层并暂停, 转回横屏自动恢复
+   ============================================================ */
+const rotEl=document.getElementById('rotate');
+let rotPausedByMe=false;
+function isPortrait(){ return window.innerHeight>window.innerWidth; }
+function tryLockLandscape(){
+  try{
+    if(document.documentElement.requestFullscreen&&!document.fullscreenElement){
+      document.documentElement.requestFullscreen().then(()=>{
+        try{ const so=screen.orientation; if(so&&so.lock)so.lock('landscape').catch(()=>{}); }catch(e){}
+      }).catch(()=>{});
+    }
+  }catch(e){}
+  try{
+    const so=screen.orientation;
+    if(so&&so.lock&&so.type.indexOf('landscape')<0){ so.lock('landscape').catch(()=>{}); }
+  }catch(e){}
+}
+function updOrientation(){
+  const p=isPortrait();
+  rotEl.classList.toggle('hidden',!p);
+  if(p){
+    if(G.state==='fight'&&!paused&&G.mode!=='online'){ paused=true; rotPausedByMe=true; }
+  }else{
+    if(rotPausedByMe){ paused=false; rotPausedByMe=false; }
+    resize();
+  }
+}
+window.addEventListener('resize',updOrientation);
+window.addEventListener('orientationchange',updOrientation);
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden)updOrientation(); });
+['click','touchstart'].forEach(ev=>document.addEventListener(ev,e=>{ if(!e.target.closest('#rotate'))tryLockLandscape(); },{passive:true}));
+updOrientation();
 
 /* ============================================================
    伤害结算
