@@ -441,7 +441,7 @@ const server = http.createServer(async function (req, res) {
     let text = String(b.text || '').trim();
     let to = String(b.to || '').trim();
     if (!text) return fail(res, 400, '消息不能为空');
-    if (text.length > 2000) text = text.slice(0, 2000);
+    if (text.length > 8000) text = text.slice(0, 8000);
     if (!to || to === name) return fail(res, 400, '收件人无效');
     const g = groupById(to);
     if (g) {

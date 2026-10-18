@@ -906,8 +906,9 @@ function skill1(f,enemy){
     projs.push({type:'shuriken',from:f,x:f.x+f.dir*30,y:f.y-70,dir:f.dir,speed:BALANCE.shurikenSpeed,turn:BALANCE.shurikenTurn,life:BALANCE.shurikenLife,dmg:f.cfg.s1Dmg,angle:rnd(0,TAU)});
     SFX.throwS();
   }else{
-    // 天照: 减速+黑火
+    // 天照: 减速+黑火(限制施法距离, 防止全屏必中)
     f.state='s1'; f.st=0.35;
+    if(dist(f,enemy)>f.cfg.skillRange+60){ floatText(enemy.x,enemy.y-90,'MISS','#9aa7c0',15); return; }
     if(enemy.stealth){ floatText(enemy.x,enemy.y-100,'MISS','#7dd8ff',15); SFX.miss(); return; }
     enemy.slow=performance.now()+BALANCE.sasukeS1SlowMs;
     enemy.dots.push({name:'amaterasu',dmg:f.cfg.s1Dmg,interval:BALANCE.amaterasuInterval,ticks:BALANCE.amaterasuTicks,next:performance.now()+BALANCE.amaterasuInterval});
@@ -1074,7 +1075,7 @@ function updateFighter(f,dt,now){
   f.cdX=Math.max(0,f.cdX-dt*1000);
   f.flash=Math.max(0,f.flash-dt);
   if(f.comboT<now)f.combo=0;
-  if(f.s2Stage===1&&f.s2Window<now){ f.s2Stage=0; if(f.c.id==='sasuke'&&f.state==='s2dash'){} }
+  if(f.s2Stage===1&&f.s2Window<now){ f.s2Stage=0; }
   if(f.slow>0&&f.slow<now)f.slow=0;
   if(f.stealth){ if(now>f.stealthT){ f.stealth=false; burst(f.x,f.y-60,'#7dd8ff',8,180,0.3); } }
   // 持续伤害
@@ -1171,6 +1172,18 @@ function move(f,dx,dt){
   if(f.dead||f.busy||f.inAir)return;
   if(dx!==0){ f.state='run'; f.dir=dx>=0?1:-1; f.vx=dx*f.speed; }
   else if(f.state==='run'){ f.state='idle'; f.vx=0; }
+}
+// 客机端本地预测移动(仅客机使用; 房主/单机端位置积分由 updateFighter 完成)
+function moveLocal(f,dx,dt){
+  move(f,dx,dt);
+  if(f.state==='run'){ f.x+=f.vx*dt; f.x=clamp(f.x,46,ARENA_W-46); }
+}
+// 客机端仅推进动画/闪烁计时(状态与物理由房主快照权威), 修复客机角色动画冻结
+function updateAnimOnly(f,dt,now){
+  if(!f)return;
+  f.now=now; f.animT+=dt;
+  if(f.state==='run')f.walkPhase+=dt*10;
+  f.flash=Math.max(0,f.flash-dt);
 }
 
 /* ============================================================
@@ -1825,7 +1838,7 @@ const ON={
   friends:[], peer:'', host:false, lastId:0, seq:0, lastSeq:0,
   mode:'draw', timeLimit:90, timeLeft:0,
   picker:'', picks:{}, myChar:'', peerChar:'',
-  snap:null, snapTime:0, prevSnap:null, prevSnapTime:0,
+  snap:null, snapTime:0, prevSnap:null, prevSnapTime:0, lastActT:0, lastSnapT:0,
   remote:{x:0,pend:[]},
   pollTimer:null, pingTimer:null, actTimer:null, snapTimer:null,
   ended:false, pollCount:0, pollBusy:false, seen:new Set(), started:false,
@@ -1927,8 +1940,11 @@ function onMsg(t){
     try{ a=JSON.parse(data||'{}'); }catch(e){}
     if(a.seq<=ON.lastSeq)return;
     ON.lastSeq=a.seq;
+    ON.lastActT=performance.now();
     ON.remote.x=a.x||0;
     if(a.act)ON.remote.pend.push(a.act);
+    // 收到客机输入立即回快照(节流50ms), 缩短客机反馈回路
+    if(!ON.lastSnapT||performance.now()-ON.lastSnapT>50)onSendSnap();
     return;
   }
   if(verb==='SNAP'&&!ON.host&&ON.state==='fight'){
@@ -1962,13 +1978,13 @@ async function onPoll(){
       }
       onMsg(t);
     });
-    if(ON.state==='lobby'&&(++ON.pollCount%20===0))onRefreshFriends();
+    if(ON.state==='lobby'&&(++ON.pollCount%30===0))onRefreshFriends();
   }catch(e){}
   ON.pollBusy=false;
 }
 function onStartPoll(){
   if(ON.pollTimer)return;
-  ON.pollTimer=setInterval(onPoll,120);
+  ON.pollTimer=setInterval(onPoll,70);
   ON.pingTimer=setInterval(()=>{ onApi('/api/ping').catch(()=>{}); },10000);
 }
 function onStopPoll(){
@@ -2115,27 +2131,27 @@ function onStartOnlineFight(){
   musicPlay(ON.musicIdx!=null?ON.musicIdx:Math.floor(Math.random()*8));
   updateHUD();
   if(ON.host){
-    ON.snapTimer=setInterval(onSendSnap,100);
+    ON.snapTimer=setInterval(onSendSnap,80);
   }else{
     ON.actTimer=setInterval(()=>{
       if(G.state!=='fight'||G.mode!=='online')return;
-      if(Math.abs(ON.remote.x)>0.02){
-        ON.seq++;
-        onSend('ACT',JSON.stringify({seq:ON.seq,x:Math.round(ON.remote.x*100)/100}));
-      }
-    },80);
+      // 无条件周期上报(含x=0): 修复松手后房主端移动不归零的丢包问题
+      ON.seq++;
+      onSend('ACT',JSON.stringify({seq:ON.seq,x:Math.round(ON.remote.x*100)/100}));
+    },60);
   }
 }
 function onSendSnap(){
   if(G.state!=='fight'||G.mode!=='online'||!ON.host)return;
   if(!P||!E)return;
-  const fA={x:Math.round(P.x),y:Math.round(P.y),dir:P.dir,state:P.state,stealth:P.stealth,dead:P.dead,s2Stage:P.s2Stage,flash:P.flash,scale:P.scale,dots:P.dots.length>0?1:0,slow:P.slow>0?1:0};
-  const fB={x:Math.round(E.x),y:Math.round(E.y),dir:E.dir,state:E.state,stealth:E.stealth,dead:E.dead,s2Stage:E.s2Stage,flash:E.flash,scale:E.scale,dots:E.dots.length>0?1:0,slow:E.slow>0?1:0};
-  const pl=projs.map(p=>({type:p.type,x:Math.round(p.x),y:Math.round(p.y),dir:p.dir})).slice(0,20);
+  ON.lastSnapT=performance.now();
+  const fA={x:Math.round(P.x),y:Math.round(P.y),dir:P.dir,state:P.state,stealth:P.stealth,dead:P.dead,s2Stage:P.s2Stage,flash:P.flash,scale:P.scale,dots:P.dots.length>0?1:0,slow:P.slow>0?1:0,cd1:Math.round(P.cd1),cd2:Math.round(P.cd2),cdU:Math.round(P.cdU),cdX:Math.round(P.cdX)};
+  const fB={x:Math.round(E.x),y:Math.round(E.y),dir:E.dir,state:E.state,stealth:E.stealth,dead:E.dead,s2Stage:E.s2Stage,flash:E.flash,scale:E.scale,dots:E.dots.length>0?1:0,slow:E.slow>0?1:0,cd1:Math.round(E.cd1),cd2:Math.round(E.cd2),cdU:Math.round(E.cdU),cdX:Math.round(E.cdX)};
+  const pl=projs.map(p=>({type:p.type,x:Math.round(p.x),y:Math.round(p.y),dir:p.dir})).slice(0,12);
   // 特效同步: 飘字/粒子(带ID供客机去重) + 震屏量 + 尾巴(抓取视觉)
-  const fl=floaters.slice(-8).map(f=>({id:f.id,x:Math.round(f.x),y:Math.round(f.y),text:f.text,color:f.color,size:f.size,age:f.t}));
-  const pt=particles.slice(-20).map(p=>({id:p.id,x:Math.round(p.x),y:Math.round(p.y),vx:Math.round(p.vx),vy:Math.round(p.vy),color:p.color,size:p.size,life:p.life,t:p.t,grav:p.grav||0}));
-  const tl2=tails.slice(-4).map(t=>({x:Math.round(t.x),y:Math.round(t.y),sx:Math.round(t.from.x),sy:Math.round(t.from.y-62)}));
+  const fl=floaters.slice(-4).map(f=>({id:f.id,x:Math.round(f.x),y:Math.round(f.y),text:f.text,color:f.color,size:f.size,age:f.t}));
+  const pt=particles.slice(-8).map(p=>({id:p.id,x:Math.round(p.x),y:Math.round(p.y),vx:Math.round(p.vx),vy:Math.round(p.vy),color:p.color,size:p.size,life:p.life,t:p.t,grav:p.grav||0}));
+  const tl2=tails.slice(-2).map(t=>({x:Math.round(t.x),y:Math.round(t.y),sx:Math.round(t.from.x),sy:Math.round(t.from.y-62)}));
   onSend('SNAP',JSON.stringify({
     hpA:Math.ceil(P.hp),hpB:Math.ceil(E.hp),
     skillHitsA:P.skillHits,skillHitsB:E.skillHits,
@@ -2165,12 +2181,21 @@ function onApplySnap(dt){
   E.dir=s.fA.dir; E.state=s.fA.state; E.stealth=s.fA.stealth; E.dead=s.fA.dead;
   E.s2Stage=s.fA.s2Stage; E.flash=s.fA.flash; E.scale=s.fA.scale;
   E.hp=s.hpA; E.maxHp=E.cfg.hp; E.skillHits=s.skillHitsA; E.ultReady=s.ultA; E.xLeft=s.xLeftA;
-  // 自己(P): 本地预测移动 + 快照柔和校正(更快收敛)
-  P.x+=(s.fB.x-P.x)*Math.min(1,dt*20);
-  P.y+=(s.fB.y-P.y)*Math.min(1,dt*20);
-  // 移动相关状态(idle/run)保留本地预测, 技能/受击/死亡以房主为准
+  // 自己(P): 本地预测移动 + 快照校正(操作中弱校正防回拉, 松手后快速收敛)
+  const movingNow=Math.abs(ON.remote.x)>0.02;
+  const pc=movingNow?dt*6:dt*15;
+  P.x+=(s.fB.x-P.x)*Math.min(1,pc);
+  P.y+=(s.fB.y-P.y)*Math.min(1,pc);
+  // 状态: 本地刚触发的技能动画不被房主 idle/run 快照打断(伤害仍以房主为准); 受击/死亡立即权威
   const sb=s.fB.state;
-  if(!((sb==='run'||sb==='idle')&&(P.state==='run'||P.state==='idle')))P.state=sb;
+  const LOCAL_SKILL={'s1':1,'s2':1,'ult':1,'attack1':1,'attack2':1,'attack3':1,'s2dash':1,'s2second':1};
+  const keepLocal=LOCAL_SKILL[P.state]&&(sb==='idle'||sb==='run')&&(performance.now()-(P.locSkillT||0)<450);
+  if(keepLocal){
+    // 保留本地技能动作(位置仍按上面收敛)
+  }else if(!((sb==='run'||sb==='idle')&&(P.state==='run'||P.state==='idle'))){
+    P.state=sb;
+  }
+  if(s.fB.cd1!==undefined){ P.cd1=s.fB.cd1; P.cd2=s.fB.cd2; P.cdU=s.fB.cdU; P.cdX=s.fB.cdX; }
   P.dir=s.fB.dir; P.stealth=s.fB.stealth; P.dead=s.fB.dead;
   P.s2Stage=s.fB.s2Stage; P.flash=s.fB.flash; P.scale=s.fB.scale;
   P.hp=s.hpB; P.maxHp=P.cfg.hp; P.skillHits=s.skillHitsB; P.ultReady=s.ultB; P.xLeft=s.xLeftB;
@@ -2212,8 +2237,17 @@ function onAct(act){
   if(G.mode==='online'&&!ON.host){
     ON.seq++;
     onSend('ACT',JSON.stringify({seq:ON.seq,x:ON.remote.x,act}));
-    SFX.slash();
-    voiceLine(P,act==='s1'?'s1':act==='s2'?'s2':act==='ult'?'ult':act==='stl'?'stl':null);
+    // 本地先行: 立即执行同一动作(伤害/结果以房主快照为准), 消除客机出招延迟感
+    if(P&&!P.dead){
+      const before=P.state;
+      if(act==='atk')basicAttack(P,E);
+      else if(act==='s1')skill1(P,E);
+      else if(act==='s2')skill2(P,E);
+      else if(act==='ult')ult(P,E);
+      else if(act==='stl')stealth(P);
+      if(P.state!==before)P.locSkillT=performance.now();
+      else SFX.slash();
+    }
     return true;
   }
   return false;
@@ -2369,7 +2403,8 @@ function loop(now){
         if(keys['a']||keys['arrowleft'])ldx=-1;
         if(keys['d']||keys['arrowright'])ldx=1;
         ON.remote.x=ldx;
-        if(P&&!P.dead&&ldx!==0)move(P,ldx,dt);
+        if(P&&!P.dead)moveLocal(P,ldx,dt);
+        if(P){ updateAnimOnly(P,dt,now); updateAnimOnly(E,dt,now); }
         onApplySnap(dt);
       }else{
         // 输入 → 移动
@@ -2386,6 +2421,8 @@ function loop(now){
         updateFighter(E,dt,now);
         if(G.mode==='online'&&ON.host){
           // 房主: 应用客机输入(输入缓冲: 角色忙时下一帧重试, 不丢操作) + 倒计时
+          // 客机 ACT 断流超时(丢包/卡顿)则移动归零, 防止客机角色在房主端持续乱走
+          if(ON.lastActT&&now-ON.lastActT>500)ON.remote.x=0;
           if(E&&!E.dead)move(E,ON.remote.x,dt);
           if(ON.remote.pend.length){
             const a=ON.remote.pend[0];
