@@ -599,6 +599,7 @@ const VOICE_LINES={
   }
 };
 function voiceLine(f,key){
+  if(FS&&FS.replaying)return; // 回滚重放时不重播语音
   // 优先播放外部配音文件(懒加载探测)
   const va=voiceAudio(f,key);
   if(va&&va.dataset.ok){
@@ -856,14 +857,11 @@ function koDefeated(def,att){
   def.onGround=false; def.vy=-320; def.vx=(att.x<def.x?1:-1)*360;
   showBanner('K.O.!');
   SFX.ko(); shake(14); stop(0.15);
-  if(G.mode==='online'&&ON.host&&!ON.ended){
-    ON.ended=true;
-    const hostWin=att===P;
-    // 房主侧也上报战绩(客机侧在 showOnlineKO 里上报)
-    if(ON.token&&!ON.rankSent){ ON.rankSent=true; onApi('/api/rank/report',{win:hostWin}).catch(()=>{}); }
-    onSend('END',JSON.stringify({hostWin:hostWin,reason:'ko'}));
-  }
-  setTimeout(()=>{ G.state='ko'; showKO(att); }, 1300);
+  setTimeout(()=>{
+    G.state='ko';
+    if(G.mode==='online'){ showOnlineKO(att.isPlayer,'ko'); }
+    else showKO(att);
+  }, 1300);
 }
 function showKO(winner){
   const isWin=winner.isPlayer;
@@ -909,7 +907,7 @@ function playWinVideo(win,thenShow){
 function applyDots(f){
   for(let i=f.dots.length-1;i>=0;i--){
     const d=f.dots[i];
-    if(f.now===undefined)f.now=performance.now();
+    if(f.now===undefined)f.now=SIM.now;
     if(f.now>=d.next){
       d.next=f.now+d.interval; d.ticks--;
       tryHit(P&&E&&(f===E?P:E),f,d.dmg,0,0,false,'#5a5a8a');
@@ -931,7 +929,7 @@ function faceEnemy(f,enemy){ f.dir=enemy.x>=f.x?1:-1; }
 function basicAttack(f,enemy){
   if(!f.canAct())return;
   faceEnemy(f,enemy);
-  const now=performance.now();
+  const now=SIM.now;
   f.combo=(now<f.comboT)?f.combo+1:1; f.comboT=now+BALANCE.comboWindow;
   if(f.combo>=3){
     f.combo=0;
@@ -957,8 +955,8 @@ function skill1(f,enemy){
     f.state='s1'; f.st=0.35;
     if(Math.hypot(enemy.x-f.x,enemy.d-f.d)>f.cfg.skillRange+60){ floatText(enemy.x,enemy.y-90,'MISS','#9aa7c0',15); return; }
     if(enemy.stealth){ floatText(enemy.x,enemy.y-100,'MISS','#7dd8ff',15); SFX.miss(); return; }
-    enemy.slow=performance.now()+BALANCE.sasukeS1SlowMs;
-    enemy.dots.push({name:'amaterasu',dmg:f.cfg.s1Dmg,interval:BALANCE.amaterasuInterval,ticks:BALANCE.amaterasuTicks,next:performance.now()+BALANCE.amaterasuInterval});
+    enemy.slow=SIM.now+BALANCE.sasukeS1SlowMs;
+    enemy.dots.push({name:'amaterasu',dmg:f.cfg.s1Dmg,interval:BALANCE.amaterasuInterval,ticks:BALANCE.amaterasuTicks,next:SIM.now+BALANCE.amaterasuInterval});
     burst(enemy.x,enemy.y-60,'#1b1b26',16,260,0.6,120);
     floatText(enemy.x,enemy.y-100,'天照!','#6a5acd',16);
     addSkillHit(f);
@@ -977,7 +975,7 @@ function skill2(f,enemy){
     tails.push({from:f,target:enemy,x:f.x,d:f.d,y:f.y-58,dir:f.dir,speed:BALANCE.tailSpeed,max:f.cfg.skillRange,hit:false,hold:0,throw:false,throwVx:0,throwVy:0});
     SFX.whoosh();
   }else{
-    f.state='s2dash'; f.st=0.3; f.s2Stage=1; f.s2Window=performance.now()+BALANCE.sasukeS2WindowMs;
+    f.state='s2dash'; f.st=0.3; f.s2Stage=1; f.s2Window=SIM.now+BALANCE.sasukeS2WindowMs;
     f.vx=BALANCE.sasukeS2DashSpeed*f.dir*f.cfg.lunge; f.s2Travel=0; f.s2HitDone=false;
     SFX.whoosh();
   }
@@ -987,7 +985,7 @@ function skill2Second(f,enemy){
     // 二段: 将被抓取的目标扔向摇杆方向
     if(enemy.state!=='grabbed'||enemy.grabbedBy!==f){ f.s2Stage=0; return; }
     f.s2Stage=0;
-    const jd=f.isPlayer?joystick.dir:{x:f.dir,y:0};
+    const jd=(FS&&FS.on)?((f===P)?FS.jdir:((f===E)?FS.rjdir:{x:f.dir,y:0})):(f.isPlayer?joystick.dir:{x:f.dir,y:0});
     let dx=jd.x, dy=jd.y;
     if(Math.hypot(dx,dy)<0.2){ dx=f.dir; dy=0; }
     enemy.grabbedBy=null; enemy.state='launch'; enemy.st=0.5; enemy.onGround=false;
@@ -1015,7 +1013,7 @@ function ult(f,enemy){
     f.state='ult'; f.st=0.9;
     if(Math.hypot(enemy.x-f.x,enemy.d-f.d)<=f.cfg.skillRange+60){
       tryHit(f,enemy,f.cfg.ultDmg,f.dir*BALANCE.sasukeUltKnock,650,true,'#9b6dff');
-      enemy.dots.push({name:'amaterasu',dmg:Math.round(f.cfg.ultDmg/4),interval:400,ticks:4,next:performance.now()+400});
+      enemy.dots.push({name:'amaterasu',dmg:Math.round(f.cfg.ultDmg/4),interval:400,ticks:4,next:SIM.now+400});
     }else{ floatText(enemy.x,enemy.y-90,'MISS','#9aa7c0',15); }
   }
   SFX.ult(); shake(10); stop(0.09);
@@ -1024,7 +1022,7 @@ function stealth(f){
   if(f.xLeft<=0||f.cdX>0||f.dead||f.busy)return;
   f.xLeft--; f.cdX=BALANCE.stealthCd;
   if(f.isPlayer)voiceLine(f,'stl');
-  f.stealth=true; f.stealthT=performance.now()+f.cfg.stealthMs;
+  f.stealth=true; f.stealthT=SIM.now+f.cfg.stealthMs;
   cleanse(f);
   burst(f.x,f.y-60,'#7dd8ff',14,240,0.5);
   SFX.stealth();
@@ -1738,6 +1736,15 @@ window.addEventListener('keydown',e=>{
   keys[k]=true;
   if(k==='p'||e.key==='Escape'){ togglePause(); return; }
   if(G.state!=='fight')return;
+  if(G.mode==='online'&&FS.on){
+    const k2=e.key.toLowerCase();
+    if(k2==='j')FS.localIn.atk=1;
+    else if(k2==='k')FS.localIn.s1=1;
+    else if(k2==='l')FS.localIn.s2=1;
+    else if(k2==='u')FS.localIn.ult=1;
+    else if(k2==='i')FS.localIn.stl=1;
+    return;
+  }
   if(e.key.toLowerCase()==='j')basicAttack(P,E);
   if(e.key.toLowerCase()==='k')skill1(P,E);
   if(e.key.toLowerCase()==='l')skill2(P,E);
@@ -2015,6 +2022,7 @@ function onMsg(t){
     if(ON.started)return; // 防重复开局
     let c={};
     try{ c=JSON.parse(data||'{}'); }catch(e){}
+    ON.room=c.room||''; ON.seed=c.seed||0;
     const mine=c.B&&c.B.c?c.B:(c.A||{}), peer=c.A&&c.A.c?c.A:(c.B||{});
     ON.myChar=mine.c||'naruto'; ON.mySkin=parseInt(mine.sk||'0',10);
     ON.peerChar=peer.c||'sasuke'; ON.peerSkin=parseInt(peer.sk||'0',10);
@@ -2177,7 +2185,9 @@ function onAllPicked(){
   ON.myChar=ON.picks[ON.name]||'naruto'; ON.peerChar=ON.picks[ON.peer]||'sasuke';
   ON.mySkin=G.skins[ON.myChar]||0;
   ON.musicIdx=Math.floor(Math.random()*8);
-  const start={m:ON.musicIdx,A:{c:ON.myChar,sk:ON.mySkin},B:{c:ON.peerChar,sk:ON.peerSkin||0}};
+  ON.room='r'+Date.now().toString(36)+Math.floor(Math.random()*1e6).toString(36);
+  ON.seed=(Math.random()*1e9)|0;
+  const start={m:ON.musicIdx,A:{c:ON.myChar,sk:ON.mySkin},B:{c:ON.peerChar,sk:ON.peerSkin||0},room:ON.room,seed:ON.seed};
   document.getElementById('onlinePanel').classList.add('hidden');
   onSend('START',JSON.stringify(start),ON.peer);
   onStartOnlineFight();
@@ -2197,7 +2207,11 @@ function onStartOnlineFight(){
     P=new Fighter(myChar,WORLD.w*0.7,-1,true,ON.mySkin||0);
     E=new Fighter(peerChar,WORLD.w*0.3,1,false,ON.peerSkin||0);
   }
-  P.d=DEPTH*0.45; E.d=DEPTH*0.55;
+  if(ON.host){
+    P.d=DEPTH*0.45; E.d=DEPTH*0.55;
+  }else{
+    P.d=DEPTH*0.55; E.d=DEPTH*0.45;
+  }
   projs=[];tails=[];particles=[];floaters=[];
   document.getElementById('menu').classList.add('hidden');
   document.getElementById('onlinePanel').classList.add('hidden');
@@ -2220,15 +2234,10 @@ function onStartOnlineFight(){
   showBanner('联机对战开始!');
   musicPlay(ON.musicIdx!=null?ON.musicIdx:Math.floor(Math.random()*8));
   updateHUD();
-  if(ON.host){
-    ON.snapTimer=setInterval(onSendSnap,80);
-  }else{
-    ON.actTimer=setInterval(()=>{
-      if(G.state!=='fight'||G.mode!=='online')return;
-      // 无条件周期上报(含x=0): 修复松手后房主端移动不归零的丢包问题
-      ON.seq++;
-      onSend('ACT',JSON.stringify({seq:ON.seq,x:Math.round(ON.remote.x*100)/100,y:Math.round(ON.remote.y*100)/100}));
-    },45);
+  if(ON.room){
+    // 帧同步模式: 服务器只中转输入, 双方本地各自演算同一世界
+    FS.room=ON.room;
+    fsInit();
   }
 }
 function onSendSnap(){
@@ -2327,20 +2336,9 @@ function onApplySnap(dt){
   else t.classList.add('hidden');
 }
 function onAct(act){
-  if(G.mode==='online'&&!ON.host){
-    ON.seq++;
-    onSend('ACT',JSON.stringify({seq:ON.seq,x:ON.remote.x,y:ON.remote.y,act}));
-    // 本地先行: 立即执行同一动作(伤害/结果以房主快照为准), 消除客机出招延迟感
-    if(P&&!P.dead){
-      const before=P.state;
-      if(act==='atk')basicAttack(P,E);
-      else if(act==='s1')skill1(P,E);
-      else if(act==='s2')skill2(P,E);
-      else if(act==='ult')ult(P,E);
-      else if(act==='stl')stealth(P);
-      if(P.state!==before)P.locSkillT=performance.now();
-      else SFX.slash();
-    }
+  if(G.mode==='online'&&FS.on){
+    // 帧同步: 记录本逻辑帧输入边缘, 由逻辑帧统一消费并上行
+    FS.localIn[act]=1;
     return true;
   }
   return false;
@@ -2350,7 +2348,6 @@ function onlineEndByTime(){
   const aP=P.hp/P.maxHp, bP=E.hp/E.maxHp;
   const hostWin=aP>=bP;
   ON.ended=true;
-  onSend('END',JSON.stringify({hostWin,reason:'time'}));
   showOnlineKO(hostWin,'time');
 }
 function showOnlineKO(win,reason){
@@ -2379,6 +2376,7 @@ function showOnlineKO(win,reason){
 function onFightCleanup(){
   if(ON.actTimer){ clearInterval(ON.actTimer); ON.actTimer=null; }
   if(ON.snapTimer){ clearInterval(ON.snapTimer); ON.snapTimer=null; }
+  fsStop();
   if(ON.state==='fight')ON.state='lobby';
   ON.snap=null; ON.prevSnap=null; ON.remote={x:0,y:0,pend:[]};
   ON.started=false;
@@ -2470,6 +2468,151 @@ stageEl.addEventListener('contextmenu',function(e){e.preventDefault();});
 setTimeout(function(){var t=document.getElementById('tip');if(t)t.classList.add('hidden');},6000);
 
 /* ============================================================
+   帧同步(lokstep): 服务器只中转输入, 双方同初始状态同输入序列本地演算
+   逻辑帧30FPS; 本地预测 + 迟到输入回滚(快照环形缓冲)
+   ============================================================ */
+const LOGIC_MS=1000/30;
+const SIM={now:0};
+const FS={on:false,room:'',frame:0,recvAt:-1,accT:0,hist:[],remote:{},localIn:{},lastRemote:{},jdir:{x:0,y:0},rjdir:{x:0,y:0},pollTimer:null,replaying:false};
+const FS_HIST=120;      // 快照环: 4秒回滚窗口
+const FS_SAFE=100;      // 领先确认前沿的上限: 超出则暂停等帧(不产生不可回滚的分歧)
+function fsInit(){
+  FS.on=true; FS.frame=0; FS.recvAt=-1; FS.accT=0; FS.hist=[]; FS.remote={}; FS.localIn={}; FS.lastRemote={}; FS.jdir={x:0,y:0}; FS.rjdir={x:0,y:0};
+  SIM.now=0;
+  if(FS.pollTimer)clearInterval(FS.pollTimer);
+  FS.pollTimer=setInterval(fsPoll,50);
+  onApi('/api/nrfs/start',{room:FS.room}).catch(()=>{});
+  fsPoll();
+}
+function fsStop(){ FS.on=false; if(FS.pollTimer){ clearInterval(FS.pollTimer); FS.pollTimer=null; } }
+function fsTick(dt){
+  if(!FS.on||G.state!=='fight')return;
+  FS.accT+=dt;
+  while(FS.accT>=LOGIC_MS/1000){
+    FS.accT-=LOGIC_MS/1000;
+    fsStep();
+  }
+}
+function fsStep(){
+  // 超前预测上限: 超出确认前沿太多则暂停等帧(宁顿一下, 不产生无法回滚的分歧)
+  if(FS.frame-(FS.recvAt+1)>FS_SAFE)return;
+  const F=FS.frame;
+  // 本地摇杆/键盘 → 本帧方向量(连续量, 双方各存自己的)
+  let jx=0,jy=0;
+  if(joystick.active){jx=joystick.dir.x;jy=joystick.dir.y;}
+  if(keys['a']||keys['arrowleft'])jx=-1;
+  if(keys['d']||keys['arrowright'])jx=1;
+  if(keys['w']||keys['arrowup'])jy=-1;
+  if(keys['s']||keys['arrowdown'])jy=1;
+  FS.jdir={x:jx,y:jy};
+  const li={x:Math.round(FS.jdir.x*100)/100,y:Math.round(FS.jdir.y*100)/100};
+  if(FS.localIn.atk){li.atk=1;} if(FS.localIn.s1){li.s1=1;} if(FS.localIn.s2){li.s2=1;}
+  if(FS.localIn.ult){li.ult=1;} if(FS.localIn.stl){li.stl=1;}
+  FS.localIn={};
+  const ri=FS.remote[F]||FS.lastRemote||{};
+  if(Object.keys(ri).length)FS.lastRemote=ri;
+  FS.hist[F%FS_HIST]={n:F,li,ri,snap:fsSnapshot(F,li)};
+  fsSendInput(F,li);
+  fsSimFrame(F,li,ri);
+  FS.frame=F+1;
+}
+function fsSendInput(F,li){
+  onApi('/api/nrfs/input',{room:FS.room,frame:F,input:li}).catch(()=>{});
+}
+function fsSimFrame(F,li,ri){
+  SIM.now=F*LOGIC_MS;
+  FS.jdir=li; FS.rjdir=ri;
+  const dt=LOGIC_MS/1000;
+  const A=ON.host?P:E, B=ON.host?E:P;
+  const la=ON.host?li:ri, lb=ON.host?ri:li;
+  applyInput(A,la,dt); applyInput(B,lb,dt);
+  updateProjs(dt,SIM.now);
+  updateFighter(P,dt,SIM.now);
+  updateFighter(E,dt,SIM.now);
+  if(ON.timeLimit>0){ ON.timeLeft-=dt; if(ON.timeLeft<=0&&!ON.ended)onlineEndByTime(); }
+}
+function applyInput(f,inp,dt){
+  if(!f||f.dead||!inp)return;
+  const enemy=f===P?E:P;
+  move(f,inp.x||0,inp.y||0,dt);
+  if(inp.atk)basicAttack(f,enemy);
+  else if(inp.s1)skill1(f,enemy);
+  else if(inp.s2)skill2(f,enemy);
+  else if(inp.ult)ult(f,enemy);
+  else if(inp.stl)stealth(f);
+}
+function fSnap(f){
+  return {x:f.x,y:f.y,d:f.d,dir:f.dir,state:f.state,st:f.st,vx:f.vx,vy:f.vy,vd:f.vd,hp:f.hp,skillHits:f.skillHits,ultReady:f.ultReady,xLeft:f.xLeft,cd1:f.cd1,cd2:f.cd2,cdU:f.cdU,cdX:f.cdX,s2Stage:f.s2Stage,s2Window:f.s2Window,s2Travel:f.s2Travel||0,s2Travel2:f.s2Travel2||0,s2HitDone:f.s2HitDone,s2Hit2:f.s2Hit2,a1hit:f.a1hit,a2hit:f.a2hit,a3hit:f.a3hit,combo:f.combo,comboT:f.comboT,stealth:f.stealth,stealthT:f.stealthT,slow:f.slow,dots:f.dots.map(d=>Object.assign({},d)),dead:f.dead,onGround:f.onGround,landT:f.landT,walkPhase:f.walkPhase,animT:f.animT,grabbedBy:f.grabbedBy===P?0:(f.grabbedBy===E?1:-1)};
+}
+function fsSnapshot(n,li){
+  return {n,li,p:fSnap(P),e:fSnap(E),projs:projs.map(p=>Object.assign({},p,{from:p.from===P?0:1})),tails:tails.map(t=>Object.assign({},t,{from:t.from===P?0:1,target:t.target===P?0:1})),timeLeft:ON.timeLeft};
+}
+function fRestore(f,s){
+  for(const k in s){
+    if(k==='dots'){ f.dots=s.dots.map(d=>Object.assign({},d)); continue; }
+    if(k==='grabbedBy'){ f.grabbedBy=s.grabbedBy===0?P:(s.grabbedBy===1?E:null); continue; }
+    f[k]=s[k];
+  }
+}
+function fsRestore(snap){
+  fRestore(P,snap.p); fRestore(E,snap.e);
+  projs=snap.projs.map(p=>Object.assign({},p,{from:p.from===0?P:E}));
+  tails=snap.tails.map(t=>Object.assign({},t,{from:t.from===0?P:E,target:t.target===0?P:E}));
+  ON.timeLeft=snap.timeLeft;
+  particles=[]; floaters=[]; shock=0;
+}
+function fsRollback(n){
+  const slot=FS.hist[n%FS_HIST];
+  if(!slot||slot.n!==n)return;   // 快照已被覆盖, 放弃回滚(极端情况接受微偏差)
+  FS.replaying=true;
+  fsRestore(slot.snap);
+  for(let f=n;;f++){
+    const h=FS.hist[f%FS_HIST];
+    if(!h||h.n!==f)break;
+    const ri=FS.remote[f]||h.ri||{};
+    // 重放前刷新本帧快照, 保证快照链与回滚后的真实状态一致(后续回滚才能正确恢复)
+    FS.hist[f%FS_HIST]={n:f,li:h.li,ri:ri,snap:fsSnapshot(f,h.li)};
+    fsSimFrame(f,h.li,ri);   // 完整重放: 输入应用+物理推进, 与正常帧一致
+  }
+  FS.replaying=false;
+}
+async function fsPoll(){
+  if(!FS.on||G.state!=='fight')return;
+  try{
+    const r=await onApi('/api/nrfs/frames?room='+encodeURIComponent(FS.room)+'&after='+FS.recvAt);
+    if(!r||!r.ok)return;
+    const frames=r.frames||[];
+    // 先把本批所有帧的远端输入全部写入
+    for(const fr of frames) FS.remote[fr.n]=ON.host?fr.b:fr.a;
+    // 前沿对齐: 以服务器帧号为准, 未亲历帧用空输入补帧(消除双方启动时间差)
+    if(typeof r.next==='number'&&r.next>FS.frame){
+      while(FS.frame<r.next){
+        const F=FS.frame;
+        const li={};
+        const ri=FS.remote[F]||FS.lastRemote||{};
+        FS.hist[F%FS_HIST]={n:F,li,ri,snap:fsSnapshot(F,li)};
+        fsSimFrame(F,li,ri);
+        FS.frame=F+1;
+      }
+    }
+    // 逐个核对已确认帧, 记住最早不一致帧, 每批只回滚一次(避免升序回滚互相覆盖)
+    let rollFrom=-1;
+    for(const fr of frames){
+      const mine=ON.host?fr.a:fr.b;
+      const slot=FS.hist[fr.n%FS_HIST];
+      if(slot&&slot.n===fr.n){
+        if(JSON.stringify(slot.li)!==JSON.stringify(mine||{})||JSON.stringify(slot.ri)!==JSON.stringify(FS.remote[fr.n])){
+          slot.li=mine||{};
+          if(rollFrom<0)rollFrom=fr.n;
+        }
+      }
+      FS.recvAt=fr.n;
+    }
+    if(rollFrom>=0)fsRollback(rollFrom);   // 从最早不一致帧重放到最新, 确保所有修正一次到位
+  }catch(e){}
+}
+
+/* ============================================================
    主循环
    ============================================================ */
 let lastT=performance.now();
@@ -2491,20 +2634,12 @@ function loop(now){
   drawBg();
   if(G.state==='fight'&&!frozen){
     if(!paused){
-      if(G.mode==='online'&&!ON.host){
-        // 客机: 本地预测移动(立即响应) + 上报 + 应用房主快照校正
-        let ldx=0,ldy=0;
-        if(joystick.active){ldx=joystick.dir.x;ldy=joystick.dir.y;}
-        if(keys['a']||keys['arrowleft'])ldx=-1;
-        if(keys['d']||keys['arrowright'])ldx=1;
-        if(keys['w']||keys['arrowup'])ldy=-1;
-        if(keys['s']||keys['arrowdown'])ldy=1;
-        ON.remote.x=ldx; ON.remote.y=ldy;
-        if(P&&!P.dead)moveLocal(P,ldx,ldy,dt);
-        if(P){ updateAnimOnly(P,dt,now); updateAnimOnly(E,dt,now); }
-        onApplySnap(dt);
+      if(G.mode==='online'){
+        // 帧同步: 30FPS逻辑帧推进(本地预测+迟到输入回滚), 双方各自演算同一世界
+        fsTick(dt);
       }else{
-        // 输入 → 移动
+        // 单机: 真实时间推进
+        SIM.now=performance.now();
         if(P&&!P.dead){
           let dx=0,dy=0;
           if(joystick.active){dx=joystick.dir.x;dy=joystick.dir.y;}
@@ -2514,37 +2649,15 @@ function loop(now){
           if(keys['s']||keys['arrowdown'])dy=1;
           move(P,dx,dy,dt);
         }
-        if(G.mode!=='online')aiUpdate(dt,now);
-        updateProjs(dt,now);
-        updateFighter(P,dt,now);
-        updateFighter(E,dt,now);
-        if(G.mode==='online'&&ON.host){
-          // 房主: 应用客机输入(输入缓冲: 角色忙时下一帧重试, 不丢操作) + 倒计时
-          // 客机 ACT 断流超时(丢包/卡顿)则移动归零, 防止客机角色在房主端持续乱走
-          if(ON.lastActT&&now-ON.lastActT>500){ON.remote.x=0;ON.remote.y=0;}
-          if(E&&!E.dead)move(E,ON.remote.x,ON.remote.y,dt);
-          if(ON.remote.pend.length){
-            const a=ON.remote.pend[0];
-            const st0=E.state, cdX0=E.cdX, cd10=E.cd1, cd20=E.cd2, cdU0=E.cdU;
-            if(a==='atk')basicAttack(E,P);
-            else if(a==='s1'){skill1(E,P); voiceLine(E,'s1');}
-            else if(a==='s2'){skill2(E,P); voiceLine(E,'s2');}
-            else if(a==='ult'){ult(E,P); voiceLine(E,'ult');}
-            else if(a==='stl'){stealth(E); voiceLine(E,'stl');}
-            ON.pendAge=(ON.pendAge||0)+1;
-            const acted=E.state!==st0||E.cdX>cdX0||E.cd1>cd10||E.cd2>cd20||E.cdU>cdU0||E.dead;
-            if(acted||ON.pendAge>45){ ON.remote.pend.shift(); ON.pendAge=0; }
-          }
-          if(ON.timeLimit>0&&G.state==='fight'){
-            ON.timeLeft-=dt;
-            if(ON.timeLeft<=0)onlineEndByTime();
-          }
-          const tEl=document.getElementById('onTimer');
-          if(ON.timeLimit>0&&G.state==='fight'&&!ON.ended){
-            tEl.classList.remove('hidden');
-            tEl.textContent='⏱ '+fmtTime(Math.max(0,Math.ceil(ON.timeLeft)));
-          }
-        }
+        aiUpdate(dt,SIM.now);
+        updateProjs(dt,SIM.now);
+        updateFighter(P,dt,SIM.now);
+        updateFighter(E,dt,SIM.now);
+      }
+      if(ON.timeLimit>0&&G.state==='fight'&&!ON.ended){
+        const tEl=document.getElementById('onTimer');
+        tEl.classList.remove('hidden');
+        tEl.textContent='⏱ '+fmtTime(Math.max(0,Math.ceil(ON.timeLeft)));
       }
     }
     if(!paused){

@@ -22,6 +22,7 @@ try { fs.mkdirSync(FILESDIR, { recursive: true }); } catch (e) {}
 
 // ---------- 状态 ----------
 const state = { users: {}, friends: {}, requests: {}, groups: [], messages: [], nextId: 1, rank: {} };
+const fsRooms = {};   // 火影帧同步房间: id -> {a,b,frames:{},next}
 const stateFile = path.join(DATADIR, 'state.json');
 function loadState() {
   try {
@@ -456,6 +457,69 @@ const server = http.createServer(async function (req, res) {
     const m = addMsg(name, to, 'text', text);
     saveState();
     return ok(res, { ok: true, message: m });
+  }
+
+  // ---------- 火影帧同步(lockstep): 服务器只收集/打包/广播双方输入, 不做战斗模拟 ----------
+  if (p === '/api/nrfs/start' && req.method === 'POST') {
+    const name = auth(req);
+    if (!name) return fail(res, 401, '请先登录');
+    const b = JSON.parse(((await readBody(req)) || '{}').toString());
+    const rid = String(b.room || '').slice(0, 48);
+    if (!rid) return fail(res, 400, '房间号无效');
+    const t0 = Date.now() - 1800000;
+    for (const k in fsRooms) { if (fsRooms[k].lastT < t0) delete fsRooms[k]; } // 半小时无人访问清理
+    let r = fsRooms[rid];
+    if (!r) r = fsRooms[rid] = { a: '', b: '', frames: {}, next: 0, lastT: Date.now() };
+    r.lastT = Date.now();
+    if (r.a === name) return ok(res, { ok: true, host: true, next: r.next });
+    if (r.b === name) return ok(res, { ok: true, host: false, next: r.next });
+    if (!r.a) { r.a = name; return ok(res, { ok: true, host: true, next: r.next }); }
+    if (!r.b) { r.b = name; return ok(res, { ok: true, host: false, next: r.next }); }
+    return fail(res, 409, '房间已满');
+  }
+
+  if (p === '/api/nrfs/input' && req.method === 'POST') {
+    const name = auth(req);
+    if (!name) return fail(res, 401, '请先登录');
+    const b = JSON.parse(((await readBody(req)) || '{}').toString());
+    const r = fsRooms[String(b.room || '')];
+    if (!r) return fail(res, 404, '房间不存在');
+    if (r.a !== name && r.b !== name) return fail(res, 403, '不在房间中');
+    const n = parseInt(b.frame, 10);
+    if (!isFinite(n) || n < 0 || n < r.next - 400) return fail(res, 400, '帧号无效');
+    const side = r.a === name ? 'a' : 'b';
+    const f = r.frames[n] || (r.frames[n] = { n, a: null, b: null, ts: Date.now() });
+    if (f[side] !== null) return fail(res, 409, '该帧输入已锁定');
+    f[side] = b.input || {};
+    // 写入时原子锁定: 单侧迟到超时立即盖章空输入, 所有读者看到同一真相
+    if (Date.now() - f.ts > 200) {
+      if (f.a === null) f.a = {};
+      if (f.b === null) f.b = {};
+    }
+    if (n >= r.next) r.next = n + 1;
+    r.lastT = Date.now();
+    return ok(res, { ok: true });
+  }
+
+  if (p === '/api/nrfs/frames' && req.method === 'GET') {
+    const name = auth(req);
+    if (!name) return fail(res, 401, '请先登录');
+    const r = fsRooms[qp(req, 'room') || ''];
+    if (!r || (r.a !== name && r.b !== name)) return fail(res, 404, '房间不存在');
+    const after = parseInt(qp(req, 'after') || '-1', 10);
+    const deadline = Date.now() - 200; // 超时未到则盖章空输入(写回锁定), 迟到写入已被409拒收 → 所有读者同一真相
+    const out = [];
+    for (let n = after + 1; n < r.next && out.length < 240; n++) {
+      const f = r.frames[n];
+      if (!f) continue;
+      const a = f.a !== null ? f.a : (f.ts < deadline ? (f.a = {}) : null);
+      const b = f.b !== null ? f.b : (f.ts < deadline ? (f.b = {}) : null);
+      if (a === null || b === null) break; // 未齐且未超时: 后续帧也不回
+      out.push({ n, a: f.a, b: f.b });
+    }
+    const keepFrom = r.next - 500;
+    for (const k in r.frames) { if (parseInt(k, 10) < keepFrom) delete r.frames[k]; }
+    return ok(res, { ok: true, next: r.next, frames: out });
   }
 
   // ---------- 文件 ----------
