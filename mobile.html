@@ -68,6 +68,8 @@ header .title{flex:0 0 auto;font-weight:600;font-size:15px}
 #msgList::-webkit-scrollbar-thumb{background:rgba(0,0,0,.25);border-radius:8px}
 #msgList::-webkit-scrollbar-track{background:transparent}
 #toLatest{position:absolute;right:14px;bottom:82px;z-index:6;padding:8px 14px;border-radius:999px;border:none;background:#0f9d58;color:#fff;font-size:13px;box-shadow:0 4px 14px rgba(0,0,0,.25);cursor:pointer}
+#scrollRail{position:absolute;right:2px;width:6px;background:rgba(0,0,0,.07);border-radius:4px;z-index:6;touch-action:none;display:none}
+#scrollThumb{position:absolute;left:0;width:6px;border-radius:4px;background:rgba(0,0,0,.34);min-height:26px}
 #chatView{position:relative}
 .msg-row{display:flex;flex-direction:column;margin-bottom:12px}
 .msg-row.mine{align-items:flex-end}
@@ -158,6 +160,7 @@ header .title{flex:0 0 auto;font-weight:600;font-size:15px}
         <button class="icon-btn" id="membersBtn">成员</button>
       </div>
       <div id="msgList"></div>
+      <div id="scrollRail"><div id="scrollThumb"></div></div>
       <button id="toLatest" class="hidden">⬇ 返回最新</button>
       <div class="inputbar" id="inputbar">
         <button class="bar-btn" id="emojiBtn">😊</button>
@@ -495,6 +498,7 @@ function renderChat(){
   });
   if(stickBottom){ box.scrollTop=box.scrollHeight; $('#toLatest').classList.add('hidden'); }
   else { $('#toLatest').classList.remove('hidden'); }
+  updScrollRail();
 }
 function loadImg(fid){
   if(imgPromise[fid])return imgPromise[fid];
@@ -523,17 +527,48 @@ function downloadFile(fid,name){
 
 /* ---------- 会话切换 ---------- */
 var stickBottom=true;
+// 自定义滚动滑轮(手机浏览器会隐藏原生滚动条)
+function updScrollRail(){
+  var b=$('#msgList'), rail=$('#scrollRail'), th=$('#scrollThumb');
+  if(!b||!rail||!th||!b.offsetParent)return;
+  var r=b.getBoundingClientRect(), p=$('#chatView').getBoundingClientRect();
+  rail.style.top=(r.top-p.top)+'px';
+  rail.style.height=r.height+'px';
+  var sh=b.scrollHeight, ch=b.clientHeight;
+  if(sh<=ch+4){ rail.style.display='none'; return; }
+  rail.style.display='block';
+  var rh=rail.clientHeight, hh=Math.max(26,Math.round(rh*ch/sh));
+  th.style.height=hh+'px';
+  var maxTop=Math.max(0,rh-hh);
+  th.style.top=Math.round(maxTop*((b.scrollTop)/Math.max(1,sh-ch)))+'px';
+}
 (function(){
-  var box=$('#msgList'), btn=$('#toLatest');
+  var box=$('#msgList'), btn=$('#toLatest'), rail=$('#scrollRail'), th=$('#scrollThumb');
   box.addEventListener('scroll',function(){
     stickBottom=(box.scrollHeight-box.scrollTop-box.clientHeight)<70;
     if(stickBottom)btn.classList.add('hidden');
+    updScrollRail();
   },{passive:true});
   btn.addEventListener('click',function(){
     stickBottom=true;
     btn.classList.add('hidden');
     try{ box.scrollTo({top:box.scrollHeight,behavior:'smooth'}); }catch(e){ box.scrollTop=box.scrollHeight; }
+    setTimeout(updScrollRail,300);
   });
+  var drag=false;
+  th.addEventListener('pointerdown',function(e){ drag=true; try{th.setPointerCapture(e.pointerId);}catch(x){} e.preventDefault(); });
+  th.addEventListener('pointermove',function(e){
+    if(!drag)return;
+    var rr=rail.getBoundingClientRect();
+    var rh=rail.clientHeight, hh=th.offsetHeight;
+    var y=e.clientY-rr.top-hh/2;
+    var frac=Math.max(0,Math.min(1,y/Math.max(1,rh-hh)));
+    box.scrollTop=frac*(box.scrollHeight-box.clientHeight);
+  });
+  th.addEventListener('pointerup',function(){ drag=false; });
+  th.addEventListener('pointercancel',function(){ drag=false; });
+  window.addEventListener('resize',updScrollRail);
+  updScrollRail();
 })();
 function openChat(key){
   stickBottom=true; // 切换会话时回到最新
@@ -602,6 +637,7 @@ function initEmoji(){
       inp.value=inp.value.slice(0,sel)+e+inp.value.slice(sel);
       inp.focus();
       inp.selectionStart=inp.selectionEnd=sel+e.length;
+      $('#emojiPanel').classList.add('hidden'); // 选完表情收起面板, 光标回到输入框
     });
     ep.appendChild(b);
   });
