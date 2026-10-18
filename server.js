@@ -3,6 +3,7 @@
 // 用法: node server.js --port=3777 --datadir=./data
 'use strict';
 const http = require('http');
+const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -13,6 +14,8 @@ for (let i = 2; i < process.argv.length; i++) {
   if (m) args[m[1]] = m[2];
 }
 const PORT = parseInt(args.port || '3777', 10);
+// 语音/视频通话需要 HTTPS 安全上下文: 若目录下有 cert.pem/key.pem 则额外监听 HTTPS 端口
+const HTTPS_PORT = parseInt(args['https-port'] || process.env.HTTPS_PORT || '3778', 10);
 const DATADIR = args.datadir || path.join(__dirname, 'data');
 const FILESDIR = path.join(DATADIR, 'files');
 const GAMEHTML = args.game || path.join(__dirname, 'naruto.html');
@@ -163,7 +166,7 @@ function serveFile(res, file, type) {
   } catch (e) { fail(res, 404, '文件不存在'); }
 }
 
-const server = http.createServer(async function (req, res) {
+async function handle(req, res) {
   let p = '/';
   try { p = new URL(req.url, 'http://x').pathname; } catch (e) {}
   if (req.method === 'OPTIONS') {
@@ -525,6 +528,49 @@ const server = http.createServer(async function (req, res) {
     return ok(res, { ok: true, next: r.next, frames: out });
   }
 
+  // ---------- 语音/视频通话信令 ----------
+  if (p === '/api/call/config' && req.method === 'GET') {
+    return ok(res, {
+      ok: true,
+      ice: iceServers(),
+      tls: httpsStarted,
+      httpsPort: HTTPS_PORT,
+      secure: httpsStarted
+    });
+  }
+
+  if (p === '/api/call/signal' && req.method === 'POST') {
+    const name = auth(req);
+    if (!name) return fail(res, 401, '请先登录');
+    const b = JSON.parse(((await readBody(req)) || '{}').toString());
+    const to = sanName(b.to);
+    const type = String(b.type || '');
+    if (!to || !state.users[to]) return fail(res, 404, '用户不存在');
+    if (to === name) return fail(res, 400, '不能呼叫自己');
+    if (!isFriend(name, to)) return fail(res, 403, '只能给好友通话');
+    if (['invite', 'answer', 'ice', 'hangup', 'reject', 'busy', 'cancel'].indexOf(type) < 0) return fail(res, 400, '信令类型无效');
+    const item = pushCall(to, {
+      from: name,
+      type: type,
+      media: b.media === 'video' ? 'video' : 'audio',
+      callId: String(b.callId || '').slice(0, 48),
+      sdp: b.sdp || null,
+      cand: b.cand || null
+    });
+    return ok(res, { ok: true, seq: item.seq });
+  }
+
+  if (p === '/api/call/inbox' && req.method === 'GET') {
+    const name = auth(req);
+    if (!name) return fail(res, 401, '请先登录');
+    const since = parseInt(qp(req, 'since') || '0', 10) || 0;
+    const t0 = now() - 180000;
+    let box = (callBox[name] || []).filter(function (x) { return x.time > t0; });
+    callBox[name] = box;
+    const list = box.filter(function (x) { return x.seq > since; }).slice(0, 80);
+    return ok(res, { ok: true, seq: callSeq, messages: list });
+  }
+
   // ---------- 文件 ----------
   if (p === '/api/upload') {
     const name = auth(req);
@@ -547,6 +593,17 @@ const server = http.createServer(async function (req, res) {
     }
     const fid = crypto.randomBytes(16).toString('hex');
     fs.writeFileSync(path.join(FILESDIR, fid + '.bin'), data);
+    const kind = String(qp(req, 'kind') || '');
+    if (kind === 'voice') {
+      const dur = Math.max(0, Math.min(120, parseFloat(qp(req, 'dur') || '0') || 0));
+      const vtext = String(qp(req, 'text') || '').slice(0, 2000);
+      const m = addMsg(name, to, 'voice', '', {
+        fileId: fid, fileName: fname || 'voice', fileSize: data.length, mime: mime || 'audio/webm',
+        dur: Math.round(dur * 10) / 10, transcript: vtext
+      });
+      saveState();
+      return ok(res, { ok: true, message: m });
+    }
     const m = addMsg(name, to, mime.indexOf('image/') === 0 ? 'image' : 'file', '', {
       fileId: fid, fileName: fname, fileSize: data.length, mime: mime
     });
@@ -650,8 +707,62 @@ const server = http.createServer(async function (req, res) {
   }
 
   fail(res, 404, '未知接口: ' + p);
+}
+
+// ---------- 通话信令 (WebRTC: 服务器只转发 SDP/ICE) ----------
+const callBox = {};   // name -> [{seq,from,type,media,callId,sdp,cand,time}]
+let callSeq = 0;
+function pushCall(to, obj) {
+  if (!callBox[to]) callBox[to] = [];
+  const item = Object.assign({ seq: ++callSeq, time: now() }, obj);
+  callBox[to].push(item);
+  if (callBox[to].length > 200) callBox[to].splice(0, callBox[to].length - 200);
+  return item;
+}
+function iceServers() {
+  const list = [
+    { urls: 'stun:stun.miwifi.com:3478' },
+    { urls: 'stun:stun.chat.bilibili.com:3478' },
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun.cloudflare.com:3478' }
+  ];
+  const turn = args.turn || process.env.TURN_URL || '';
+  if (turn) {
+    list.push({
+      urls: turn,
+      username: args['turn-user'] || process.env.TURN_USER || '',
+      credential: args['turn-pass'] || process.env.TURN_PASS || ''
+    });
+  }
+  return list;
+}
+let httpsStarted = false;
+
+const server = http.createServer(handle);
+server.listen(PORT, '0.0.0.0', function () {
+  console.log('NarutoCloud v3.2.0 listening on http://0.0.0.0:' + PORT + ' datadir=' + DATADIR);
 });
 
-server.listen(PORT, '0.0.0.0', function () {
-  console.log('NarutoCloud v3.2.0 listening on 0.0.0.0:' + PORT + ' datadir=' + DATADIR);
-});
+// 自签名证书: 首次访问需在浏览器里点“高级 → 继续前往”
+try {
+  const certFile = args.cert || path.join(__dirname, 'cert.pem');
+  const keyFile = args.key || path.join(__dirname, 'key.pem');
+  const pfxFile = args.pfx || process.env.HTTPS_PFX || path.join(__dirname, 'cert.pfx');
+  let tlsOpts = null;
+  if (fs.existsSync(certFile) && fs.existsSync(keyFile)) {
+    tlsOpts = { key: fs.readFileSync(keyFile), cert: fs.readFileSync(certFile) };
+  } else if (fs.existsSync(pfxFile)) {
+    tlsOpts = { pfx: fs.readFileSync(pfxFile), passphrase: args['pfx-pass'] || process.env.HTTPS_PFX_PASS || '' };
+  }
+  if (tlsOpts) {
+    https.createServer(tlsOpts, handle)
+      .listen(HTTPS_PORT, '0.0.0.0', function () {
+        httpsStarted = true;
+        console.log('HTTPS (麦克风/摄像头可用) on https://0.0.0.0:' + HTTPS_PORT);
+      })
+      .on('error', function (e) { console.log('HTTPS 启动失败: ' + e.message); });
+  } else {
+    console.log('未找到证书 (cert.pem/key.pem 或 cert.pfx), 仅提供 HTTP (语音消息/通话不可用)');
+  }
+} catch (e) { console.log('HTTPS 启动异常: ' + e.message); }
+

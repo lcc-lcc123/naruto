@@ -22,9 +22,23 @@ mkdir -p video
 for f in naruto_win1 naruto_win2 naruto_win3 naruto_win4 sasuke_win1 sasuke_win2 sasuke_win3; do
   curl -fsSL --max-time 300 -o "video/$f.mp4" "$BASE/video/$f.mp4?t=$TS" && echo "ok  $f.mp4" || echo "fail $f.mp4"
 done
+echo "== HTTPS 证书(语音消息/语音通话/视频通话需要) =="
+if [ ! -f cert.pem ] || [ ! -f key.pem ]; then
+  if command -v openssl >/dev/null 2>&1; then
+    IP=$(curl -s --max-time 8 ifconfig.me || echo "101.200.171.33")
+    openssl req -x509 -newkey rsa:2048 -nodes -keyout key.pem -out cert.pem -days 3650 \
+      -subj "/CN=$IP" -addext "subjectAltName=IP:$IP" >/dev/null 2>&1 \
+      && echo "ok  cert.pem (CN=$IP)" || echo "fail 证书生成"
+  else
+    echo "skip 未安装 openssl, 无法启用 HTTPS"
+  fi
+else
+  echo "ok  cert.pem 已存在"
+fi
 echo "== 重启服务 =="
 systemctl restart naruto-srv
 sleep 1
 IP=$(curl -s --max-time 8 ifconfig.me || echo "服务器公网IP")
 echo ""
 echo "更新完成! 游戏: http://$IP:3777/game"
+echo "聊天: http://$IP:3777/m   (语音/通话请用 https://$IP:3778/m , 首次需点“高级→继续前往”)"
