@@ -154,7 +154,26 @@ header .title{flex:0 0 auto;font-weight:600;font-size:15px}
 #bgPicker button.on{border-color:var(--green)}
 #bgPicker button.lbl{display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px}
 [data-theme="dark"] #bgPicker button{color:#ddd}
-#searchInput{flex:1;min-width:0;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--inputbg);color:var(--text);font-size:15px;outline:none;margin-right:8px}
+#searchInput{flex:1;min-width:0;border:none;background:none;color:var(--text);font-size:15px;outline:none}
+.searchhead{flex-shrink:0;display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--top);padding-top:calc(8px + env(safe-area-inset-top));border-bottom:1px solid var(--border)}
+.sbox{flex:1;display:flex;align-items:center;gap:6px;background:var(--inputbg);border:1px solid var(--border);border-radius:8px;padding:0 10px;height:36px;min-width:0}
+.sbox svg{color:var(--sub);flex-shrink:0}
+.scancel{border:none;background:none;color:var(--text);font-size:15px;padding:0 2px;flex-shrink:0}
+#searchBody{flex:1;display:flex;flex-direction:column;min-height:0}
+#searchHome{padding-top:36px}
+.shtitle{text-align:center;color:var(--sub);font-size:13px;margin-bottom:22px}
+.sgrid{display:grid;grid-template-columns:repeat(3,1fr);row-gap:22px;padding:0 18px}
+.sgrid button{background:none;border:none;color:#576b95;font-size:14px;padding:2px 0;position:relative}
+.sgrid button:not(:nth-child(3n)):after{content:'';position:absolute;right:0;top:50%;transform:translateY(-50%);width:1px;height:14px;background:var(--border)}
+[data-theme="dark"] .sgrid button{color:#8ab4f8}
+#searchBar{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:var(--top);border-bottom:1px solid var(--border);font-size:13px;color:var(--sub)}
+#searchBar button{border:none;background:var(--inputbg);color:var(--sub);border-radius:999px;width:24px;height:24px;font-size:15px;line-height:1}
+#searchResults{flex:1;overflow-y:auto;display:none}
+#searchResults.show{display:block}
+.daychips{display:flex;flex-wrap:wrap;gap:8px;padding:14px 16px}
+.daychips button{border:1px solid var(--border);background:var(--inputbg);color:var(--text);border-radius:999px;padding:7px 13px;font-size:13px}
+.daychips button.on{background:var(--green);border-color:var(--green);color:#fff}
+.stempty{padding:46px 20px;text-align:center;color:var(--sub);font-size:13px;line-height:1.7}
 #searchResults{flex:1;overflow-y:auto}
 .sres{display:flex;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--top)}
 .sres .sav{width:34px;height:34px;border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px}
@@ -250,7 +269,7 @@ body.emoji-open #toLatest{display:none}
       <div class="link" id="modeLink">没有账号？注册一个</div>
       <div class="err" id="loginMsg"></div>
       <div id="connStatus" class="conn">正在检测连接...</div>
-      <div class="ver">手机端版本 v3.2.0</div>
+      <div class="ver">手机端版本 v3.2.1</div>
     </div>
   </div>
   <div id="mainView" class="hidden">
@@ -351,11 +370,25 @@ body.emoji-open #toLatest{display:none}
   </div>
 </div>
 <div id="chatSearch" class="hidden">
-  <div class="infohead">
-    <button class="backbtn" id="searchBack" type="button">‹</button>
-    <input id="searchInput" placeholder="搜索聊天记录" autocomplete="off">
+  <div class="searchhead">
+    <div class="sbox"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M15.2 15.2L20 20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><input id="searchInput" placeholder="搜索" autocomplete="off"></div>
+    <button id="searchCancel" class="scancel" type="button">取消</button>
   </div>
-  <div id="searchResults"></div>
+  <div id="searchBody">
+    <div id="searchHome">
+      <div class="shtitle">搜索指定内容</div>
+      <div class="sgrid">
+        <button type="button" data-cat="date">日期</button>
+        <button type="button" data-cat="media">图片与视频</button>
+        <button type="button" data-cat="file">文件</button>
+        <button type="button" data-cat="audio">音乐与音频</button>
+        <button type="button" data-cat="link">链接</button>
+        <button type="button" data-cat="emoji">表情</button>
+      </div>
+    </div>
+    <div id="searchBar" class="hidden"><span id="searchBarLabel"></span><button id="searchBarClear" type="button">×</button></div>
+    <div id="searchResults"></div>
+  </div>
 </div>
 <div id="modalBg" class="modal-bg hidden">
   <div class="modal">
@@ -1519,13 +1552,41 @@ function openChatInfo(){
   closeEmojiPanel(false);
 }
 function closeChatInfo(){ $('#chatInfo').classList.add('hidden'); }
+var searchMode='home', searchCat='', searchDay='';
+var SEARCH_CATS={
+  media:{label:'图片与视频',test:function(m){return m.type==='image'||(m.type==='file'&&/^video\//i.test(m.mime||''));}},
+  file:{label:'文件',test:function(m){return m.type==='file'&&!/^video\//i.test(m.mime||'')&&!/^audio\//i.test(m.mime||'');}},
+  audio:{label:'音乐与音频',test:function(m){return m.type==='voice'||(m.type==='file'&&/^audio\//i.test(m.mime||''));}},
+  link:{label:'链接',test:function(m){return /(https?:\/\/|www\.)/i.test(msgSearchText(m));}},
+  emoji:{label:'表情',test:function(m){return m.type==='text'&&isEmojiOnly(m.text||'');}}
+};
+function convMsgsOf(k){
+  return (state.allMsgs||[]).filter(function(m){return convKeyOfMsg(m)===k&&m.type!=='system';});
+}
+function pad2(n){return ('0'+n).slice(-2);}
+function fmtDateTime(t){
+  var d=new Date(t);
+  return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate())+' '+pad2(d.getHours())+':'+pad2(d.getMinutes());
+}
+function dayKeyOf(t){var d=new Date(t);return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());}
 function openChatSearch(){
+  searchMode='home';searchCat='';searchDay='';
   $('#searchInput').value='';
-  $('#searchResults').innerHTML='<div id="searchEmpty">输入关键词搜索当前聊天记录</div>';
+  $('#searchHome').style.display='';
+  $('#searchBar').classList.add('hidden');
+  $('#searchResults').classList.remove('show');
+  $('#searchResults').innerHTML='';
   $('#chatSearch').classList.remove('hidden');
   setTimeout(function(){try{$('#searchInput').focus();}catch(e){}},80);
 }
 function closeChatSearch(){ $('#chatSearch').classList.add('hidden'); }
+function showSearchHome(){
+  searchMode='home';searchCat='';searchDay='';
+  $('#searchHome').style.display='';
+  $('#searchBar').classList.add('hidden');
+  $('#searchResults').classList.remove('show');
+  $('#searchResults').innerHTML='';
+}
 function msgSearchText(m){
   if(m.type==='text')return m.text||'';
   if(m.type==='voice')return m.transcript||'';
@@ -1533,26 +1594,89 @@ function msgSearchText(m){
   if(m.type==='image')return '[图片]';
   return '';
 }
-function runSearch(){
-  var q=($('#searchInput').value||'').trim().toLowerCase();
-  var box=$('#searchResults');
-  var k=state.currentChat;
-  if(!q){ box.innerHTML='<div id="searchEmpty">输入关键词搜索当前聊天记录</div>'; return; }
-  var list=(state.allMsgs||[]).filter(function(m){
-    return convKeyOfMsg(m)===k&&m.type!=='system'&&msgSearchText(m).toLowerCase().indexOf(q)>=0;
-  }).slice(-100).reverse();
-  if(!list.length){ box.innerHTML='<div id="searchEmpty">没有找到「'+esc(q)+'」相关的聊天记录</div>'; return; }
-  box.innerHTML=list.map(function(m){
-    var u=state.users[m.from]||{};
-    var t=msgSearchText(m);
-    var idx=t.toLowerCase().indexOf(q);
-    var before=esc(t.slice(0,idx)), hit=esc(t.slice(idx,idx+q.length)), after=esc(t.slice(idx+q.length));
-    return '<div class="sres" data-id="'+m.id+'"><div class="sav" style="background:'+(u.color||'#8a8def')+'">'+esc((m.from||'?').charAt(0))+'</div>'
-      +'<div><div class="st">'+esc(m.from)+' · '+fmtTime(m.time)+'</div><div class="sx">'+before+'<em>'+hit+'</em>'+after+'</div></div></div>';
-  }).join('');
-  Array.prototype.forEach.call(box.querySelectorAll('.sres'),function(el){
+function resultTextOf(m){
+  if(m.type==='image')return '<span style="color:var(--sub)">🖼</span> [图片]';
+  if(m.type==='voice')return '<span style="color:var(--sub)">🎙</span> '+(m.transcript?esc(m.transcript):'[语音]')+(m.dur?' <span style="color:var(--sub);font-size:12px">'+Math.round(m.dur)+'″</span>':'');
+  if(m.type==='file')return (m.mime&&m.mime.indexOf('video')===0?'🎬 [视频] ':'📄 [文件] ')+esc(m.fileName||'')+(m.fileSize?' <span style="color:var(--sub);font-size:12px">'+(m.fileSize<1024?m.fileSize+' B':Math.round(m.fileSize/1024)+' KB')+'</span>':'');
+  return esc(m.text||'');
+}
+function highlightHtml(text,q){
+  var i=text.toLowerCase().indexOf(q.toLowerCase());
+  if(i<0)return esc(text);
+  return esc(text.slice(0,i))+'<em>'+esc(text.slice(i,i+q.length))+'</em>'+esc(text.slice(i+q.length));
+}
+function sresRow(m,textHtml,extra){
+  var u=state.users[m.from]||{};
+  return '<div class="sres" data-id="'+m.id+'">'
+    +'<div class="sav" style="background:'+(u.color||'#8a8def')+'">'+esc((m.from||'?').charAt(0))+'</div>'
+    +'<div style="min-width:0"><div class="st">'+esc(m.from)+' · '+fmtDateTime(m.time)+(extra?' · '+extra:'')+'</div>'
+    +'<div class="sx">'+textHtml+'</div></div></div>';
+}
+function showSearchResults(html){
+  $('#searchHome').style.display='none';
+  $('#searchResults').innerHTML=html;
+  $('#searchResults').classList.add('show');
+  Array.prototype.forEach.call($('#searchResults').querySelectorAll('.sres'),function(el){
     el.addEventListener('click',function(){ jumpToMsg(Number(el.getAttribute('data-id'))); });
   });
+}
+function setSearchCat(cat){
+  searchCat=cat;searchDay='';searchMode='cat';
+  $('#searchInput').value='';
+  try{$('#searchInput').blur();}catch(e){}
+  if(cat==='date'){renderDateView('');return;}
+  var c=SEARCH_CATS[cat]||{label:'',test:function(){return false;}};
+  var msgs=convMsgsOf(state.currentChat).filter(c.test).slice(-100).reverse();
+  $('#searchBar').classList.remove('hidden');
+  $('#searchBar').innerHTML='<span id="searchBarLabel">'+esc(c.label)+'（'+msgs.length+'）</span><button id="searchBarClear" type="button">×</button>';
+  $('#searchBarClear').addEventListener('click',function(){showSearchHome();try{$('#searchInput').focus();}catch(e){}});
+  if(!msgs.length){showSearchResults('<div class="stempty">没有相关的'+esc(c.label)+'记录</div>');return;}
+  var html=msgs.map(function(m){
+    if(cat==='emoji')return sresRow(m,esc(m.text||''));
+    return sresRow(m,resultTextOf(m));
+  }).join('');
+  showSearchResults(html);
+}
+function renderDateView(day){
+  searchMode='day';searchDay=day||'';
+  var all=convMsgsOf(state.currentChat);
+  var days={},order=[];
+  all.forEach(function(m){var k=dayKeyOf(m.time);if(!days[k]){days[k]=0;order.push(k);}days[k]++;});
+  order.sort().reverse();
+  var html='<div class="daychips">'+order.map(function(k){
+    return '<button type="button" data-day="'+k+'"'+(k===day?' class="on"':'')+'>'+k.slice(5)+'（'+days[k]+'）</button>';
+  }).join('')+'</div>';
+  if(day){
+    var msgs=all.filter(function(m){return dayKeyOf(m.time)===day;}).reverse();
+    html+=msgs.map(function(m){return sresRow(m,resultTextOf(m));}).join('')||'<div class="stempty">这一天没有记录</div>';
+  }else{
+    html+='<div class="stempty">选择日期查看当天的聊天记录</div>';
+  }
+  $('#searchBar').classList.add('hidden');
+  showSearchResults(html);
+  Array.prototype.forEach.call($('#searchResults').querySelectorAll('[data-day]'),function(b){
+    b.addEventListener('click',function(){renderDateView(b.getAttribute('data-day'));});
+  });
+}
+function runSearch(){
+  var q=($('#searchInput').value||'').trim();
+  if(!q){
+    if(searchMode==='cat'&&searchCat){setSearchCat(searchCat);}
+    else if(searchMode==='day'){renderDateView(searchDay);}
+    else showSearchHome();
+    return;
+  }
+  searchMode='text';
+  var list=convMsgsOf(state.currentChat).filter(function(m){
+    return msgSearchText(m).toLowerCase().indexOf(q.toLowerCase())>=0;
+  }).slice(-100).reverse();
+  $('#searchBar').classList.add('hidden');
+  if(!list.length){showSearchResults('<div class="stempty">没有找到「'+esc(q)+'」相关的聊天记录</div>');return;}
+  showSearchResults(list.map(function(m){
+    if(m.type==='text')return sresRow(m,highlightHtml(m.text||'',q));
+    if(m.type==='voice')return sresRow(m,'<span style="color:var(--sub)">🎙</span> '+(m.transcript?highlightHtml(m.transcript,q):'[语音]'));
+    return sresRow(m,resultTextOf(m));
+  }).join(''));
 }
 function jumpToMsg(id){
   var m=(state.allMsgs||[]).filter(function(x){return x.id===id;})[0];
@@ -1653,8 +1777,11 @@ function bindChatInfoUI(){
     savePrefs();
   });
   $('#rowSearch').addEventListener('click',openChatSearch);
-  $('#searchBack').addEventListener('click',closeChatSearch);
+  $('#searchCancel').addEventListener('click',closeChatSearch);
   $('#searchInput').addEventListener('input',runSearch);
+  Array.prototype.forEach.call(document.querySelectorAll('#searchHome [data-cat]'),function(b){
+    b.addEventListener('click',function(){setSearchCat(b.getAttribute('data-cat'));});
+  });
   $('#rowBg').addEventListener('click',openBgPicker);
   $('#rowClear').addEventListener('click',clearChatHistory);
   $('#rowReport').addEventListener('click',openReport);
