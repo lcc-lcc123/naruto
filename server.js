@@ -171,7 +171,7 @@ const server = http.createServer(async function (req, res) {
   }
 
   // ---------- 页面 ----------
-  if (p === '/') { serveFile(res, GAMEHTML, 'text/html; charset=utf-8'); return; }
+  if (p === '/') { serveFile(res, PORTALHTML, 'text/html; charset=utf-8'); return; }
   if (p === '/game' || p === '/game/') { serveFile(res, GAMEHTML, 'text/html; charset=utf-8'); return; }
   if (p === '/m' || p === '/m/' || p === '/chat') { serveFile(res, CHATHTML, 'text/html; charset=utf-8'); return; }
   if (p === '/portal') { serveFile(res, PORTALHTML, 'text/html; charset=utf-8'); return; }
