@@ -1,0 +1,1369 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<link rel="icon" href="data:,">
+<title>映射 + AI 世界</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:"PingFang SC","Microsoft YaHei",sans-serif;color:#fff;touch-action:none;user-select:none;-webkit-user-select:none}
+#gl{position:fixed;inset:0;width:100%;height:100%;display:block}
+#hud{position:fixed;inset:0;pointer-events:none}
+#topbar{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;gap:8px;padding:calc(8px + env(safe-area-inset-top)) 10px 8px;background:linear-gradient(180deg,rgba(0,0,0,.6),rgba(0,0,0,0));pointer-events:auto}
+#topbar a{color:#fff;text-decoration:none;font-size:13px;background:rgba(255,255,255,.16);padding:7px 11px;border-radius:9px;backdrop-filter:blur(6px)}
+#topbar .tt{flex:1;text-align:center;font-size:15px;font-weight:600;text-shadow:0 1px 6px rgba(0,0,0,.8)}
+#topbar .tb{background:rgba(255,255,255,.16);border:none;color:#fff;font-size:13px;padding:7px 11px;border-radius:9px;backdrop-filter:blur(6px)}
+#topbar .tb.on{background:#07c160}
+#hint{position:absolute;left:10px;top:calc(58px + env(safe-area-inset-top));font-size:11px;line-height:1.7;color:#d7e3f7;background:rgba(0,0,0,.4);padding:8px 10px;border-radius:10px;max-width:62vw;backdrop-filter:blur(4px)}
+#hint b{color:#8fe2b3}
+#cross{position:absolute;left:50%;top:50%;width:16px;height:16px;margin:-8px 0 0 -8px}
+#cross:before,#cross:after{content:'';position:absolute;background:rgba(255,255,255,.85);box-shadow:0 0 3px rgba(0,0,0,.7)}
+#cross:before{left:7px;top:0;width:2px;height:16px}
+#cross:after{top:7px;left:0;height:2px;width:16px}
+#joy{position:absolute;left:calc(14px + env(safe-area-inset-left));bottom:calc(18px + env(safe-area-inset-bottom));width:118px;height:118px;border-radius:50%;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.25);pointer-events:auto;touch-action:none}
+#knob{position:absolute;left:50%;top:50%;width:50px;height:50px;margin:-25px 0 0 -25px;border-radius:50%;background:rgba(255,255,255,.35);border:1px solid rgba(255,255,255,.5)}
+#acts{position:absolute;right:calc(14px + env(safe-area-inset-right));bottom:calc(18px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(3,54px);gap:8px;pointer-events:auto}
+#acts button{width:54px;height:54px;border-radius:50%;border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.14);color:#fff;font-size:14px;font-weight:600;backdrop-filter:blur(6px);touch-action:none}
+#acts button:active{background:rgba(255,255,255,.35)}
+#acts button.dig{background:rgba(226,86,66,.55)}
+#acts button.put{background:rgba(7,193,96,.5)}
+#acts button.jump{background:rgba(90,141,239,.55)}
+#hotbar{position:absolute;left:50%;bottom:calc(152px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;gap:5px;padding:5px;background:rgba(0,0,0,.38);border-radius:12px;pointer-events:auto;backdrop-filter:blur(6px);max-width:94vw;overflow-x:auto}
+#hotbar .slot{width:40px;height:40px;border-radius:8px;border:2px solid rgba(255,255,255,.18);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:9px;color:#fff;flex-shrink:0}
+#hotbar .slot.on{border-color:#fff;box-shadow:0 0 0 2px rgba(7,193,96,.7)}
+#hotbar .sw{width:19px;height:19px;border-radius:4px;margin-bottom:2px}
+#info{position:absolute;left:10px;bottom:calc(214px + env(safe-area-inset-bottom));font-size:11px;line-height:1.6;color:#dbe7fa;background:rgba(0,0,0,.42);padding:7px 9px;border-radius:9px;max-width:60vw;backdrop-filter:blur(4px);pointer-events:none}
+#atomPanel{position:absolute;right:10px;top:calc(58px + env(safe-area-inset-top));width:min(68vw,300px);background:rgba(10,16,26,.86);border:1px solid rgba(120,170,255,.35);border-radius:12px;padding:10px 12px;font-size:12px;line-height:1.75;color:#cfe0ff;pointer-events:auto;backdrop-filter:blur(8px)}
+#atomPanel h3{font-size:13px;color:#8fe2b3;margin-bottom:4px}
+#atomPanel .el{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px;vertical-align:-1px}
+#aiPanel{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom));width:min(92vw,420px);max-height:56vh;background:rgba(12,18,28,.94);border:1px solid rgba(120,170,255,.3);border-radius:14px;display:flex;flex-direction:column;overflow:hidden;pointer-events:auto;z-index:20}
+#aiPanel .ah{display:flex;align-items:center;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.1);font-size:14px;font-weight:600}
+#aiPanel .ah button{margin-left:auto;background:none;border:none;color:#9fb3d8;font-size:18px}
+#aiPanel .log{flex:1;overflow-y:auto;padding:10px 12px;font-size:12px;line-height:1.7;color:#c6d6ee;min-height:80px}
+#aiPanel .log .me{color:#8fe2b3;margin-top:6px}
+#aiPanel .cmds{display:flex;flex-wrap:wrap;gap:6px;padding:8px 12px;border-top:1px solid rgba(255,255,255,.1)}
+#aiPanel .cmds button{background:rgba(90,141,239,.22);border:1px solid rgba(120,170,255,.35);color:#dbe7fa;border-radius:999px;padding:7px 11px;font-size:12px}
+#toast{position:absolute;left:50%;top:22%;transform:translateX(-50%);background:rgba(0,0,0,.75);padding:8px 14px;border-radius:10px;font-size:12px;color:#fff;opacity:0;transition:opacity .25s;pointer-events:none;max-width:80vw;text-align:center;line-height:1.6}
+.hidden{display:none!important}
+
+/* ---------- 化学映射面板 ---------- */
+#chem{position:fixed;inset:0;z-index:60;background:rgba(7,11,17,.95);backdrop-filter:blur(16px);display:flex;flex-direction:column;color:#dce7f7}
+.chead{display:flex;align-items:center;gap:8px;padding:calc(10px + env(safe-area-inset-top)) 10px 8px;border-bottom:1px solid rgba(255,255,255,.08)}
+.chead .cback{background:none;border:none;color:#dce7f7;font-size:26px;width:34px;line-height:1;padding:0}
+.chead .ctitle{font-size:15px;font-weight:600;flex:1}
+.chead .csub{font-size:10px;color:#7e8ea6}
+.ctabs{display:flex;gap:6px;padding:8px 12px;overflow-x:auto;flex-shrink:0}
+.ctabs button{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#b9c8dd;border-radius:999px;padding:6px 14px;font-size:13px;white-space:nowrap}
+.ctabs button.on{background:#dce7f7;color:#0a1018;border-color:#dce7f7;font-weight:600}
+.cbody{flex:1;min-height:0;overflow-y:auto;padding:2px 12px calc(24px + env(safe-area-inset-bottom));-webkit-overflow-scrolling:touch}
+.cpanel{display:block}
+.ptableWrap{padding:2px 0 6px}
+.ptable{display:grid;grid-template-columns:repeat(18,minmax(0,1fr));gap:2px;width:100%;max-width:760px;margin:0 auto;padding:3px 1px}
+.ecell{position:relative;aspect-ratio:1;border-radius:4px;border:1px solid rgba(255,255,255,.14);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:6.5px;line-height:1.05;color:#fff;cursor:pointer;opacity:.94;font-family:Inter,system-ui,sans-serif}
+.ecell b{font-size:8px;letter-spacing:0}
+.ecell.empty{visibility:hidden}
+.ecell:active{transform:scale(.93)}
+.ecell.sel{outline:2px solid #fff;outline-offset:1px}
+.cat-非金属{background:#2d5f9e}.cat-碱金属{background:#a84a32}.cat-碱土金属{background:#a8792b}
+.cat-过渡金属{background:#5b4fa3}.cat-后过渡{background:#4f6274}.cat-类金属{background:#2f7d6c}
+.cat-卤素{background:#9c3f60}.cat-稀有气体{background:#6a5a9e}.cat-镧系{background:#2f7a55}
+.cat-锕系{background:#8a7431}.cat-未知{background:#4a5260}
+.detail{margin-top:12px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.045);border-radius:12px;padding:12px 14px;font-size:12px;line-height:1.8;color:#c3d3e8}
+.detail h3{font-size:15px;color:#fff;margin-bottom:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.detail .badge{font-size:10px;padding:2px 7px;border-radius:999px;background:rgba(255,255,255,.12);font-weight:400}
+.detail .kv{display:flex;justify-content:space-between;gap:12px;border-bottom:1px dashed rgba(255,255,255,.08);padding:4px 0}
+.detail .kv span:last-child{color:#eaf2ff;text-align:right}
+.detail .bar{height:7px;border-radius:4px;background:rgba(255,255,255,.08);overflow:hidden;margin:4px 0 2px}
+.detail .bar i{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,#5fd0a0,#8fd6ff)}
+.detail .mut{color:#8ea1ba}\n.detail .el{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:-1px}\n.mbtn{cursor:pointer}
+.mgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px}
+.mcard{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);cursor:pointer}
+.mcard .sw{width:26px;height:26px;border-radius:6px;flex-shrink:0;box-shadow:inset 0 0 0 1px rgba(255,255,255,.15)}
+.mcard .mn{font-size:12px;color:#e8f1ff}
+.mcard .mf{font-size:10px;color:#8ea1ba;margin-top:1px}
+.mcard.sel{outline:1px solid #dce7f7}
+.rrow{display:flex;gap:8px;align-items:center;margin:8px 0;flex-wrap:wrap}
+.rrow select{flex:1;min-width:0;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);color:#eaf2ff;border-radius:9px;padding:9px 10px;font-size:13px;outline:none}
+.rrow .swap{width:42px;height:38px;border-radius:9px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:#dce7f7;font-size:16px;flex-shrink:0}
+.rrow .run{flex:1;height:40px;border:none;border-radius:9px;background:#dce7f7;color:#0a1018;font-weight:600;font-size:14px}
+.rrow .run:active{opacity:.85}
+.catline{font-size:11px;color:#7e8ea6;margin:14px 0 6px;letter-spacing:.06em}
+.abund .arow{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:11px;color:#b9c8dd}
+.abund .arow .sym{width:26px;color:#eaf2ff;font-weight:600}
+.abund .arow .ab{flex:1;height:8px;border-radius:4px;background:rgba(255,255,255,.07);overflow:hidden}
+.abund .arow .ab i{display:block;height:100%;background:linear-gradient(90deg,#4f8fd6,#8fd6ff);border-radius:4px}
+.abund .arow .pc{width:58px;text-align:right;color:#8ea1ba}
+.dep{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px dashed rgba(255,255,255,.08);font-size:12px;color:#c3d3e8}
+.dep b{color:#fff;font-weight:500}
+@media (max-width:760px){
+  .ptable{gap:2px}
+  .mgrid{grid-template-columns:1fr 1fr}
+}
+
+@media (max-width:760px){
+  #hint{max-width:58vw;font-size:10px}
+  #acts{grid-template-columns:repeat(3,50px);gap:6px}
+  #acts button{width:50px;height:50px;font-size:12px}
+  #joy{width:104px;height:104px}
+  #hotbar{bottom:calc(148px + env(safe-area-inset-bottom))}
+  #hotbar .slot{width:37px;height:37px}
+}
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div id="hud">
+  <div id="topbar">
+    <a href="/">‹ 首页</a>
+    <div class="tt">映射 + AI 世界</div>
+    <button class="tb" id="btnChem">化学</button>
+    <button class="tb" id="btnAI">AI</button>
+  </div>
+  <div id="hint">拖动画面看向四周 · 左下摇杆移动<br>对准方块点 <b>挖</b> / <b>放</b> · 点右上 <b>化学</b> 查元素与反应</div>
+  <div id="cross"></div>
+  <div id="joy"><div id="knob"></div></div>
+  <div id="acts">
+    <button class="jump" data-act="jump">跳</button>
+    <button class="dig" data-act="dig">挖</button>
+    <button class="put" data-act="put">放</button>
+    <button data-act="inspect">看</button>
+    <button id="btnAtom" type="button">原子</button>
+    <button id="btnView" type="button">视角</button>
+  </div>
+  <div id="info">--</div>
+  <div id="hotbar"></div>
+  <div id="atomPanel" class="hidden"></div>
+  <div id="aiPanel" class="hidden">
+    <div class="ah"><span>AI 世界助手</span><button id="aiClose" type="button">×</button></div>
+    <div class="log" id="aiLog"><div>我是本地 AI 助手（无联网）：可以生成建筑、种树、切换昼夜，也能解释任何方块的原子构成。</div></div>
+    <div class="cmds">
+      <button data-cmd="house">建一座小屋</button>
+      <button data-cmd="tree">种一棵树</button>
+      <button data-cmd="day">切换昼夜</button>
+      <button data-cmd="walk">带我回到出生点</button>
+      <button data-cmd="what">脚下是什么</button>
+      <button data-cmd="flat">平整前方地面</button>
+    </div>
+  </div>
+  <div id="chem" class="hidden">
+    <div class="chead">
+      <button class="cback" id="chemBack" type="button">‹</button>
+      <div class="ctitle">化学映射</div>
+      <div class="csub">118 元素 · 物质 · 反应</div>
+    </div>
+    <div class="ctabs">
+      <button data-ctab="table" class="on" type="button">元素周期表</button>
+      <button data-ctab="mats" type="button">物质库</button>
+      <button data-ctab="react" type="button">反应台</button>
+      <button data-ctab="dist" type="button">元素分布</button>
+    </div>
+    <div class="cbody">
+      <div id="cpanel-table" class="cpanel">
+        <div class="ptableWrap"><div class="ptable" id="ptable"></div></div>
+        <div class="detail" id="elDetail">点击任意元素，查看原子量、熔沸点、密度、电负性、地壳丰度与主要存在形式。</div>
+      </div>
+      <div id="cpanel-mats" class="cpanel hidden">
+        <div class="mgrid" id="matList"></div>
+        <div class="detail" id="matDetail">选择一种物质，查看它的元素组成、物理性质、微观结构，以及它能参与的反应。</div>
+      </div>
+      <div id="cpanel-react" class="cpanel hidden">
+        <div class="rrow"><select id="rA"></select><button class="swap" id="rSwap" type="button">⇄</button><select id="rB"></select></div>
+        <div class="rrow">
+          <select id="rCond"><option>常温</option><option>加热</option><option>点燃</option><option>通电</option><option>催化剂</option></select>
+          <select id="rAmt"><option>适量</option><option>少量</option><option>过量</option></select>
+        </div>
+        <div class="rrow"><button class="run" id="rRun" type="button">进行反应</button></div>
+        <div class="detail" id="rOut">选择两种物质、条件与用量，查看产物。现实反应还受浓度、压强、催化剂与加入顺序影响。</div>
+      </div>
+      <div id="cpanel-dist" class="cpanel hidden">
+        <div class="catline">地壳元素丰度（质量 ppm）</div>
+        <div class="abund" id="abund"></div>
+        <div class="catline">当前世界中的矿物分布（生成规则）</div>
+        <div id="dist"></div>
+      </div>
+    </div>
+  </div>
+  <div id="toast"></div>
+</div>
+<script>
+(function(){
+'use strict';
+var WX=64,WZ=64,WY=28,SEA=8;
+var canvas=document.getElementById('gl');
+var gl=canvas.getContext('webgl',{antialias:true,alpha:false});
+if(!gl){document.body.innerHTML='<div style="padding:30px;color:#fff;font-size:14px;line-height:1.8">当前浏览器不支持 WebGL，无法进入方块世界。<br>请用 Chrome / Edge / Safari 打开。</div>';return;}
+
+/* ---------- 方块定义 ---------- */
+var B={
+  1:{n:'草方块',top:[0.36,0.68,0.28],side:[0.45,0.58,0.30],bot:[0.50,0.37,0.24],f:'SiO₂（硅酸盐）+ 有机物 + H₂O',atoms:[['Si','#c9b18a',0.5,0.5,0.5],['O','#e05050',0.27,0.68,0.32],['C','#4a4a4a',0.74,0.3,0.72]]},
+  2:{n:'泥土',col:[0.50,0.37,0.24],f:'硅酸盐 + 腐殖质 + 微生物',atoms:[['Si','#c9b18a',0.5,0.5,0.5],['O','#e05050',0.28,0.7,0.3],['C','#4a4a4a',0.72,0.3,0.7]]},
+  3:{n:'石头',col:[0.55,0.57,0.60],f:'SiO₂ 为主，含 Al₂O₃ / Fe₂O₃',atoms:[['Si','#c9b18a',0.5,0.5,0.5],['O','#e05050',0.3,0.7,0.3],['Al','#b9c0cc',0.72,0.3,0.7]]},
+  4:{n:'沙子',col:[0.86,0.80,0.58],f:'SiO₂（石英颗粒）',atoms:[['Si','#c9b18a',0.5,0.5,0.5],['O','#e05050',0.3,0.72,0.3],['O','#e05050',0.7,0.28,0.7]]},
+  5:{n:'水',col:[0.16,0.42,0.75],f:'H₂O',alpha:0.55,atoms:[['O','#e05050',0.5,0.5,0.5],['H','#f2f6ff',0.3,0.62,0.62],['H','#f2f6ff',0.7,0.62,0.62]]},
+  6:{n:'原木',top:[0.62,0.48,0.30],side:[0.40,0.28,0.17],bot:[0.55,0.42,0.26],f:'纤维素 (C₆H₁₀O₅)n + 木质素',atoms:[['C','#4a4a4a',0.5,0.5,0.5],['C','#4a4a4a',0.72,0.3,0.72],['O','#e05050',0.3,0.72,0.3]]},
+  7:{n:'树叶',col:[0.24,0.55,0.22],f:'纤维素 + 叶绿素（含 Mg）',atoms:[['C','#4a4a4a',0.5,0.5,0.5],['O','#e05050',0.28,0.7,0.3],['Mg','#5fbf5f',0.72,0.3,0.7]]},
+  8:{n:'木板',col:[0.62,0.47,0.28],f:'纤维素 (C₆H₁₀O₅)n',atoms:[['C','#4a4a4a',0.5,0.5,0.5],['O','#e05050',0.3,0.7,0.3],['C','#4a4a4a',0.72,0.3,0.7]]},
+  9:{n:'赤铁矿',col:[0.52,0.34,0.30],f:'Fe₂O₃（铁矿石）',atoms:[['Fe','#c98a5a',0.45,0.45,0.45],['O','#e05050',0.7,0.55,0.4],['O','#e05050',0.35,0.75,0.6],['O','#e05050',0.55,0.3,0.7]]},
+  10:{n:'煤',col:[0.18,0.18,0.19],f:'C（含挥发分）',atoms:[['C','#4a4a4a',0.45,0.45,0.45],['C','#4a4a4a',0.68,0.55,0.5],['C','#4a4a4a',0.4,0.68,0.6]]},
+  11:{n:'石灰石',col:[0.78,0.76,0.70],f:'CaCO₃',atoms:[['Ca','#8fd6a8',0.5,0.45,0.5],['C','#4a4a4a',0.5,0.72,0.5],['O','#e05050',0.3,0.6,0.7],['O','#e05050',0.7,0.6,0.7],['O','#e05050',0.5,0.62,0.3]]},
+  12:{n:'岩盐',col:[0.90,0.88,0.82],f:'NaCl',atoms:[['Na','#e6b85c',0.42,0.5,0.5],['Cl','#8fe08f',0.66,0.5,0.5]]},
+  13:{n:'玻璃',col:[0.70,0.84,0.86],f:'SiO₂（非晶态）',atoms:[['Si','#c9b18a',0.5,0.5,0.5],['O','#e05050',0.3,0.65,0.4],['O','#e05050',0.7,0.4,0.6]]},
+  14:{n:'生石灰',col:[0.88,0.86,0.82],f:'CaO',atoms:[['Ca','#8fd6a8',0.5,0.5,0.5],['O','#e05050',0.7,0.5,0.5]]},
+  15:{n:'熟石灰',col:[0.92,0.92,0.88],f:'Ca(OH)₂',atoms:[['Ca','#8fd6a8',0.5,0.45,0.5],['O','#e05050',0.5,0.7,0.5],['H','#f2f6ff',0.35,0.55,0.7],['H','#f2f6ff',0.65,0.55,0.7]]},
+  16:{n:'铜',col:[0.72,0.45,0.28],f:'Cu',atoms:[['Cu','#d08a4a',0.45,0.45,0.45],['Cu','#d08a4a',0.65,0.6,0.55]]},
+  17:{n:'铁',col:[0.55,0.57,0.60],f:'Fe',atoms:[['Fe','#c98a5a',0.45,0.45,0.45],['Fe','#c98a5a',0.65,0.6,0.55]]}
+};
+var BLOCK_MAT={1:'soil',2:'soil',3:'granite',4:'sand',5:'water',6:'wood',7:'leaves',8:'plank',9:'hematite',10:'coal',11:'limestone',12:'halite',13:'glass',14:'quicklime',15:'slaked',16:'copper',17:'iron'};
+function solid(t){return t!==0&&t!==5;}
+var blocks=new Uint8Array(WX*WY*WZ);
+function idx(x,y,z){return x+WX*(z+WZ*y);}
+function getB(x,y,z){if(x<0||x>=WX||y<0||y>=WY||z<0||z>=WZ)return 0;return blocks[x+WX*(z+WZ*y)];}
+function setB(x,y,z,t){if(x<0||x>=WX||y<0||y>=WY||z<0||z>=WZ)return;blocks[x+WX*(z+WZ*y)]=t;}
+function hash2(x,z){var n=Math.imul(x,374761393)+Math.imul(z,668265263);n=Math.imul(n^(n>>>13),1274126177);return ((n^(n>>>16))>>>0)/4294967295;}
+function noise2(x,z){
+  var xi=Math.floor(x),zi=Math.floor(z),xf=x-xi,zf=z-zi;
+  var u=xf*xf*(3-2*xf),v=zf*zf*(3-2*zf);
+  var a=hash2(xi,zi),b=hash2(xi+1,zi),c=hash2(xi,zi+1),d=hash2(xi+1,zi+1);
+  return a*(1-u)*(1-v)+b*u*(1-v)+c*(1-u)*v+d*u*v;
+}
+function heightAt(x,z){
+  var s=0.085;
+  var n=noise2(x*s,z*s)*0.68+noise2(x*s*2.4+11,z*s*2.4+7)*0.32;
+  return Math.floor(6+n*9);
+}
+function genWorld(){
+  blocks.fill(0);
+  for(var x=0;x<WX;x++)for(var z=0;z<WZ;z++){
+    var h=heightAt(x,z);
+    var top=h>=SEA?1:4;
+    for(var y=0;y<=h;y++){
+      var t=y===h?top:(y>h-3?2:3);
+      if(h<SEA&&y>=h)t=4;
+      setB(x,y,z,t);
+    }
+    if(h<SEA)for(var w=h+1;w<=SEA;w++)setB(x,w,z,5);
+  }
+  // 树
+  for(var x2=3;x2<WX-3;x2++)for(var z2=3;z2<WZ-3;z2++){
+    if(hash2(x2+101,z2+57)<0.994)continue;
+    if(Math.abs(x2-WX/2)<10&&Math.abs(z2-WZ/2)<10)continue;
+    var hh=heightAt(x2,z2);
+    if(hh<=SEA+1)continue;
+    var th=4+Math.floor(hash2(x2,z2)*2);
+    for(var y2=1;y2<=th;y2++)setB(x2,hh+y2,z2,6);
+    for(var dx=-2;dx<=2;dx++)for(var dz=-2;dz<=2;dz++)for(var dy=-1;dy<=1;dy++){
+      if(Math.abs(dx)+Math.abs(dz)+Math.abs(dy)<3)continue;
+      if(Math.abs(dx)===2&&Math.abs(dz)===2)continue;
+      if(getB(x2+dx,hh+th+dy,z2+dz)===0)setB(x2+dx,hh+th+dy,z2+dz,7);
+    }
+    setB(x2,hh+th+1,z2,7);
+  }
+  // ---- 矿脉：按现实成矿深度近似 ----
+  for(var ox=2;ox<WX-2;ox++)for(var oz=1;oz<WZ-1;oz++){
+    var oh=heightAt(ox,oz);
+    // 石灰石：中浅层沉积
+    if(hash2(ox+7,oz+91)>0.972&&oh>SEA+1){
+      var ly=Math.max(2,oh-4-Math.floor(hash2(ox*3,oz*7)*3));
+      for(var dx3=-1;dx3<=1;dx3++)for(var dz3=-1;dz3<=1;dz3++){
+        if(getB(ox+dx3,ly,oz+dz3)===3)setB(ox+dx3,ly,oz+dz3,11);
+      }
+    }
+    // 煤：浅中层
+    if(hash2(ox+31,oz+17)>0.985&&oh>SEA+3){
+      var cy=3+Math.floor(hash2(ox*3,oz*5)*(oh-5));
+      for(var dx=0;dx<2;dx++)for(var dz=0;dz<2;dz++)for(var dy=0;dy<2;dy++){
+        if(getB(ox+dx,cy+dy,oz+dz)===3)setB(ox+dx,cy+dy,oz+dz,10);
+      }
+    }
+    // 赤铁矿：深层
+    if(hash2(ox+101,oz+53)>0.988&&oh>6){
+      var fy=2+Math.floor(hash2(ox*7,oz*11)*(oh-6));
+      for(var dx2=0;dx2<2;dx2++)for(var dz2=0;dz2<2;dz2++)for(var dy2=0;dy2<2;dy2++){
+        if(getB(ox+dx2,fy+dy2,oz+dz2)===3)setB(ox+dx2,fy+dy2,oz+dz2,9);
+      }
+    }
+    // 岩盐：海平面附近、近水
+    var nearWater=false;
+    for(var wx=-2;wx<=2&&!nearWater;wx++)for(var wz=-2;wz<=2;wz++){
+      if(heightAt(ox+wx,oz+wz)<SEA){nearWater=true;break;}
+    }
+    if(nearWater&&hash2(ox+13,oz+29)>0.972&&oh>SEA){
+      var sy2=Math.max(2,SEA-3+Math.floor(hash2(ox*2,oz*3)*3));
+      for(var dx4=0;dx4<2;dx4++)for(var dz4=0;dz4<2;dz4++){
+        if(getB(ox+dx4,sy2,oz+dz4)===3)setB(ox+dx4,sy2,oz+dz4,12);
+      }
+    }
+  }
+}
+
+/* ---------- 矩阵 ---------- */
+function mId(m){m.fill(0);m[0]=m[5]=m[10]=m[15]=1;return m;}
+function mMul(a,b,o){o=o||new Float32Array(16);for(var i=0;i<4;i++)for(var j=0;j<4;j++){var s=0;for(var k=0;k<4;k++)s+=a[k*4+j]*b[i*4+k];o[i*4+j]=s;}return o;}
+function mPersp(fov,asp,n,f){var t=1/Math.tan(fov/2),m=new Float32Array(16);m[0]=t/asp;m[5]=t;m[10]=(f+n)/(n-f);m[11]=-1;m[14]=2*f*n/(n-f);return m;}
+function mView(eye,yaw,pitch){
+  var cy=Math.cos(yaw),sy=Math.sin(yaw),cp=Math.cos(pitch),sp=Math.sin(pitch);
+  var fx=-sy*cp,fy=sp,fz=-cy*cp;
+  var rx=cy,ry=0,rz=-sy;
+  var ux=ry*fz-rz*fy,uy=rz*fx-rx*fz,uz=rx*fy-ry*fx;
+  var m=new Float32Array(16);
+  m[0]=rx;m[1]=ux;m[2]=-fx;m[3]=0;
+  m[4]=ry;m[5]=uy;m[6]=-fy;m[7]=0;
+  m[8]=rz;m[9]=uz;m[10]=-fz;m[11]=0;
+  m[12]=-(rx*eye[0]+ry*eye[1]+rz*eye[2]);
+  m[13]=-(ux*eye[0]+uy*eye[1]+uz*eye[2]);
+  m[14]=(fx*eye[0]+fy*eye[1]+fz*eye[2]);
+  m[15]=1;
+  return m;
+}
+function mTRS(px,py,pz,ry,rx,rz,sx,sy,sz){
+  var cy=Math.cos(ry),sy=Math.sin(ry),cx=Math.cos(rx),sxr=Math.sin(rx),cz=Math.cos(rz),szr=Math.sin(rz);
+  var m=new Float32Array(16);
+  // R = Ry * Rx * Rz (column-major)
+  var r00=cy*cz+sy*sxr*szr, r01=-cy*szr+sy*sxr*cz, r02=sy*cx;
+  var r10=cx*szr,          r11=cx*cz,           r12=-sxr;
+  var r20=-sy*cz+cy*sxr*szr,r21=sy*szr+cy*sxr*cz, r22=cy*cx;
+  m[0]=r00*sx;m[1]=r10*sx;m[2]=r20*sx;
+  m[4]=r01*sy;m[5]=r11*sy;m[6]=r21*sy;
+  m[8]=r02*sz;m[9]=r12*sz;m[10]=r22*sz;
+  m[12]=px;m[13]=py;m[14]=pz;m[15]=1;
+  return m;
+}
+
+/* ---------- 着色器 ---------- */
+function sh(type,src){var s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(s));return s;}
+function prog(vs,fs){var p=gl.createProgram();gl.attachShader(p,sh(gl.VERTEX_SHADER,vs));gl.attachShader(p,sh(gl.FRAGMENT_SHADER,fs));gl.linkProgram(p);if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(p));return p;}
+
+var P_BLOCK=prog(
+'attribute vec3 aPos;attribute vec3 aCol;uniform mat4 uMVP;uniform vec3 uEye;varying vec3 vC;varying float vF;'+
+'void main(){vC=aCol;gl_Position=uMVP*vec4(aPos,1.0);float d=length(aPos-uEye);vF=clamp((d-20.0)/26.0,0.0,0.88);}',
+'precision mediump float;varying vec3 vC;varying float vF;uniform vec3 uSky;uniform float uDim;uniform float uAlpha;'+
+'void main(){vec3 c=vC*uDim;gl_FragColor=vec4(mix(c,uSky,vF),uAlpha);}');
+var P_PT=prog(
+'attribute vec3 aPos;attribute vec3 aCol;uniform mat4 uMVP;uniform float uSize;varying vec3 vC;'+
+'void main(){vC=aCol;gl_PointSize=uSize;gl_Position=uMVP*vec4(aPos,1.0);}',
+'precision mediump float;varying vec3 vC;void main(){vec2 d=gl_PointCoord-vec2(0.5);float r=length(d);if(r>0.46)discard;float a=smoothstep(0.46,0.30,r);gl_FragColor=vec4(vC,0.85*a+0.15);}');
+
+var UB={mvp:gl.getUniformLocation(P_BLOCK,'uMVP'),eye:gl.getUniformLocation(P_BLOCK,'uEye'),sky:gl.getUniformLocation(P_BLOCK,'uSky'),dim:gl.getUniformLocation(P_BLOCK,'uDim'),alpha:gl.getUniformLocation(P_BLOCK,'uAlpha')};
+var UP={mvp:gl.getUniformLocation(P_PT,'uMVP'),size:gl.getUniformLocation(P_PT,'uSize')};
+var BLpos=gl.getAttribLocation(P_BLOCK,'aPos'),BLcol=gl.getAttribLocation(P_BLOCK,'aCol');
+var PTpos=gl.getAttribLocation(P_PT,'aPos'),PTcol=gl.getAttribLocation(P_PT,'aCol');
+
+/* ---------- 网格 ---------- */
+var FACES=[
+ {n:[1,0,0],v:[[1,0,1],[1,0,0],[1,1,0],[1,1,1]],sh:0.84},
+ {n:[-1,0,0],v:[[0,0,0],[0,0,1],[0,1,1],[0,1,0]],sh:0.72},
+ {n:[0,1,0],v:[[0,1,1],[1,1,1],[1,1,0],[0,1,0]],sh:1.0},
+ {n:[0,-1,0],v:[[0,0,0],[1,0,0],[1,0,1],[0,0,1]],sh:0.52},
+ {n:[0,0,1],v:[[0,0,1],[1,0,1],[1,1,1],[0,1,1]],sh:0.9},
+ {n:[0,0,-1],v:[[1,0,0],[0,0,0],[0,1,0],[1,1,0]],sh:0.78}
+];
+var mesh={opaque:null,water:null,nOpaque:0,nWater:0};
+function buf(arr){var b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(arr),gl.STATIC_DRAW);return b;}
+function buildMesh(){
+  var p=[],c=[],wp=[],wc=[];
+  for(var y=0;y<WY;y++)for(var z=0;z<WZ;z++)for(var x=0;x<WX;x++){
+    var t=getB(x,y,z);if(!t)continue;
+    var def=B[t];
+    var isW=t===5;
+    for(var fi=0;fi<6;fi++){
+      var f=FACES[fi],nx=x+f.n[0],ny=y+f.n[1],nz=z+f.n[2];
+      var nb=getB(nx,ny,nz);
+      if(isW){if(nb!==0)continue;}
+      else{if(nb!==0&&nb!==5)continue;}
+      var base;
+      if(def.top&&f.n[1]===1)base=def.top;
+      else if(def.bot&&f.n[1]===-1)base=def.bot;
+      else if(def.side)base=def.side;
+      else base=def.col;
+      var vv=hash2(x*7+y*13,z*7+y*3),varf=0.93+0.07*vv;
+      var cr=base[0]*varf*f.sh,cg=base[1]*varf*f.sh,cb=base[2]*varf*f.sh;
+      var arr=isW?wp:p, arrc=isW?wc:c;
+      for(var k=0;k<6;k++){
+        var vi=(k===0||k===3)?0:(k===1?1:(k===2?2:2));
+        var order=[0,1,2,0,2,3];
+        vi=order[k];
+        var vt=f.v[vi];
+        arr.push(x+vt[0],y+vt[1],z+vt[2],f.n[0],f.n[1],f.n[2],cr,cg,cb);
+        arrc.push(1);
+      }
+    }
+  }
+  if(mesh.opaque){gl.deleteBuffer(mesh.opaque);mesh.opaque=null;}
+  if(mesh.water){gl.deleteBuffer(mesh.water);mesh.water=null;}
+  mesh.nOpaque=p.length/9;mesh.nWater=wp.length/9;
+  if(mesh.nOpaque)mesh.opaque=buf(p);
+  if(mesh.nWater)mesh.water=buf(wp);
+}
+
+/* ---------- 角色模型 ---------- */
+var cubeVerts=(function(){
+  var v=[];
+  FACES.forEach(function(f){
+    var o=[0,1,2,0,2,3];
+    o.forEach(function(i){
+      var p=f.v[i];
+      v.push(p[0]-0.5,p[1]-0.5,p[2]-0.5,f.n[0],f.n[1],f.n[2]);
+    });
+  });
+  return new Float32Array(v);
+})();
+var charBuf=gl.createBuffer();
+var charArr=new Float32Array(36*9*24);
+
+/* 将一个立方体部件（世界坐标）烘进角色缓冲 */
+function bakePart(arr,off,px,py,pz,ry,rx,rz,sx,sy,sz,col){
+  var m=mTRS(px,py,pz,ry||0,rx||0,rz||0,sx,sy,sz);
+  for(var i=0;i<36;i++){
+    var x=cubeVerts[i*6],y=cubeVerts[i*6+1],z=cubeVerts[i*6+2];
+    var nx=cubeVerts[i*6+3],ny=cubeVerts[i*6+4],nz=cubeVerts[i*6+5];
+    var wx=m[0]*x+m[4]*y+m[8]*z+m[12];
+    var wy=m[1]*x+m[5]*y+m[9]*z+m[13];
+    var wz=m[2]*x+m[6]*y+m[10]*z+m[14];
+    var sh=0.62+0.38*Math.max(0,ny*0.8+nx*0.25-nz*0.2);
+    arr[off++]=wx;arr[off++]=wy;arr[off++]=wz;
+    arr[off++]=nx;arr[off++]=ny;arr[off++]=nz;
+    arr[off++]=col[0]*sh;arr[off++]=col[1]*sh;arr[off++]=col[2]*sh;
+  }
+  return off;
+}
+function bakeChar(off,x,y,z,yaw,walk,wave){
+  var skin=[0.85,0.64,0.42],shirt=[0.20,0.42,0.78],pants=[0.16,0.18,0.24],hair=[0.16,0.12,0.10];
+  var legA=walk*0.55,armA=-walk*0.55;
+  off=bakePart(charArr,off,x-0.15,y+0.375,z,yaw,0,legA*0.9,0.26,0.75,0.26,pants);
+  off=bakePart(charArr,off,x+0.15,y+0.375,z,yaw,0,-legA*0.9,0.26,0.75,0.26,pants);
+  off=bakePart(charArr,off,x,y+1.075,z,yaw,0,0,0.52,0.66,0.30,shirt);
+  off=bakePart(charArr,off,x-0.36,y+1.05,z,yaw,0,armA-0.06,0.20,0.70,0.22,shirt);
+  off=bakePart(charArr,off,x+0.36,y+1.05,z,yaw,0,-armA+0.06+(wave||0),0.20,0.70,0.22,shirt);
+  off=bakePart(charArr,off,x-0.36,y+0.65,z,yaw,0,armA-0.06,0.19,0.12,0.21,skin);
+  off=bakePart(charArr,off,x+0.36,y+0.65,z,yaw,0,-armA+0.06+(wave||0),0.19,0.12,0.21,skin);
+  off=bakePart(charArr,off,x,y+1.62,z,yaw,0,0,0.42,0.42,0.42,skin);
+  off=bakePart(charArr,off,x,y+1.80,z,yaw,0,0,0.44,0.12,0.44,hair);
+  return off;
+}
+
+/* ---------- 玩家 ---------- */
+var player={x:WX/2+0.5,y:SEA+3,z:WZ/2+0.5,vy:0,yaw:0.6,pitch:-0.12,onGround:false};
+var thirdPerson=false,atomMode=false;
+var spawn={x:player.x,y:player.y,z:player.z};
+var npc={x:0,z:0};
+var sel=1;
+var hotbarTypes=[1,2,3,4,6,7,11,9];
+var HOTNAME={1:'草',2:'土',3:'石',4:'沙',6:'木',7:'叶',8:'板',9:'铁矿',10:'煤',11:'石灰石',12:'岩盐',13:'玻璃',14:'生石灰',15:'熟石灰',16:'铜',17:'铁'};
+
+/* ---------- 输入 ---------- */
+var keys={},joy={x:0,y:0},joyOn=false;
+addEventListener('keydown',function(e){keys[e.key.toLowerCase()]=true;if(e.key===' '){e.preventDefault();jump();}});
+addEventListener('keyup',function(e){keys[e.key.toLowerCase()]=false;});
+
+var drag=null;
+canvas.addEventListener('pointerdown',function(e){
+  if(e.pointerType==='mouse'&&e.button!==0)return;
+  drag={id:e.pointerId,x:e.clientX,y:e.clientY};
+  try{canvas.setPointerCapture(e.pointerId);}catch(err){}
+});
+canvas.addEventListener('pointermove',function(e){
+  if(!drag||drag.id!==e.pointerId)return;
+  var dx=e.clientX-drag.x,dy=e.clientY-drag.y;
+  drag.x=e.clientX;drag.y=e.clientY;
+  player.yaw-=dx*0.0042;
+  player.pitch=Math.max(-1.45,Math.min(1.45,player.pitch-dy*0.0042));
+});
+function endDrag(e){if(drag&&drag.id===e.pointerId)drag=null;}
+canvas.addEventListener('pointerup',endDrag);
+canvas.addEventListener('pointercancel',endDrag);
+canvas.addEventListener('contextmenu',function(e){e.preventDefault();});
+addEventListener('mousedown',function(e){if(e.target!==canvas)return;if(e.button===0)dig();else if(e.button===2)place();});
+addEventListener('keydown',function(e){if(e.key.toLowerCase()==='e')dig();if(e.key.toLowerCase()==='q')place();});
+
+/* 摇杆 */
+var joyEl=document.getElementById('joy'),knob=document.getElementById('knob');
+function joyStart(e){
+  joyOn=true;joyMove(e);
+  try{joyEl.setPointerCapture(e.pointerId);}catch(err){}
+  e.preventDefault();
+}
+function joyMove(e){
+  if(!joyOn)return;
+  var r=joyEl.getBoundingClientRect();
+  var cx=r.left+r.width/2,cy=r.top+r.height/2;
+  var dx=e.clientX-cx,dy=e.clientY-cy;
+  var max=r.width*0.34,len=Math.hypot(dx,dy);
+  if(len>max){dx*=max/len;dy*=max/len;len=max;}
+  joy.x=dx/max;joy.y=dy/max;
+  knob.style.transform='translate('+dx+'px,'+dy+'px)';
+  e.preventDefault();
+}
+function joyEnd(){joyOn=false;joy.x=joy.y=0;knob.style.transform='translate(0,0)';}
+joyEl.addEventListener('pointerdown',joyStart);
+joyEl.addEventListener('pointermove',joyMove);
+joyEl.addEventListener('pointerup',joyEnd);
+joyEl.addEventListener('pointercancel',joyEnd);
+
+/* ---------- 物理 ---------- */
+function collides(px,py,pz){
+  var x0=Math.floor(px-0.3),x1=Math.floor(px+0.3);
+  var y0=Math.floor(py),y1=Math.floor(py+1.78);
+  var z0=Math.floor(pz-0.3),z1=Math.floor(pz+0.3);
+  for(var x=x0;x<=x1;x++)for(var y=y0;y<=y1;y++)for(var z=z0;z<=z1;z++){
+    if(solid(getB(x,y,z)))return true;
+  }
+  return false;
+}
+function jump(){if(player.onGround){player.vy=8.2;player.onGround=false;}}
+function updatePlayer(dt){
+  var fwd=(keys['w']?1:0)-(keys['s']?1:0);
+  var str=(keys['d']?1:0)-(keys['a']?1:0);
+  fwd+=-joy.y;str+=joy.x;
+  var len=Math.hypot(fwd,str);
+  if(len>1){fwd/=len;str/=len;}
+  var sp=4.8;
+  var sy=Math.sin(player.yaw),cy=Math.cos(player.yaw);
+  var mx=(-sy*fwd+cy*str)*sp*dt;
+  var mz=(-cy*fwd-sy*str)*sp*dt;
+  var nx=player.x+mx;
+  if(!collides(nx,player.y,player.z))player.x=nx;
+  var nz=player.z+mz;
+  if(!collides(player.x,player.y,nz))player.z=nz;
+  player.vy-=26*dt;
+  var ny=player.y+player.vy*dt;
+  if(!collides(player.x,ny,player.z))player.y=ny;
+  else{
+    if(player.vy<0)player.onGround=true;
+    player.vy=0;
+  }
+  if(player.y<-6){player.x=spawn.x;player.z=spawn.z;player.y=spawn.y;player.vy=0;}
+  if(Math.abs(mx)+Math.abs(mz)>0.0005)player.walk=(player.walk||0)+dt*8;
+}
+
+/* ---------- 拾取/编辑 ---------- */
+function lookVec(){
+  var cp=Math.cos(player.pitch),sp=Math.sin(player.pitch);
+  return [-Math.sin(player.yaw)*cp,sp,-Math.cos(player.yaw)*cp];
+}
+function eyePos(){return [player.x,player.y+1.62,player.z];}
+function raycast(maxD){
+  var e=eyePos(),d=lookVec();
+  var step=0.05,last=null;
+  for(var t=0;t<maxD;t+=step){
+    var x=e[0]+d[0]*t,y=e[1]+d[1]*t,z=e[2]+d[2]*t;
+    var bx=Math.floor(x),by=Math.floor(y),bz=Math.floor(z);
+    var b=getB(bx,by,bz);
+    if(b&&b!==5)return {x:bx,y:by,z:bz,px:last?last[0]:bx,py:last?last[1]:by,pz:last?last[2]:bz,b:b,dist:t};
+    if(!last||bx!==last[0]||by!==last[1]||bz!==last[2])last=[bx,by,bz];
+  }
+  return null;
+}
+function dig(){
+  var h=raycast(6);
+  if(!h)return toast('前方没有可挖的方块');
+  setB(h.x,h.y,h.z,0);
+  buildMesh();
+  toast('挖掉了 '+B[h.b].n);
+}
+function place(){
+  var h=raycast(6);
+  if(!h)return toast('请对准一个方块');
+  var x=h.px,y=h.py,z=h.pz;
+  if(getB(x,y,z)!==0&&getB(x,y,z)!==5)return;
+  var px=player.x,py=player.y,pz=player.z;
+  if(x+1>px-0.3&&x<px+0.3&&y+1>py&&y<py+1.78&&z+1>pz-0.3&&z<pz+0.3)return toast('这里会卡住自己');
+  setB(x,y,z,sel);
+  buildMesh();
+  toast('放了一个 '+B[sel].n);
+}
+function inspect(){
+  var h=raycast(6);
+  if(!h)return toast('前方没有方块');
+  var d=B[h.b],m=MATS[BLOCK_MAT[h.b]];
+  toast(d.n+'：'+(m?(m.n+' '+m.f+' · '+m.props):d.f));
+}
+
+/* ---------- 原子视角 ---------- */
+var atomBuf=null,nAtoms=0;
+function buildAtoms(){
+  var cx=player.x,cy=player.y+1,cz=player.z,R=13;
+  var pos=[];
+  var x0=Math.max(0,Math.floor(cx-R)),x1=Math.min(WX-1,Math.floor(cx+R));
+  var z0=Math.max(0,Math.floor(cz-R)),z1=Math.min(WZ-1,Math.floor(cz+R));
+  var y0=Math.max(0,Math.floor(cy-R)),y1=Math.min(WY-1,Math.floor(cy+R));
+  for(var x=x0;x<=x1;x++)for(var z=z0;z<=z1;z++)for(var y=y0;y<=y1;y++){
+    var t=getB(x,y,z);
+    if(!t)continue;
+    var exposed=false;
+    for(var i=0;i<6;i++){
+      var nb=getB(x+FACES[i].n[0],y+FACES[i].n[1],z+FACES[i].n[2]);
+      if(nb===0||nb===5){exposed=true;break;}
+    }
+    if(!exposed)continue;
+    var def=B[t];
+    var at=def.atoms||[['C','#888',0.5,0.5,0.5]];
+    for(var a=0;a<at.length;a++){
+      var el=at[a],col=el[1];
+      var cr=parseInt(col.substr(1,2),16)/255,cg=parseInt(col.substr(3,2),16)/255,cb=parseInt(col.substr(5,2),16)/255;
+      pos.push(x+el[2],y+el[3],z+el[4],cr,cg,cb);
+    }
+  }
+  nAtoms=pos.length/6;
+  if(atomBuf)gl.deleteBuffer(atomBuf);
+  atomBuf=gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER,atomBuf);
+  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(pos),gl.STATIC_DRAW);
+}
+function toggleAtom(){
+  atomMode=!atomMode;
+  document.getElementById('btnAtom').classList.toggle('on',atomMode);
+  var pnl=document.getElementById('atomPanel');
+  if(atomMode){buildAtoms();pnl.classList.remove('hidden');updateAtomPanel();}
+  else pnl.classList.add('hidden');
+}
+function updateAtomPanel(){
+  if(!atomMode)return;
+  var h=raycast(8);
+  if(!h){
+    var tb=getB(Math.floor(player.x),Math.floor(player.y)-1,Math.floor(player.z));
+    if(tb)h={b:tb};
+  }
+  var pnl=document.getElementById('atomPanel');
+  if(!h){pnl.innerHTML='<h3>原子视角</h3>方块被拆解成映射真实原子的微粒。<br>对准方块查看成分。';return;}
+  var d=B[h.b];
+  var els=(d.atoms||[]).map(function(a){
+    return '<span class="el" style="background:'+a[1]+'"></span>'+a[0];
+  }).join(' ');
+  var m=MATS[BLOCK_MAT[h.b]];
+  var comp=m?compOf(m):null;
+  var compHTML='';
+  if(comp){
+    var arr=Object.keys(comp).map(function(k){return [k,comp[k]];}).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
+    compHTML=arr.map(function(x){return x[0]+' '+x[1]+'%';}).join(' · ');
+  }
+  pnl.innerHTML='<h3>'+d.n+(m?(' · '+(m.f&&m.f!=='—'?m.f:m.n)):'')+'</h3>'
+    +(compHTML?('元素质量占比：'+compHTML+'<br>'):'')
+    +'原子模型：'+els
+    +(m?('<br>结构：'+m.struct):'')
+    +'<br><span style="opacity:.6">比例与位置为教学示意，用于把方块映射到真实物质构成</span>';
+}
+
+/* ---------- AI 指令 ---------- */
+function aiSay(html,me){
+  var log=document.getElementById('aiLog');
+  var d=document.createElement('div');
+  if(me)d.className='me';
+  d.innerHTML=html;
+  log.appendChild(d);
+  log.scrollTop=log.scrollHeight;
+}
+function forwardSpot(n){
+  var d=lookVec();
+  return [Math.floor(player.x+d[0]*n),Math.floor(player.y),Math.floor(player.z+d[2]*n)];
+}
+function surfaceY(x,z){
+  for(var y=WY-1;y>=0;y--){var b=getB(x,y,z);if(b&&b!==5)return y+1;}
+  return SEA+1;
+}
+function pickSpawn(){
+  var cx=WX>>1,cz=WZ>>1;
+  for(var r=0;r<18;r++){
+    for(var dx=-r;dx<=r;dx++)for(var dz=-r;dz<=r;dz++){
+      var x=cx+dx,z=cz+dz;
+      if(x<2||z<2||x>WX-3||z>WZ-3)continue;
+      var top=surfaceY(x,z);
+      if(top<=SEA+1||getB(x,top-1,z)!==1)continue;
+      var clear=true;
+      for(var ax=-1;ax<=1&&clear;ax++)for(var az=-1;az<=1&&clear;az++){
+        for(var ay=0;ay<5;ay++){
+          if(getB(x+ax,top+ay,z+az)!==0){clear=false;break;}
+        }
+      }
+      if(clear)return {x:x+0.5,y:top+0.02,z:z+0.5};
+    }
+  }
+  return {x:cx+0.5,y:surfaceY(cx,cz)+0.05,z:cz+0.5};
+}
+function buildHouse(){
+  var p=forwardSpot(4),bx=p[0],bz=p[2],by=surfaceY(bx,bz);
+  for(var dx=-2;dx<=2;dx++)for(var dz=-2;dz<=2;dz++){
+    for(var y=0;y<3;y++){
+      var edge=(Math.abs(dx)===2||Math.abs(dz)===2);
+      if(edge)setB(bx+dx,by+y,bz+dz,8);
+    }
+  }
+  for(var dx2=-2;dx2<=2;dx2++)for(var dz2=-2;dz2<=2;dz2++){
+    setB(bx+dx2,by+3,bz+dz2,7);
+  }
+  // 门洞
+  setB(bx,by,bz+2,0);setB(bx,by+1,bz+2,0);
+  // 地面铺一下
+  for(var dx3=-2;dx3<=2;dx3++)for(var dz3=-2;dz3<=2;dz3++)setB(bx+dx3,by-1,bz+dz3,2);
+  buildMesh();aiSay('已在你前方建成 5×5 小屋：木板墙 + 树叶屋顶，南侧留了门洞。',true);
+}
+function plantTree(){
+  var p=forwardSpot(4),bx=p[0],bz=p[2],by=surfaceY(bx,bz);
+  for(var y=0;y<5;y++)setB(bx,by+y,bz,6);
+  for(var dx=-2;dx<=2;dx++)for(var dz=-2;dz<=2;dz++)for(var dy=3;dy<=5;dy++){
+    if(Math.abs(dx)+Math.abs(dz)+Math.abs(dy-4)<3)continue;
+    if(Math.abs(dx)===2&&Math.abs(dz)===2)continue;
+    if(getB(bx+dx,by+dy,bz+dz)===0)setB(bx+dx,by+dy,bz+dz,7);
+  }
+  setB(bx,by+5,bz,7);
+  buildMesh();aiSay('种好了一棵树：原木树干 + 树叶树冠。',true);
+}
+function flatten(){
+  var p=forwardSpot(3),cx=p[0],cz=p[2],h=surfaceY(cx,cz);
+  for(var dx=-3;dx<=3;dx++)for(var dz=-3;dz<=3;dz++){
+    var x=cx+dx,z=cz+dz;
+    for(var y=h;y<WY;y++)if(getB(x,y,z)&&getB(x,y,z)!==5)setB(x,y,z,0);
+    for(var y2=0;y2<h;y2++)if(!getB(x,y2,z))setB(x,y2,z,2);
+    setB(x,h-1,z,1);
+  }
+  buildMesh();aiSay('前方 7×7 的地面已平整，并铺上了草方块。',true);
+}
+function ai(cmd){
+  if(cmd==='house')return buildHouse();
+  if(cmd==='tree')return plantTree();
+  if(cmd==='flat')return flatten();
+  if(cmd==='day'){day=!day;aiSay(day?'切到白天：天空与光照已恢复。':'切到夜晚：光照变暗，注意脚下。',true);return;}
+  if(cmd==='walk'){player.x=spawn.x;player.z=spawn.z;player.y=spawn.y;player.vy=0;aiSay('已把你送回出生点。',true);return;}
+  if(cmd==='what'){
+    var h=raycast(8);
+    if(!h)return aiSay('对准一个方块再问我，我才能读出它的成分。');
+    var d=B[h.b];
+    aiSay('你正看着 <b>'+d.n+'</b><br>映射成分：'+d.f,true);
+    return;
+  }
+}
+
+/* ---------- 渲染 ---------- */
+var VP=new Float32Array(16),MVP=new Float32Array(16),proj=null;
+var day=true;
+var apos,anrm,acol,apos2,acol2;
+function resize(){
+  var dpr=Math.min(devicePixelRatio||1,2);
+  var w=Math.floor(innerWidth*dpr),h=Math.floor(innerHeight*dpr);
+  if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}
+  gl.viewport(0,0,w,h);
+  proj=mPersp(70*Math.PI/180,innerWidth/innerHeight,0.08,150);
+}
+addEventListener('resize',resize);
+
+function glChk(tag){var e=gl.getError();if(e&&window.console)console.log('GLERR',tag,e);}
+var last=0,frame=0,tick=0;
+function loop(ts){
+  var dt=Math.min(0.05,(ts-last)/1000||0.016);last=ts;
+  updatePlayer(dt);
+  var eye,lookYaw=player.yaw,pitch=player.pitch;
+  if(thirdPerson){
+    var sy=Math.sin(player.yaw),cy=Math.cos(player.yaw);
+    var camX=player.x+sy*5.6,camZ=player.z+cy*5.6;
+    var camY=Math.max(player.y+2.2,surfaceY(Math.floor(camX),Math.floor(camZ))+0.6);
+    eye=[camX,camY,camZ];
+    var ddy=(player.y+1.05)-camY, dh=Math.hypot(player.x-camX,player.z-camZ);
+    pitch=Math.atan2(ddy,Math.max(0.1,dh));
+  }else{
+    eye=eyePos();
+  }
+  var view=mView(eye,lookYaw,pitch);
+  var mv=mMul(proj,view,VP);MVP.set(mv);
+  var sky=day?[0.55,0.72,0.95]:[0.04,0.06,0.12];
+  gl.clearColor(sky[0],sky[1],sky[2],1);
+  gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+  gl.enable(gl.DEPTH_TEST);
+  gl.enable(gl.CULL_FACE);
+  gl.cullFace(gl.BACK);
+
+  var dim=atomMode?0.32:(day?1:0.45);
+  if(mesh.opaque&&mesh.nOpaque){
+    gl.useProgram(P_BLOCK);
+    gl.bindBuffer(gl.ARRAY_BUFFER,mesh.opaque);
+    gl.vertexAttribPointer(BLpos,3,gl.FLOAT,false,36,0);
+    gl.vertexAttribPointer(BLcol,3,gl.FLOAT,false,36,24);
+    gl.enableVertexAttribArray(BLpos);gl.enableVertexAttribArray(BLcol);
+    gl.uniformMatrix4fv(UB.mvp,false,MVP);
+    gl.uniform3f(UB.eye,eye[0],eye[1],eye[2]);
+    gl.uniform3f(UB.sky,sky[0],sky[1],sky[2]);
+    gl.uniform1f(UB.dim,dim);
+    gl.uniform1f(UB.alpha,1);
+    gl.drawArrays(gl.TRIANGLES,0,mesh.nOpaque);
+  }
+
+  // 角色（方块拼装，复用方块管线）
+  var t=ts/1000;
+  var npx=npc.x,npz=npc.z;
+  var off=0;
+  if(thirdPerson)off=bakeChar(off,player.x,player.y,player.z,player.yaw,Math.sin((player.walk||0))*0.55,0);
+  off=bakeChar(off,npx,surfaceY(Math.floor(npx),Math.floor(npz)),npz,0.9,0,Math.sin(t*2)*0.35);
+  if(off>0){
+    gl.useProgram(P_BLOCK);
+    gl.bindBuffer(gl.ARRAY_BUFFER,charBuf);
+    gl.bufferData(gl.ARRAY_BUFFER,charArr.subarray(0,off),gl.DYNAMIC_DRAW);
+    gl.vertexAttribPointer(BLpos,3,gl.FLOAT,false,36,0);
+    gl.vertexAttribPointer(BLcol,3,gl.FLOAT,false,36,24);
+    gl.enableVertexAttribArray(BLpos);gl.enableVertexAttribArray(BLcol);
+    gl.uniformMatrix4fv(UB.mvp,false,MVP);
+    gl.uniform3f(UB.eye,eye[0],eye[1],eye[2]);
+    gl.uniform3f(UB.sky,sky[0],sky[1],sky[2]);
+    gl.uniform1f(UB.dim,dim);
+    gl.uniform1f(UB.alpha,1);
+    gl.drawArrays(gl.TRIANGLES,0,off/9);
+  }
+  window.__dbg={p:[player.x,player.y,player.z],eye:eye,tp:thirdPerson,off:off};
+
+  // 水
+  if(mesh.water&&mesh.nWater){
+    gl.useProgram(P_BLOCK);
+    gl.bindBuffer(gl.ARRAY_BUFFER,mesh.water);
+    gl.vertexAttribPointer(BLpos,3,gl.FLOAT,false,36,0);
+    gl.vertexAttribPointer(BLcol,3,gl.FLOAT,false,36,24);
+    gl.enableVertexAttribArray(BLpos);gl.enableVertexAttribArray(BLcol);
+    gl.uniformMatrix4fv(UB.mvp,false,MVP);
+    gl.uniform3f(UB.eye,eye[0],eye[1],eye[2]);
+    gl.uniform3f(UB.sky,sky[0],sky[1],sky[2]);
+    gl.uniform1f(UB.dim,dim);
+    gl.uniform1f(UB.alpha,0.55);
+    gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
+    gl.depthMask(false);
+    gl.drawArrays(gl.TRIANGLES,0,mesh.nWater);
+    gl.depthMask(true);
+    gl.disable(gl.BLEND);
+  }
+
+  // 原子
+  if(atomMode&&atomBuf){
+    gl.useProgram(P_PT);
+    gl.bindBuffer(gl.ARRAY_BUFFER,atomBuf);
+    gl.vertexAttribPointer(PTpos,3,gl.FLOAT,false,24,0);
+    gl.vertexAttribPointer(PTcol,3,gl.FLOAT,false,24,12);
+    gl.enableVertexAttribArray(PTpos);gl.enableVertexAttribArray(PTcol);
+    gl.uniformMatrix4fv(UP.mvp,false,MVP);
+    gl.uniform1f(UP.size,Math.max(4,Math.min(11,(devicePixelRatio||1)*5)));
+    gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
+    gl.disable(gl.DEPTH_TEST);
+    gl.drawArrays(gl.POINTS,0,nAtoms);
+    gl.enable(gl.DEPTH_TEST);
+    gl.disable(gl.BLEND);
+  }
+
+  if(atomMode&&(frame++%20===0)){buildAtoms();updateAtomPanel();}
+  if(tick++%12===0){
+    var hh=raycast(6);
+    if(!hh){var tb=getB(Math.floor(player.x),Math.floor(player.y)-1,Math.floor(player.z));if(tb)hh={b:tb};}
+    var inf=document.getElementById('info');
+    var mm=hh?MATS[BLOCK_MAT[hh.b]]:null;
+    inf.innerHTML='坐标 '+player.x.toFixed(1)+' , '+player.y.toFixed(1)+' , '+player.z.toFixed(1)+(hh?('<br>'+B[hh.b].n+(mm?(' · '+mm.n+' '+mm.f):'')+'<br><span style="opacity:.7">'+(mm?mm.props:B[hh.b].f)+'</span>'):'');
+  }
+  requestAnimationFrame(loop);
+}
+
+/* ---------- 化学映射：元素 / 物质 / 反应 ---------- */
+/* [Z, 符号, 中文名, 原子量, 熔点K, 沸点K, 密度g/cm³, 电负性, 类别, 地壳丰度ppm] */
+var ELEMENTS=[
+[1,'H','氢',1.008,14.01,20.28,0.00009,2.20,'非金属',1400],
+[2,'He','氦',4.0026,0.95,4.22,0.00018,null,'稀有气体',0.008],
+[3,'Li','锂',6.94,453.7,1615,0.534,0.98,'碱金属',20],
+[4,'Be','铍',9.0122,1560,2742,1.85,1.57,'碱土金属',2.8],
+[5,'B','硼',10.81,2349,4200,2.34,2.04,'类金属',10],
+[6,'C','碳',12.011,3823,4098,2.267,2.55,'非金属',200],
+[7,'N','氮',14.007,63.15,77.36,0.00125,3.04,'非金属',19],
+[8,'O','氧',15.999,54.36,90.20,0.00143,3.44,'非金属',461000],
+[9,'F','氟',18.998,53.53,85.03,0.0017,3.98,'卤素',585],
+[10,'Ne','氖',20.180,24.56,27.07,0.0009,null,'稀有气体',0.005],
+[11,'Na','钠',22.990,370.94,1156,0.968,0.93,'碱金属',23600],
+[12,'Mg','镁',24.305,923,1363,1.738,1.31,'碱土金属',23300],
+[13,'Al','铝',26.982,933.47,2792,2.70,1.61,'后过渡',82300],
+[14,'Si','硅',28.085,1687,3538,2.329,1.90,'类金属',282000],
+[15,'P','磷',30.974,317.3,553.7,1.823,2.19,'非金属',1050],
+[16,'S','硫',32.06,388.36,717.87,2.07,2.58,'非金属',350],
+[17,'Cl','氯',35.45,171.6,239.11,0.0032,3.16,'卤素',145],
+[18,'Ar','氩',39.948,83.8,87.30,0.00178,null,'稀有气体',3.5],
+[19,'K','钾',39.098,336.53,1032,0.862,0.82,'碱金属',20900],
+[20,'Ca','钙',40.078,1115,1757,1.55,1.00,'碱土金属',41500],
+[21,'Sc','钪',44.956,1814,3109,2.985,1.36,'过渡金属',22],
+[22,'Ti','钛',47.867,1941,3560,4.506,1.54,'过渡金属',5650],
+[23,'V','钒',50.942,2183,3680,6.11,1.63,'过渡金属',120],
+[24,'Cr','铬',51.996,2180,2944,7.19,1.66,'过渡金属',102],
+[25,'Mn','锰',54.938,1519,2334,7.21,1.55,'过渡金属',950],
+[26,'Fe','铁',55.845,1811,3134,7.874,1.83,'过渡金属',56300],
+[27,'Co','钴',58.933,1768,3200,8.90,1.88,'过渡金属',25],
+[28,'Ni','镍',58.693,1728,3186,8.908,1.91,'过渡金属',84],
+[29,'Cu','铜',63.546,1357.77,2835,8.96,1.90,'过渡金属',60],
+[30,'Zn','锌',65.38,692.68,1180,7.14,1.65,'过渡金属',70],
+[31,'Ga','镓',69.723,302.91,2477,5.904,1.81,'后过渡',19],
+[32,'Ge','锗',72.630,1211.4,3106,5.323,2.01,'类金属',1.5],
+[33,'As','砷',74.922,1090,887,5.727,2.18,'类金属',1.8],
+[34,'Se','硒',78.971,494,958,4.81,2.55,'非金属',0.05],
+[35,'Br','溴',79.904,265.8,332,3.1028,2.96,'卤素',2.4],
+[36,'Kr','氪',83.798,115.79,119.93,0.00373,3.00,'稀有气体',0.0001],
+[37,'Rb','铷',85.468,312.46,961,1.532,0.82,'碱金属',90],
+[38,'Sr','锶',87.62,1050,1655,2.64,0.95,'碱土金属',370],
+[39,'Y','钇',88.906,1799,3609,4.472,1.22,'过渡金属',33],
+[40,'Zr','锆',91.224,2128,4682,6.52,1.33,'过渡金属',165],
+[41,'Nb','铌',92.906,2750,5017,8.57,1.6,'过渡金属',20],
+[42,'Mo','钼',95.95,2896,4912,10.28,2.16,'过渡金属',1.2],
+[43,'Tc','锝',98,2430,4538,11.5,1.9,'过渡金属',0],
+[44,'Ru','钌',101.07,2607,4423,12.45,2.2,'过渡金属',0.001],
+[45,'Rh','铑',102.91,2237,3968,12.41,2.28,'过渡金属',0.001],
+[46,'Pd','钯',106.42,1828.05,3236,12.023,2.20,'过渡金属',0.015],
+[47,'Ag','银',107.87,1234.93,2435,10.49,1.93,'过渡金属',0.075],
+[48,'Cd','镉',112.41,594.22,1040,8.65,1.69,'过渡金属',0.15],
+[49,'In','铟',114.82,429.75,2345,7.31,1.78,'后过渡',0.25],
+[50,'Sn','锡',118.71,505.08,2875,7.287,1.96,'后过渡',2.3],
+[51,'Sb','锑',121.76,903.78,1860,6.685,2.05,'类金属',0.2],
+[52,'Te','碲',127.60,722.66,1261,6.232,2.1,'类金属',0.001],
+[53,'I','碘',126.90,386.85,457.4,4.933,2.66,'卤素',0.45],
+[54,'Xe','氙',131.29,161.4,165.03,0.0059,2.6,'稀有气体',0.00003],
+[55,'Cs','铯',132.91,301.59,944,1.93,0.79,'碱金属',3],
+[56,'Ba','钡',137.33,1000,2170,3.51,0.89,'碱土金属',425],
+[57,'La','镧',138.91,1193,3737,6.162,1.10,'镧系',39],
+[58,'Ce','铈',140.12,1068,3716,6.77,1.12,'镧系',66],
+[59,'Pr','镨',140.91,1208,3793,6.77,1.13,'镧系',9.2],
+[60,'Nd','钕',144.24,1297,3347,7.01,1.14,'镧系',33],
+[61,'Pm','钷',145,1315,3273,7.26,1.13,'镧系',0],
+[62,'Sm','钐',150.36,1345,2067,7.52,1.17,'镧系',7.05],
+[63,'Eu','铕',151.96,1099,1802,5.244,1.2,'镧系',2],
+[64,'Gd','钆',157.25,1585,3546,7.90,1.20,'镧系',6.2],
+[65,'Tb','铽',158.93,1629,3503,8.23,1.2,'镧系',1.2],
+[66,'Dy','镝',162.50,1680,2840,8.54,1.22,'镧系',5.2],
+[67,'Ho','钬',164.93,1734,2993,8.79,1.23,'镧系',1.3],
+[68,'Er','铒',167.26,1802,3141,9.066,1.24,'镧系',3.5],
+[69,'Tm','铥',168.93,1818,2223,9.32,1.25,'镧系',0.52],
+[70,'Yb','镱',173.05,1097,1469,6.90,1.1,'镧系',3.2],
+[71,'Lu','镥',174.97,1925,3675,9.84,1.27,'镧系',0.8],
+[72,'Hf','铪',178.49,2506,4876,13.31,1.3,'过渡金属',3],
+[73,'Ta','钽',180.95,3290,5731,16.69,1.5,'过渡金属',2],
+[74,'W','钨',183.84,3695,5828,19.25,2.36,'过渡金属',1.25],
+[75,'Re','铼',186.21,3459,5869,21.02,1.9,'过渡金属',0.0007],
+[76,'Os','锇',190.23,3306,5285,22.59,2.2,'过渡金属',0.0015],
+[77,'Ir','铱',192.22,2719,4701,22.56,2.20,'过渡金属',0.001],
+[78,'Pt','铂',195.08,2041.4,4098,21.45,2.28,'过渡金属',0.005],
+[79,'Au','金',196.97,1337.33,3129,19.30,2.54,'过渡金属',0.004],
+[80,'Hg','汞',200.59,234.32,629.88,13.534,2.00,'过渡金属',0.085],
+[81,'Tl','铊',204.38,577,1746,11.85,1.62,'后过渡',0.85],
+[82,'Pb','铅',207.2,600.61,2022,11.34,1.87,'后过渡',14],
+[83,'Bi','铋',208.98,544.7,1837,9.78,2.02,'后过渡',0.0085],
+[84,'Po','钋',209,527,1235,9.32,2.0,'类金属',0],
+[85,'At','砹',210,575,610,7,2.2,'卤素',0],
+[86,'Rn','氡',222,202,211.3,0.00973,2.2,'稀有气体',0],
+[87,'Fr','钫',223,300,950,1.87,0.7,'碱金属',0],
+[88,'Ra','镭',226,973,2010,5.5,0.9,'碱土金属',0],
+[89,'Ac','锕',227,1323,3471,10.07,1.1,'锕系',0],
+[90,'Th','钍',232.04,2115,5061,11.72,1.3,'锕系',9.6],
+[91,'Pa','镤',231.04,1841,4300,15.37,1.5,'锕系',0],
+[92,'U','铀',238.03,1405.3,4404,19.1,1.38,'锕系',2.7],
+[93,'Np','镎',237,917,4273,20.45,1.36,'锕系',0],
+[94,'Pu','钚',244,912.5,3501,19.84,1.28,'锕系',0],
+[95,'Am','镅',243,1449,2880,13.67,1.3,'锕系',0],
+[96,'Cm','锔',247,1613,3383,13.51,1.3,'锕系',0],
+[97,'Bk','锫',247,1259,2900,14.78,1.3,'锕系',0],
+[98,'Cf','锎',251,1173,1743,15.1,1.3,'锕系',0],
+[99,'Es','锿',252,1133,1269,8.84,1.3,'锕系',0],
+[100,'Fm','镄',257,1800,null,9.7,1.3,'锕系',0],
+[101,'Md','钔',258,1100,null,10.3,1.3,'锕系',0],
+[102,'No','锘',259,1100,null,9.9,1.3,'锕系',0],
+[103,'Lr','铹',266,1900,null,15.6,1.3,'锕系',0],
+[104,'Rf','Rf',267,2400,5800,23.2,null,'过渡金属',0],
+[105,'Db','Db',268,null,null,29.3,null,'过渡金属',0],
+[106,'Sg','Sg',269,null,null,35.0,null,'过渡金属',0],
+[107,'Bh','Bh',270,null,null,37.1,null,'过渡金属',0],
+[108,'Hs','Hs',269,null,null,40.7,null,'过渡金属',0],
+[109,'Mt','Mt',278,null,null,37.4,null,'未知',0],
+[110,'Ds','Ds',281,null,null,34.8,null,'未知',0],
+[111,'Rg','Rg',282,null,null,28.7,null,'未知',0],
+[112,'Cn','Cn',285,null,null,23.7,null,'后过渡',0],
+[113,'Nh','Nh',286,null,null,16,null,'未知',0],
+[114,'Fl','Fl',289,null,null,14,null,'未知',0],
+[115,'Mc','Mc',290,null,null,13.5,null,'未知',0],
+[116,'Lv','Lv',293,null,null,12.9,null,'未知',0],
+[117,'Ts','Ts',294,null,null,7.2,null,'卤素',0],
+[118,'Og','Og',294,null,null,5.0,null,'稀有气体',0]
+];
+var EMAP={};
+ELEMENTS.forEach(function(e){EMAP[e[1]]=e;});
+
+var MATS={
+ soil:{n:'腐殖土',f:'—',block:1,color:'#6b563a',st:'固（混合物）',props:'疏松多孔，含腐殖质与微生物，pH 5.5–7.5',struct:'矿物颗粒 + 腐殖质团聚体（非晶）',where:'地表 0–0.3 m：草方块 / 泥土',comp:{O:49,Si:28,Al:8,Fe:4,C:5,Ca:2,H:2,K:1,Mg:1}},
+ granite:{n:'花岗岩',f:'—',block:3,color:'#8c8f95',st:'固（混合物）',props:'致密坚硬，密度约 2.6–2.8 g/cm³，耐酸',struct:'石英 + 长石 + 云母的显晶质结构',where:'地下 0–15 m：石头',comp:{O:46,Si:32,Al:8,K:5,Na:3,Ca:2,Fe:2,Mg:1,H:1}},
+ sand:{n:'石英砂',f:'SiO2',block:4,color:'#dbd0a5',st:'固',props:'颗粒状，莫氏硬度 7，熔点约 1710 °C',struct:'SiO₂ 四面体共顶点的三维网络（晶态/碎屑）',where:'水边与海底：沙子',},
+ water:{n:'水',f:'H2O',block:5,color:'#3a72c0',st:'液',props:'密度 1.00 g/cm³，比热容 4.18 J/(g·K)，良溶剂',struct:'V 形分子，H–O–H 键角 104.5°',where:'海洋、湖泊与地下水（海平面以下）'},
+ wood:{n:'木材',f:'—',block:6,color:'#6b4a2c',st:'固（复合）',props:'各向异性，含水率影响强度，可燃',struct:'纤维素微纤丝 + 木质素交联',where:'树木树干：原木',comp:{C:50,O:43,H:6,N:0.5,Mg:0.1,Ca:0.4}},
+ leaves:{n:'树叶',f:'—',block:7,color:'#3f8c36',st:'固（复合）',props:'薄片状，含水率高，含叶绿素',struct:'叶肉细胞 + 叶脉网络',where:'树冠：树叶',comp:{C:45,O:40,H:6,N:3,Mg:0.5,Ca:1,K:1.5}},
+ plank:{n:'木板',f:'C6H10O5',block:8,color:'#9e7847',st:'固',props:'干燥后密度约 0.5–0.7 g/cm³，可燃',struct:'纤维素 (C₆H₁₀O₅)n 纤维定向排列',where:'加工木材：木板'},
+ hematite:{n:'赤铁矿',f:'Fe2O3',block:9,color:'#854f45',st:'固',props:'密度 5.3 g/cm³，莫氏硬度 5–6，弱磁性',struct:'FeO₆ 八面体共棱的刚玉型结构',where:'地下 3–12 m：矿脉'},
+ coal:{n:'煤',f:'—',block:10,color:'#2e2e2e',st:'固（混合物）',props:'可燃，发热量约 25–30 MJ/kg',struct:'芳香碳层 + 挥发分 + 灰分',where:'地下 3–10 m：煤层',comp:{C:85,O:8,H:5,S:1,N:1}},
+ limestone:{n:'石灰石',f:'CaCO3',block:11,color:'#c7c4b8',st:'固',props:'密度 2.7 g/cm³，遇酸起泡，900 °C 分解',struct:'Ca²⁺ 与 CO₃²⁻ 交替排列的方解石结构',where:'地下 2–7 m：沉积层'},
+ halite:{n:'岩盐',f:'NaCl',block:12,color:'#e6e3d8',st:'固',props:'密度 2.16 g/cm³，熔点 801 °C，易溶于水',struct:'Na⁺ 与 Cl⁻ 的面心立方离子晶体',where:'海平面附近：盐层'},
+ glass:{n:'玻璃',f:'SiO2',block:13,color:'#b7d8dd',st:'固（非晶）',props:'透明，密度 2.4–2.5 g/cm³，软化 600–800 °C',struct:'SiO₂ 四面体无序网络（非晶态）',where:'高温烧结产物：可放置'},
+ quicklime:{n:'生石灰',f:'CaO',block:14,color:'#e0dbd2',st:'固',props:'密度 3.34 g/cm³，熔点 2572 °C，遇水放热',struct:'NaCl 型离子晶体（Ca²⁺/O²⁻）',where:'石灰石煅烧产物：可放置'},
+ slaked:{n:'熟石灰',f:'Ca(OH)2',block:15,color:'#eeeee8',st:'固',props:'微溶，密度 2.21 g/cm³，强碱',struct:'层状 Ca(OH)₂ 晶体',where:'生石灰与水反应产物：可放置'},
+ copper:{n:'铜',f:'Cu',block:16,color:'#b8714a',st:'固',props:'密度 8.96 g/cm³，熔点 1085 °C，良导电导热',struct:'面心立方金属晶体',where:'还原氧化铜产物：可放置'},
+ iron:{n:'铁',f:'Fe',block:17,color:'#8c8f95',st:'固',props:'密度 7.87 g/cm³，熔点 1538 °C，铁磁性',struct:'体心立方金属晶体',where:'还原氧化铁产物：可放置'},
+ o2:{n:'氧气',f:'O2',block:0,color:'#9fc7ff',st:'气',props:'密度 1.43 g/L，助燃，无色无味',struct:'双原子分子 O=O'},
+ h2:{n:'氢气',f:'H2',block:0,color:'#cfe0ff',st:'气',props:'密度 0.089 g/L，易燃易爆',struct:'双原子分子 H–H'},
+ co2:{n:'二氧化碳',f:'CO2',block:0,color:'#b9c4d6',st:'气',props:'密度 1.98 g/L，溶于水生成碳酸',struct:'直线形分子 O=C=O'},
+ co:{n:'一氧化碳',f:'CO',block:0,color:'#aab6c8',st:'气',props:'有毒，密度 1.25 g/L，可燃',struct:'直线形分子 C≡O'},
+ hcl:{n:'盐酸',f:'HCl',block:0,color:'#b9e6c8',st:'液（溶液）',props:'强酸，易挥发，pH 随浓度变化',struct:'H⁺ 与 Cl⁻ 的水合离子'},
+ naoh:{n:'氢氧化钠',f:'NaOH',block:0,color:'#e8e8dc',st:'固/液（溶液）',props:'强碱，潮解，腐蚀性',struct:'Na⁺ 与 OH⁻ 离子晶体'},
+ h2so4:{n:'硫酸',f:'H2SO4',block:0,color:'#e8e4c8',st:'液',props:'强酸，浓硫酸吸水放热，密度 1.84 g/cm³',struct:'H₂SO₄ 四面体（S 中心）'},
+ cacl2:{n:'氯化钙',f:'CaCl2',block:0,color:'#e6e6dc',st:'固',props:'易潮解，溶于水放热',struct:'Ca²⁺ 与 Cl⁻ 离子晶体'},
+ znso4:{n:'硫酸锌',f:'ZnSO4',block:0,color:'#e2eef2',st:'固',props:'易溶于水，白色晶体',struct:'Zn²⁺ 与 SO₄²⁻ 离子晶体'},
+ feso4:{n:'硫酸亚铁',f:'FeSO4',block:0,color:'#c8e2d0',st:'固',props:'浅绿色晶体，易氧化',struct:'Fe²⁺ 与 SO₄²⁻ 离子晶体'},
+ cuso4:{n:'硫酸铜',f:'CuSO4',block:0,color:'#7fc4e6',st:'固',props:'蓝色晶体，遇水变蓝',struct:'Cu²⁺ 与 SO₄²⁻ 离子晶体'},
+ na2so4:{n:'硫酸钠',f:'Na2SO4',block:0,color:'#e8ecf2',st:'固',props:'易溶于水',struct:'Na⁺ 与 SO₄²⁻ 离子晶体'},
+ cuo:{n:'氧化铜',f:'CuO',block:0,color:'#3a2f2a',st:'固',props:'黑色粉末，密度 6.3 g/cm³',struct:'CuO₄ 平面/链状结构'},
+ mgo:{n:'氧化镁',f:'MgO',block:0,color:'#f2f2ee',st:'固',props:'白色粉末，熔点 2852 °C',struct:'NaCl 型离子晶体'},
+ mg:{n:'镁',f:'Mg',block:0,color:'#cfcfcf',st:'固',props:'轻金属，密度 1.74 g/cm³，燃烧发白光',struct:'六方最密堆积'},
+ zinc:{n:'锌',f:'Zn',block:0,color:'#c8ccd2',st:'固',props:'密度 7.14 g/cm³，两性金属',struct:'六方最密堆积'},
+ s:{n:'硫',f:'S',block:0,color:'#e8d44d',st:'固',props:'黄色晶体，熔点 115 °C，燃烧蓝紫色火焰',struct:'S₈ 环状分子'},
+ so2:{n:'二氧化硫',f:'SO2',block:0,color:'#d8d8b8',st:'气',props:'刺激性气味，密度 2.63 g/L',struct:'V 形分子 O=S=O'},
+ n2:{n:'氮气',f:'N2',block:0,color:'#c8d8f0',st:'气',props:'密度 1.25 g/L，化学性质稳定',struct:'三键双原子分子 N≡N'},
+ nh3:{n:'氨',f:'NH3',block:0,color:'#c8e8ff',st:'气',props:'刺激性气味，极易溶于水',struct:'三角锥形分子'},
+ ch4:{n:'甲烷',f:'CH4',block:0,color:'#d8e8ff',st:'气',props:'天然气主要成分，易燃',struct:'正四面体分子'},
+ na2co3:{n:'碳酸钠',f:'Na2CO3',block:0,color:'#e8e8e0',st:'固',props:'俗称纯碱，易溶于水',struct:'Na⁺ 与 CO₃²⁻ 离子晶体'},
+ nahco3:{n:'碳酸氢钠',f:'NaHCO3',block:0,color:'#f0f0e8',st:'固',props:'小苏打，受热分解',struct:'Na⁺ 与 HCO₃⁻ 离子晶体'},
+ al:{n:'铝',f:'Al',block:0,color:'#c8ccd2',st:'固',props:'密度 2.70 g/cm³，表面易钝化',struct:'面心立方金属晶体'},
+ al2o3:{n:'氧化铝',f:'Al2O3',block:0,color:'#e8e8e8',st:'固',props:'熔点 2072 °C，硬度高',struct:'刚玉型结构'},
+ cuoh2:{n:'氢氧化铜',f:'Cu(OH)2',block:0,color:'#4a9fd8',st:'固',props:'蓝色沉淀，受热分解',struct:'层状结构'},
+ rust:{n:'铁锈',f:'Fe2O3',block:0,color:'#8a4a32',st:'固',props:'疏松多孔，不保护内部金属',struct:'FeO₆ 八面体共棱，含水'},
+ dilute:{n:'稀硫酸',f:'H2SO4',block:0,color:'#dfe8dc',st:'液（溶液）',props:'强酸，稀释时放热',struct:'H⁺ 与 SO₄²⁻ 水合离子'}
+};
+
+var RX=[
+ {a:'limestone',b:'',cond:'加热',out:['quicklime','co2'],eq:'CaCO₃ → CaO + CO₂↑',note:'约 900 °C 分解，工业制生石灰。'},
+ {a:'quicklime',b:'water',cond:'常温',out:['slaked'],eq:'CaO + H₂O → Ca(OH)₂',note:'剧烈放热，体积膨胀。'},
+ {a:'slaked',b:'co2',cond:'常温',out:['limestone','water'],eq:'Ca(OH)₂ + CO₂ → CaCO₃↓ + H₂O',note:'石灰水变浑浊，检验 CO₂。'},
+ {a:'water',b:'',cond:'通电',out:['h2','o2'],eq:'2H₂O →(电解) 2H₂↑ + O₂↑',note:'氢氧体积比 2:1。'},
+ {a:'h2',b:'o2',cond:'点燃',out:['water'],eq:'2H₂ + O₂ →(点燃) 2H₂O',note:'淡蓝色火焰，可能爆鸣。'},
+ {a:'coal',b:'o2',cond:'点燃',out:['co2'],eq:'C + O₂ →(点燃) CO₂',note:'充分燃烧，放热。'},
+ {a:'coal',b:'o2',cond:'点燃',amt:'少量',out:['co'],eq:'2C + O₂(不足) → 2CO',note:'氧气不足生成有毒的一氧化碳。'},
+ {a:'iron',b:'o2',cond:'常温',out:['rust'],eq:'4Fe + 3O₂ + nH₂O → 2Fe₂O₃·nH₂O',note:'潮湿空气中缓慢锈蚀。',order:'需要水与氧气同时存在'},
+ {a:'iron',b:'hcl',cond:'常温',out:['fecl2','h2'],eq:'Fe + 2HCl → FeCl₂ + H₂↑',note:'置换反应，溶液变浅绿。'},
+ {a:'zinc',b:'h2so4',cond:'常温',out:['znso4','h2'],eq:'Zn + H₂SO₄ → ZnSO₄ + H₂↑',note:'实验室制氢气。'},
+ {a:'limestone',b:'hcl',cond:'常温',out:['cacl2','water','co2'],eq:'CaCO₃ + 2HCl → CaCl₂ + H₂O + CO₂↑',note:'检验碳酸盐，起泡。'},
+ {a:'naoh',b:'hcl',cond:'常温',out:['halite','water'],eq:'NaOH + HCl → NaCl + H₂O',note:'中和反应，放热。'},
+ {a:'copper',b:'o2',cond:'加热',out:['cuo'],eq:'2Cu + O₂ →(Δ) 2CuO',note:'红色铜变黑。'},
+ {a:'cuo',b:'h2',cond:'加热',out:['copper','water'],eq:'CuO + H₂ →(Δ) Cu + H₂O',note:'还原反应，黑色变红。'},
+ {a:'mg',b:'o2',cond:'点燃',out:['mgo'],eq:'2Mg + O₂ →(点燃) 2MgO',note:'耀眼白光，放热。'},
+ {a:'s',b:'o2',cond:'点燃',out:['so2'],eq:'S + O₂ →(点燃) SO₂',note:'蓝紫色火焰，刺激性气体。'},
+ {a:'n2',b:'h2',cond:'催化剂',out:['nh3'],eq:'N₂ + 3H₂ ⇌ 2NH₃',note:'高温高压铁触媒，合成氨。'},
+ {a:'ch4',b:'o2',cond:'点燃',out:['co2','water'],eq:'CH₄ + 2O₂ →(点燃) CO₂ + 2H₂O',note:'天然气燃烧。'},
+ {a:'co2',b:'naoh',cond:'常温',amt:'少量',out:['na2co3','water'],eq:'CO₂ + 2NaOH → Na₂CO₃ + H₂O',note:'CO₂ 少量时生成碳酸钠。'},
+ {a:'co2',b:'naoh',cond:'常温',amt:'过量',out:['nahco3'],eq:'CO₂ + NaOH → NaHCO₃',note:'CO₂ 过量时生成碳酸氢钠——用量改变产物。'},
+ {a:'al',b:'o2',cond:'常温',out:['al2o3'],eq:'4Al + 3O₂ → 2Al₂O₃',note:'表面生成致密氧化膜，钝化保护。'},
+ {a:'quicklime',b:'hcl',cond:'常温',out:['cacl2','water'],eq:'CaO + 2HCl → CaCl₂ + H₂O',note:'放热。'},
+ {a:'cuso4',b:'naoh',cond:'常温',out:['cuoh2','na2so4'],eq:'CuSO₄ + 2NaOH → Cu(OH)₂↓ + Na₂SO₄',note:'蓝色絮状沉淀。'},
+ {a:'sand',b:'na2co3',cond:'加热',out:['glass','co2'],eq:'SiO₂ + Na₂CO₃ →(高温) Na₂SiO₃ + CO₂↑',note:'工业玻璃的简化模型。'},
+ {a:'h2so4',b:'water',cond:'常温',out:['dilute'],eq:'H₂SO₄ + H₂O → 稀硫酸',note:'必须“酸入水”，缓慢搅拌；水入浓酸会剧烈放热飞溅。',order:'加入顺序决定安全性与局部温度'}
+];
+
+var parseFormula=function(f){
+  var stack=[{}],i=0;
+  while(i<f.length){
+    var ch=f[i];
+    if(ch==='('){stack.push({});i++;continue;}
+    if(ch===')'){
+      var g=stack.pop();i++;
+      var n='';while(i<f.length&&/\d/.test(f[i]))n+=f[i++];
+      var mul=n?+n:1;
+      for(var k in g)stack[stack.length-1][k]=(stack[stack.length-1][k]||0)+g[k]*mul;
+      continue;
+    }
+    if(/[A-Z]/.test(ch)){
+      var sym=ch;i++;
+      while(i<f.length&&/[a-z]/.test(f[i]))sym+=f[i++];
+      var num='';while(i<f.length&&/\d/.test(f[i]))num+=f[i++];
+      var cnt=num?+num:1;
+      var top=stack[stack.length-1];
+      top[sym]=(top[sym]||0)+cnt;
+      continue;
+    }
+    i++;
+  }
+  return stack[0];
+};
+function compOf(m){
+  if(m.comp)return m.comp;
+  if(!m.f||m.f==='—')return null;
+  var c=parseFormula(m.f),tot=0,out={};
+  for(var s in c){if(!EMAP[s])continue;tot+=c[s]*EMAP[s][3];}
+  if(!tot)return null;
+  for(var s2 in c){if(!EMAP[s2])continue;out[s2]=Math.round(c[s2]*EMAP[s2][3]/tot*1000)/10;}
+  return out;
+}
+function elColor(sym){
+  var m={O:'#e05050',Si:'#c9b18a',Al:'#b9c0cc',Fe:'#c98a5a',Ca:'#8fd6a8',C:'#8a8a8a',H:'#e8eefc',Na:'#e6b85c',Cl:'#8fe08f',K:'#c58ad8',Mg:'#5fbf5f',S:'#e8d44d',N:'#7ea6ff',Cu:'#d08a4a',Zn:'#c8ccd2',Mn:'#b07a9a',P:'#e8a05a',F:'#9fe0b8',Ti:'#9aa8b8'};
+  return m[sym]||'#9db0c6';
+}
+function fmtNum(v,d){if(v==null||v===0&&d===undefined)return '—';return v;}
+function kelvin(v){return v==null?'—':(Math.round((v-273.15)*10)/10)+' °C';}
+function catClass(c){return 'cat-'+c;}
+
+/* 元素周期表位置 */
+function posOf(z){
+  if(z===1)return[1,1];if(z===2)return[1,18];
+  if(z<=10){var c2=[1,2,13,14,15,16,17,18];return[2,c2[z-3]];}
+  if(z<=18){var c3=[1,2,13,14,15,16,17,18];return[3,c3[z-11]];}
+  if(z<=36)return[4,z-18];
+  if(z<=54)return[5,z-36];
+  if(z<=56)return[6,z-54];
+  if(z<=71)return[8,z-54];      // 镧系 57-71 -> 第8行 3..17
+  if(z<=86)return[6,z-68];      // 72-86 -> 4..18
+  if(z<=88)return[7,z-86];
+  if(z<=103)return[9,z-86];     // 锕系 89-103
+  return[7,z-100];              // 104-118 -> 4..18
+}
+
+/* ---------- 化学面板 ---------- */
+function elHTML(z){
+  var e=ELEMENTS[z-1];
+  return '<div class="detail"><h3>'+e[2]+' <span class="badge">'+e[1]+' · Z='+e[0]+'</span></h3>'+
+    '<div class="kv"><span>相对原子质量</span><span>'+e[3]+'</span></div>'+
+    '<div class="kv"><span>类别</span><span>'+e[8]+'</span></div>'+
+    '<div class="kv"><span>熔点</span><span>'+kelvin(e[4])+'</span></div>'+
+    '<div class="kv"><span>沸点</span><span>'+kelvin(e[5])+'</span></div>'+
+    '<div class="kv"><span>密度</span><span>'+(e[6]==null?'—':e[6]+' g/cm³')+'</span></div>'+
+    '<div class="kv"><span>电负性（鲍林）</span><span>'+(e[7]==null?'—':e[7])+'</span></div>'+
+    '<div class="kv"><span>地壳丰度</span><span>'+(e[9]>=1?e[9].toLocaleString()+' ppm':(e[9]>0?e[9]+' ppm（痕量）':'—'))+'</span></div>'+
+    ((e[9]>0)?('<div class="bar"><i style="width:'+Math.max(2,Math.min(100,Math.log10(e[9]+1)/Math.log10(480000)*100))+'%"></i></div><div class="mut" style="font-size:10px">对数刻度，以地壳氧丰度为上限</div>'):'')+
+    '<div class="mut" style="margin-top:6px">主要存在形式：'+occursOf(e[1])+'</div></div>';
+}
+function occursOf(sym){
+  var out=[];
+  for(var k in MATS){
+    var m=MATS[k];
+    if(m.f&&m.f!=='—'&&m.f.indexOf(sym)>=0){out.push(m.n);}
+    else if(m.comp&&m.comp[sym])out.push(m.n);
+    if(out.length>=4)break;
+  }
+  return out.length?out.join('、'):'以微量形式散布于岩石与土壤';
+}
+var chemTab='table';
+function openChem(tab){
+  document.getElementById('chem').classList.remove('hidden');
+  if(tab)setChemTab(tab);
+  if(chemTab==='dist')renderDist();
+  if(!window.__ptBuilt)buildPtable();
+}
+function closeChem(){document.getElementById('chem').classList.add('hidden');}
+function setChemTab(t){
+  chemTab=t;
+  ['table','mats','react','dist'].forEach(function(k){
+    document.getElementById('cpanel-'+k).classList.toggle('hidden',k!==t);
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('.ctabs button'),function(b){
+    b.classList.toggle('on',b.getAttribute('data-ctab')===t);
+  });
+  if(t==='mats')renderMats();
+  if(t==='react'){fillReactSelects();}
+  if(t==='dist')renderDist();
+}
+function buildPtable(){
+  var box=document.getElementById('ptable');
+  var html='';
+  ELEMENTS.forEach(function(e){
+    var p=posOf(e[0]);
+    html+='<div class="ecell '+catClass(e[8])+'" data-z="'+e[0]+'" style="grid-row:'+p[0]+';grid-column:'+p[1]+'" title="'+e[2]+' '+e[1]+'">'+e[0]+'<b>'+e[1]+'</b></div>';
+  });
+  box.innerHTML=html;
+  box.addEventListener('click',function(ev){
+    var c=ev.target.closest('.ecell');
+    if(!c)return;
+    Array.prototype.forEach.call(box.querySelectorAll('.ecell.sel'),function(x){x.classList.remove('sel');});
+    c.classList.add('sel');
+    document.getElementById('elDetail').innerHTML=elHTML(+c.getAttribute('data-z'));
+  });
+  window.__ptBuilt=1;
+}
+function renderMats(){
+  var box=document.getElementById('matList');
+  var html='';
+  for(var id in MATS){
+    var m=MATS[id];
+    if(!m.block)continue;
+    html+='<div class="mcard" data-mid="'+id+'"><span class="sw" style="background:'+m.color+'"></span><div><div class="mn">'+m.n+'</div><div class="mf">'+m.f+'</div></div></div>';
+  }
+  box.innerHTML=html;
+  box.onclick=function(ev){
+    var c=ev.target.closest('.mcard');
+    if(!c)return;
+    Array.prototype.forEach.call(box.querySelectorAll('.mcard'),function(x){x.classList.remove('sel');});
+    c.classList.add('sel');
+    showMat(c.getAttribute('data-mid'));
+  };
+  showMat('water');
+}
+function showMat(id){
+  var m=MATS[id];if(!m)return;
+  var comp=compOf(m);
+  var compHTML='';
+  if(comp){
+    var arr=Object.keys(comp).map(function(k){return [k,comp[k]];}).sort(function(a,b){return b[1]-a[1];}).slice(0,6);
+    compHTML='<div class="catline">元素质量占比</div>'+arr.map(function(x){
+      return '<div class="kv"><span><span class="el" style="background:'+elColor(x[0])+'"></span>'+x[0]+'</span><span>'+x[1]+'%</span></div>';
+    }).join('');
+  }
+  var rxs=RX.filter(function(r){return r.a===id||r.b===id||(r.out&&r.out.indexOf(id)>=0);}).slice(0,4);
+  document.getElementById('matDetail').innerHTML='<h3>'+m.n+' <span class="badge">'+m.f+'</span><span class="badge">'+m.st+'</span></h3>'+
+    '<div class="kv"><span>物理性质</span><span>'+m.props+'</span></div>'+
+    '<div class="kv"><span>微观结构</span><span>'+m.struct+'</span></div>'+
+    '<div class="kv"><span>世界分布</span><span>'+m.where+'</span></div>'+compHTML+
+    (rxs.length?('<div class="catline">相关反应</div>'+rxs.map(function(r){return '<div class="kv"><span>'+r.eq+'</span><span>'+r.cond+'</span></div>';}).join('')):'');
+}
+function fillReactSelects(){
+  var opts='';
+  var groupA='',groupB='';
+  for(var id in MATS){
+    var m=MATS[id];
+    var o='<option value="'+id+'">'+m.n+'（'+m.f+'）</option>';
+    if(m.block)groupA+=o;else groupB+=o;
+  }
+  opts='<optgroup label="世界中的物质">'+groupA+'</optgroup><optgroup label="反应体系中的物质">'+groupB+'</optgroup>';
+  var A=document.getElementById('rA'),Bx=document.getElementById('rB');
+  if(!A.options.length||A.options.length<10){
+    A.innerHTML=opts;Bx.innerHTML='<option value="">— 无（单一物质反应）—</option>'+opts;
+    A.value='limestone';Bx.value='';
+  }
+}
+function runReaction(){
+  var a=document.getElementById('rA').value;
+  var b=document.getElementById('rB').value;
+  var cond=document.getElementById('rCond').value;
+  var amt=document.getElementById('rAmt').value;
+  var hit=null;
+  for(var i=0;i<RX.length;i++){
+    var r=RX[i];
+    if(r.cond!==cond)continue;
+    if(r.amt&&r.amt!==amt)continue;
+    var pairOK=(r.a===a&&((r.b||'')===(b||'')))||(r.a===b&&(r.b||'')===a&&!r.noReverse);
+    if(pairOK){hit=r;break;}
+  }
+  var out=document.getElementById('rOut');
+  if(!hit){
+    out.innerHTML='<h3>没有观察到明显反应</h3><span class="mut">在 '+cond+'、'+amt+' 条件下，'+(MATS[a]?MATS[a].n:a)+' 与 '+(MATS[b]?MATS[b].n:b)+' 没有登记在案的直接反应。</span><br><span class="mut">现实中的化学反应还取决于浓度、压强、催化剂与接触面积。</span>';
+    return;
+  }
+  var prods=hit.out.map(function(id){return MATS[id]||{n:id,f:''};});
+  var html='<h3>发生反应：'+hit.eq+'</h3>'+
+    '<div class="kv"><span>反应物</span><span>'+(MATS[hit.a]?MATS[hit.a].n:hit.a)+(hit.b?(' + '+(MATS[hit.b]?MATS[hit.b].n:hit.b)):'')+'</span></div>'+
+    '<div class="kv"><span>条件</span><span>'+hit.cond+(hit.amt?(' · '+hit.amt):'')+'</span></div>'+
+    '<div class="kv"><span>生成物</span><span>'+prods.map(function(p){return p.n+'（'+p.f+'）';}).join('、')+'</span></div>'+
+    (hit.note?'<div class="kv"><span>说明</span><span>'+hit.note+'</span></div>':'')+
+    (hit.order?'<div class="kv"><span>加入顺序</span><span>'+(b&&hit.a===b&&hit.b===a?('你把「'+MATS[b].n+'」加入「'+MATS[a].n+'」。'+hit.order):hit.order)+'</span></div>':'');
+  var placeable=hit.out.filter(function(id){return MATS[id]&&MATS[id].block;});
+  if(placeable.length){
+    html+='<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">'+placeable.map(function(id){
+      return '<button class="mbtn" data-place="'+id+'" style="border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);color:#eaf2ff;border-radius:8px;padding:8px 10px;font-size:12px">把 '+MATS[id].n+' 放入世界</button>';
+    }).join('')+'</div>';
+  }
+  out.innerHTML=html;
+  out.querySelectorAll('[data-place]').forEach(function(btn){
+    btn.addEventListener('click',function(){placeSubstance(btn.getAttribute('data-place'));});
+  });
+}
+function placeSubstance(id){
+  var m=MATS[id];if(!m||!m.block)return;
+  var d=lookVec(),x=Math.floor(player.x+d[0]*3),z=Math.floor(player.z+d[2]*3);
+  var y=surfaceY(x,z);
+  for(var yy=y;yy<Math.min(WY-2,y+6);yy++){if(getB(x,yy,z)===0){y=yy;break;}}
+  setB(x,y,z,m.block);buildMesh();
+  closeChem();
+  toast('已把『'+m.n+'』放入世界（'+B[m.block].n+'）');
+}
+
+/* ---------- 分布 ---------- */
+function renderDist(){
+  var top=ELEMENTS.slice().sort(function(a,b){return b[9]-a[9];}).slice(0,14);
+  var max=top[0][9];
+  document.getElementById('abund').innerHTML=top.map(function(e){
+    var w=Math.max(1.5,Math.log10(e[9]+1)/Math.log10(max+1)*100);
+    return '<div class="arow"><span class="sym">'+e[1]+'</span><span class="ab"><i style="width:'+w+'%"></i></span><span class="pc">'+(e[9]>=1000?(e[9]/10000).toFixed(2)+' %':e[9]+' ppm')+'</span></div>';
+  }).join('');
+  var counts={},tot=0;
+  for(var i=0;i<blocks.length;i++){var t=blocks[i];if(t){counts[t]=(counts[t]||0)+1;tot++;}}
+  var dep=[
+    ['草方块 / 泥土','地表 0–1 层，腐殖土（O、Si、Al、Fe、C）'],
+    ['花岗岩（石头）','地下 0–15 m，石英 + 长石 + 云母'],
+    ['石英砂','水边与海底，SiO₂ 碎屑'],
+    ['石灰石','地下 2–7 m，CaCO₃ 沉积层'],
+    ['煤','地下 3–10 m，C 与挥发分'],
+    ['赤铁矿','地下 3–12 m，Fe₂O₃ 矿脉'],
+    ['岩盐','海平面附近，NaCl 盐层'],
+    ['水','海平面以下的湖泊与海洋']
+  ];
+  document.getElementById('dist').innerHTML=dep.map(function(d){
+    return '<div class="dep"><span>'+d[0]+'</span><span class="mut" style="text-align:right">'+d[1]+'</span></div>';
+  }).join('')+'<div class="mut" style="margin-top:10px;font-size:11px">当前世界共 '+tot.toLocaleString()+' 个方块，其中矿石：赤铁矿 '+(counts[9]||0)+'、煤 '+(counts[10]||0)+'、石灰石 '+(counts[11]||0)+'、岩盐 '+(counts[12]||0)+'。生成规则按地壳丰度与成矿深度近似映射。</div>';
+}
+
+
+function toast(msg){
+  var t=document.getElementById('toast');
+  t.textContent=msg;t.style.opacity=1;
+  clearTimeout(t._t);t._t=setTimeout(function(){t.style.opacity=0;},1500);
+}
+function buildHotbar(){
+  var hb=document.getElementById('hotbar');
+  hb.innerHTML=hotbarTypes.map(function(t){
+    var d=B[t],c=d.top||d.side||d.col;
+    return '<div class="slot'+(t===sel?' on':'')+'" data-type="'+t+'"><div class="sw" style="background:rgb('+Math.round(c[0]*255)+','+Math.round(c[1]*255)+','+Math.round(c[2]*255)+')"></div>'+HOTNAME[t]+'</div>';
+  }).join('');
+  Array.prototype.forEach.call(hb.querySelectorAll('.slot'),function(s){
+    s.addEventListener('click',function(){
+      sel=Number(s.getAttribute('data-type'));
+      Array.prototype.forEach.call(hb.querySelectorAll('.slot'),function(x){x.classList.remove('on');});
+      s.classList.add('on');
+    });
+  });
+}
+Array.prototype.forEach.call(document.querySelectorAll('#acts button'),function(b){
+  b.addEventListener('pointerdown',function(e){e.preventDefault();});
+  b.addEventListener('click',function(){
+    var a=b.getAttribute('data-act');
+    if(a==='jump')jump();else if(a==='dig')dig();else if(a==='place')place();else if(a==='inspect')inspect();
+  });
+});
+document.getElementById('btnAtom').addEventListener('click',toggleAtom);
+document.getElementById('btnView').addEventListener('click',function(){
+  thirdPerson=!thirdPerson;
+  this.classList.toggle('on',thirdPerson);
+  toast(thirdPerson?'第三人称：能看到自己与路人':'第一人称');
+});
+document.getElementById('btnAI').addEventListener('click',function(){
+  document.getElementById('aiPanel').classList.toggle('hidden');
+});
+document.getElementById('aiClose').addEventListener('click',function(){document.getElementById('aiPanel').classList.add('hidden');});
+Array.prototype.forEach.call(document.querySelectorAll('#aiPanel .cmds button'),function(b){
+  b.addEventListener('click',function(){
+    var cmd=b.getAttribute('data-cmd');
+    aiSay('<div style="opacity:.75">'+b.textContent+'</div>');
+    ai(cmd);
+    if(atomMode)updateAtomPanel();
+  });
+});
+addEventListener('keydown',function(e){if(e.key==='Escape'){document.getElementById('aiPanel').classList.add('hidden');closeChem();}});
+
+/* 化学面板绑定 */
+document.getElementById('btnChem').addEventListener('click',function(){openChem('table');});
+document.getElementById('chemBack').addEventListener('click',closeChem);
+Array.prototype.forEach.call(document.querySelectorAll('.ctabs button'),function(b){
+  b.addEventListener('click',function(){setChemTab(b.getAttribute('data-ctab'));});
+});
+document.getElementById('rSwap').addEventListener('click',function(){
+  var a=document.getElementById('rA'),b=document.getElementById('rB');
+  var t=a.value;a.value=b.value;b.value=t;
+});
+document.getElementById('rRun').addEventListener('click',runReaction);
+
+/* ---------- 启动 ---------- */
+resize();
+genWorld();
+var sp=pickSpawn();
+player.x=sp.x;player.y=sp.y;player.z=sp.z;player.vy=0;
+spawn={x:sp.x,y:sp.y,z:sp.z};
+npc={x:sp.x-Math.sin(player.yaw)*7+Math.cos(player.yaw)*3.5,z:sp.z-Math.cos(player.yaw)*7-Math.sin(player.yaw)*3.5};
+buildMesh();
+buildHotbar();
+requestAnimationFrame(function(t){last=t;loop(t);});
+setTimeout(function(){document.getElementById('hint').style.opacity='0';document.getElementById('hint').style.transition='opacity 1.2s';},9000);
+})();
+</script>
+</body>
+</html>

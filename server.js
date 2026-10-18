@@ -21,6 +21,7 @@ const FILESDIR = path.join(DATADIR, 'files');
 const GAMEHTML = args.game || path.join(__dirname, 'naruto.html');
 const CHATHTML = args.chat || path.join(__dirname, 'mobile.html');
 const PORTALHTML = args.portal || path.join(__dirname, 'portal.html');
+const WORLDHTML = args.world || path.join(__dirname, 'world.html');
 try { fs.mkdirSync(FILESDIR, { recursive: true }); } catch (e) {}
 
 // ---------- 状态 ----------
@@ -182,6 +183,7 @@ async function handle(req, res) {
   if (p === '/') { serveFile(res, PORTALHTML, 'text/html; charset=utf-8'); return; }
   if (p === '/game' || p === '/game/') { serveFile(res, GAMEHTML, 'text/html; charset=utf-8'); return; }
   if (p === '/m' || p === '/m/' || p === '/chat') { serveFile(res, CHATHTML, 'text/html; charset=utf-8'); return; }
+  if (p === '/world' || p === '/world/' || p === '/world.html') { serveFile(res, WORLDHTML, 'text/html; charset=utf-8'); return; }
   if (p === '/portal') { serveFile(res, PORTALHTML, 'text/html; charset=utf-8'); return; }
 
   // 外部音频/视频: /bgm/*.mp3 /voice/*.mp3 /video/*.mp4 (按需流式加载)

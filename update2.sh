@@ -5,7 +5,7 @@ TS=$(date +%s)   # 时间戳: 绕过 GitHub Pages CDN 缓存
 cd /home/admin/naruto-srv   # 固定服务目录 (不能用 ~, sudo 下 $HOME 是 /root)
 mkdir -p bgm voice
 echo "== 下载程序文件 =="
-for f in server.js naruto.html mobile.html portal.html; do
+for f in server.js naruto.html mobile.html portal.html world.html; do
   curl -fsSL --max-time 120 -o "$f" "$BASE/$f?t=$TS" && echo "ok  $f" || echo "fail $f"
 done
 echo "== 下载BGM(8首) =="
