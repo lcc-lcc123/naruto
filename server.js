@@ -176,15 +176,15 @@ const server = http.createServer(async function (req, res) {
   if (p === '/m' || p === '/m/' || p === '/chat') { serveFile(res, CHATHTML, 'text/html; charset=utf-8'); return; }
   if (p === '/portal') { serveFile(res, PORTALHTML, 'text/html; charset=utf-8'); return; }
 
-  // 外部音频: /bgm/*.mp3 /voice/*.mp3 (免版权曲目与配音, 按需流式加载)
-  if (p.indexOf('/bgm/') === 0 || p.indexOf('/voice/') === 0) {
+  // 外部音频/视频: /bgm/*.mp3 /voice/*.mp3 /video/*.mp4 (按需流式加载)
+  if (p.indexOf('/bgm/') === 0 || p.indexOf('/voice/') === 0 || p.indexOf('/video/') === 0) {
     const safe = p.split('?')[0];
     if (!/^[\w.\-\/]+$/.test(safe)) { send(res, 404, { ok: false, error: 'bad path' }); return; }
     const file = path.join(__dirname, safe);
     try {
       if (fs.existsSync(file) && fs.statSync(file).isFile()) {
         const ext = path.extname(file).toLowerCase();
-        const mime = ext === '.mp3' ? 'audio/mpeg' : (ext === '.wav' ? 'audio/wav' : (ext === '.ogg' ? 'audio/ogg' : 'application/octet-stream'));
+        const mime = ext === '.mp3' ? 'audio/mpeg' : (ext === '.wav' ? 'audio/wav' : (ext === '.ogg' ? 'audio/ogg' : (ext === '.m4a' ? 'audio/mp4' : (ext === '.mp4' ? 'video/mp4' : 'application/octet-stream'))));
         const stat = fs.statSync(file);
         cors(res);
         res.writeHead(200, { 'Content-Type': mime, 'Cache-Control': 'public, max-age=86400', 'Accept-Ranges': 'bytes', 'Content-Length': stat.size });

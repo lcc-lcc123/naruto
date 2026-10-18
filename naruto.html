@@ -118,6 +118,10 @@ canvas{display:block;width:100%;height:100%}
 #overlay .lose{color:#9aa7c0}
 #overlay button{font-size:clamp(13px,3.4vw,17px);padding:10px 30px;border-radius:999px;border:none;color:#fff;background:linear-gradient(180deg,#ff9d2e,#e5600a);cursor:pointer;margin:0 8px}
 #overlay button.ghost{background:rgba(255,255,255,.15)}
+
+/* ---- 胜利奥义视频 ---- */
+#winVideoBox{position:absolute;inset:0;z-index:45;background:#000;display:flex;align-items:center;justify-content:center;cursor:pointer}
+#winV{width:100%;height:100%;object-fit:contain;background:#000}
 #banner{position:absolute;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;pointer-events:none}
 #banner span{font-size:clamp(26px,7vw,52px);font-weight:900;letter-spacing:6px;color:#fff;text-shadow:0 0 24px rgba(255,170,0,.9),0 2px 4px #000;animation:zoom .9s ease-out forwards}
 @keyframes zoom{0%{transform:scale(.4);opacity:0}25%{transform:scale(1.15);opacity:1}60%{transform:scale(1)}100%{transform:scale(1.4);opacity:0}}
@@ -322,6 +326,7 @@ canvas{display:block;width:100%;height:100%}
   </div>
 </div>
 
+<div id="winVideoBox" class="hidden"><video id="winV" playsinline webkit-playsinline></video></div>
 <div id="overlay" class="hidden"><h2 id="koTitle"></h2><div id="koSub"></div><div><button id="btnAgain">再来一局</button><button class="ghost" id="btnMenu">换角色</button></div></div>
 
 </div></div>
@@ -619,6 +624,8 @@ function voiceLine(f,key){
    文件存在则优先使用, 缺失/404 时自动回退合成BGM与系统语音
    ============================================================ */
 const AUDIO={bgm:[],voice:{},curBgm:null};
+// 配音文件扩展名映射(默认 .mp3)
+const VOICE_EXT={'naruto_s1':'.m4a','naruto_s2':'.m4a','naruto_ult':'.mp3'};
 function audioInit(){
   if(typeof Audio==='undefined')return; // 测试环境无 Audio
   try{
@@ -639,7 +646,8 @@ function voiceAudio(f,key){
   if(!AUDIO.voice[id]){
     if(typeof Audio==='undefined')return null;
     try{
-      const a=new Audio('voice/'+id+'.mp3');
+      const ext=VOICE_EXT[id]||'.mp3';
+      const a=new Audio('voice/'+id+ext);
       a.preload='none'; a.dataset.ok=false;
       a.addEventListener('canplaythrough',()=>{ a.dataset.ok=true; });
       a.addEventListener('error',()=>{ a.dataset.ok=false; });
@@ -673,6 +681,10 @@ function resize(){
   WORLD.h=clamp(Math.round(WORLD.w*h/w),400,1500);
   const land=h<w;
   WORLD.ground=Math.round(WORLD.h*(land?0.78:0.82));
+  // 三维纵深投影参数: 深度=屏宽1/3, 远处上移+缩小
+  DEPTH=Math.round(WORLD.w/3);
+  LIFT_MAX=Math.round(WORLD.h*0.32);
+  HORIZON=WORLD.ground-LIFT_MAX;
   cv.width=Math.floor(WORLD.w*viewScale*DPR);
   cv.height=Math.floor(WORLD.h*viewScale*DPR);
   cv.style.width=Math.floor(WORLD.w*viewScale)+'px';
@@ -680,7 +692,12 @@ function resize(){
 }
 window.addEventListener('resize',resize);
 if(window.visualViewport)window.visualViewport.addEventListener('resize',resize);
+let DEPTH=320, LIFT_MAX=170, HORIZON=250;
 resize();
+// 3D纵深投影: 深度 d∈[0,DEPTH], 越深越靠上(远)且越小
+function liftOf(d){ return -(d/DEPTH)*LIFT_MAX; }
+function scaleOf(d){ return 1-0.32*(d/DEPTH); }
+function groundYOf(d){ return WORLD.ground+liftOf(d); }
 
 function toWorld(touch){
   const r=cv.getBoundingClientRect();
@@ -718,7 +735,7 @@ class Fighter{
     this.x=x; this.vx=0; this.vy=0; this.y=WORLD.ground; this.dir=dir; this.onGround=true;
     this.cfg=CFG[char.id]||CFG.naruto;
     this.skin=skin||0; this.skinC=SKINS[char.id][this.skin];
-    this.landT=0;
+    this.landT=0; this.d=0; this.vd=0;
     this.maxHp=this.cfg.hp; this.hp=this.maxHp; this.scale=this.cfg.scale; this.hitsToUlt=this.cfg.hitsToUlt;
     this.skillHits=0; this.ultReady=false;
     this.cd1=0; this.cd2=0; this.cdU=0; this.cdX=0;
@@ -850,14 +867,44 @@ function koDefeated(def,att){
 }
 function showKO(winner){
   const isWin=winner.isPlayer;
-  musicSting(isWin);
-  document.getElementById('btnPause').classList.add('hidden');
-  document.getElementById('overlay').classList.remove('hidden');
-  const t=document.getElementById('koTitle');
-  t.textContent=isWin?'胜 利':'战 败';
-  t.className=isWin?'win':'lose';
-  const loser=winner.isPlayer?E:P;
-  document.getElementById('koSub').textContent=isWin?('你击败了 '+loser.name):('你被 '+winner.name+' 击败');
+  playWinVideo(isWin,()=>{
+    musicSting(isWin);
+    document.getElementById('btnPause').classList.add('hidden');
+    document.getElementById('overlay').classList.remove('hidden');
+    const t=document.getElementById('koTitle');
+    t.textContent=isWin?'胜 利':'战 败';
+    t.className=isWin?'win':'lose';
+    const loser=winner.isPlayer?E:P;
+    document.getElementById('koSub').textContent=isWin?('你击败了 '+loser.name):('你被 '+winner.name+' 击败');
+  });
+}
+// 胜利奥义视频: 获胜随机播放对应角色视频, 播完/点击/出错后进入结算
+function playWinVideo(win,thenShow){
+  const vbox=document.getElementById('winVideoBox');
+  const v=document.getElementById('winV');
+  let src='';
+  if(win&&P){
+    const n=P.c.id==='naruto'?4:3;
+    const idx=1+Math.floor(Math.random()*n);
+    src='video/'+P.c.id+'_win'+idx+'.mp4';
+  }
+  if(!src){ thenShow(); return; }
+  if(AUDIO.curBgm){ try{ AUDIO.curBgm.pause(); }catch(e){} }
+  v.src=src; v.currentTime=0; v.muted=false;
+  vbox.classList.remove('hidden');
+  v.play().catch(()=>{ v.muted=true; v.play().catch(()=>{}); });
+  let done=false;
+  const finish=()=>{
+    if(done)return; done=true;
+    try{ v.pause(); }catch(e){}
+    vbox.classList.add('hidden');
+    if(AUDIO.curBgm){ try{ AUDIO.curBgm.play(); }catch(e){} }
+    thenShow();
+  };
+  v.onended=finish;
+  v.onerror=finish;
+  vbox.onclick=finish;
+  setTimeout(finish,20000); // 兜底: 任何异常20秒后必出结算
 }
 function applyDots(f){
   for(let i=f.dots.length-1;i>=0;i--){
@@ -903,12 +950,12 @@ function skill1(f,enemy){
   if(f.c.id==='naruto'){
     // 位移突进 + 手里剑
     f.state='s1'; f.st=0.22; f.vx=BALANCE.narutoS1LungeSpeed*f.dir*f.cfg.lunge;
-    projs.push({type:'shuriken',from:f,x:f.x+f.dir*30,y:f.y-70,dir:f.dir,speed:BALANCE.shurikenSpeed,turn:BALANCE.shurikenTurn,life:BALANCE.shurikenLife,dmg:f.cfg.s1Dmg,angle:rnd(0,TAU)});
+    projs.push({type:'shuriken',from:f,x:f.x+f.dir*30,d:f.d,y:f.y-70,dir:f.dir,speed:BALANCE.shurikenSpeed,turn:BALANCE.shurikenTurn,life:BALANCE.shurikenLife,dmg:f.cfg.s1Dmg,angle:rnd(0,TAU)});
     SFX.throwS();
   }else{
     // 天照: 减速+黑火(限制施法距离, 防止全屏必中)
     f.state='s1'; f.st=0.35;
-    if(dist(f,enemy)>f.cfg.skillRange+60){ floatText(enemy.x,enemy.y-90,'MISS','#9aa7c0',15); return; }
+    if(Math.hypot(enemy.x-f.x,enemy.d-f.d)>f.cfg.skillRange+60){ floatText(enemy.x,enemy.y-90,'MISS','#9aa7c0',15); return; }
     if(enemy.stealth){ floatText(enemy.x,enemy.y-100,'MISS','#7dd8ff',15); SFX.miss(); return; }
     enemy.slow=performance.now()+BALANCE.sasukeS1SlowMs;
     enemy.dots.push({name:'amaterasu',dmg:f.cfg.s1Dmg,interval:BALANCE.amaterasuInterval,ticks:BALANCE.amaterasuTicks,next:performance.now()+BALANCE.amaterasuInterval});
@@ -927,7 +974,7 @@ function skill2(f,enemy){
   if(f.isPlayer)voiceLine(f,'s2');
   if(f.c.id==='naruto'){
     f.state='s2'; f.st=0.3;
-    tails.push({from:f,target:enemy,x:f.x,y:f.y-58,dir:f.dir,speed:BALANCE.tailSpeed,max:f.cfg.skillRange,hit:false,hold:0,throw:false,throwVx:0,throwVy:0});
+    tails.push({from:f,target:enemy,x:f.x,d:f.d,y:f.y-58,dir:f.dir,speed:BALANCE.tailSpeed,max:f.cfg.skillRange,hit:false,hold:0,throw:false,throwVx:0,throwVy:0});
     SFX.whoosh();
   }else{
     f.state='s2dash'; f.st=0.3; f.s2Stage=1; f.s2Window=performance.now()+BALANCE.sasukeS2WindowMs;
@@ -963,10 +1010,10 @@ function ult(f,enemy){
   faceEnemy(f,enemy);
   if(f.c.id==='naruto'){
     f.state='ult'; f.st=0.7;
-    projs.push({type:'rasengan',from:f,x:f.x+f.dir*40,y:f.y-70,dir:f.dir,speed:BALANCE.narutoUltSpeed,life:3,dmg:f.cfg.ultDmg,angle:0});
+    projs.push({type:'rasengan',from:f,x:f.x+f.dir*40,d:f.d,y:f.y-70,dir:f.dir,speed:BALANCE.narutoUltSpeed,life:3,dmg:f.cfg.ultDmg,angle:0});
   }else{
     f.state='ult'; f.st=0.9;
-    if(dist(f,enemy)<=f.cfg.skillRange+60){
+    if(Math.hypot(enemy.x-f.x,enemy.d-f.d)<=f.cfg.skillRange+60){
       tryHit(f,enemy,f.cfg.ultDmg,f.dir*BALANCE.sasukeUltKnock,650,true,'#9b6dff');
       enemy.dots.push({name:'amaterasu',dmg:Math.round(f.cfg.ultDmg/4),interval:400,ticks:4,next:performance.now()+400});
     }else{ floatText(enemy.x,enemy.y-90,'MISS','#9aa7c0',15); }
@@ -992,14 +1039,15 @@ function updateProjs(dt,now){
     const enemy=p.from.isPlayer?E:P;
     p.life-=dt; p.angle+=dt*18;
     if(p.type==='shuriken'||p.type==='rasengan'){
-      // 追踪
+      // 追踪(x向 + 纵深向)
       p.dir=sign(enemy.x-p.x);
       p.x+=p.speed*p.dir*dt;
+      p.d=(p.d||0)+(enemy.d-(p.d||0))*Math.min(1,dt*4);
       p.y+=p.speed*dt*0.12;
       p.y=clamp(p.y,WORLD.ground-230,WORLD.ground-20);
     }
     // 命中
-    if(!enemy.dead && !enemy.stealth && Math.abs(p.x-enemy.x)<42 && Math.abs(p.y-(enemy.y-60))<70){
+    if(!enemy.dead && !enemy.stealth && Math.abs(p.x-enemy.x)<42 && Math.abs(p.y-(enemy.y-60))<70 && Math.abs((p.d||0)-enemy.d)<55){
       if(p.type==='shuriken'){ tryHit(p.from,enemy,p.dmg,p.dir*320,260,true,'#8ecbff'); projs.splice(i,1); continue; }
       else { tryHit(p.from,enemy,p.dmg,p.dir*BALANCE.narutoUltKnock,300,true,'#7db9ff'); burst(enemy.x,enemy.y-60,'#7db9ff',40,420,0.8,300); shake(12); projs.splice(i,1); continue; }
     }
@@ -1010,8 +1058,9 @@ function updateProjs(dt,now){
     const enemy=t.target;
     if(!t.hit){
       t.x+=t.speed*t.dir*dt;
+      t.d+=(enemy.d-t.d)*Math.min(1,dt*4);
       if(Math.abs(t.x-t.from.x)>t.max){ t.hit=true; t.hold=now+200; }
-      if(!enemy.dead&&!enemy.stealth&&Math.abs(t.x-enemy.x)<30&&Math.abs(t.y-(enemy.y-55))<55){
+      if(!enemy.dead&&!enemy.stealth&&Math.abs(t.x-enemy.x)<30&&Math.abs(t.y-(enemy.y-55))<55&&Math.abs(t.d-enemy.d)<60){
         t.hit=true; t.hold=now+BALANCE.tailHoldMs;
         tryHit(t.from,enemy,t.from.cfg.s2Dmg,0,0,true,'#ff9d2e');
         enemy.state='grabbed'; enemy.st=999; enemy.grabbedBy=t.from; enemy.vx=0; enemy.vy=0;
@@ -1038,7 +1087,7 @@ function aiUpdate(dt,now){
   if(aiT>0)return;
   aiT=BALANCE.aiThink;
   if(me.busy||me.stealth)return;
-  const d=dist(me,en);
+  const d=Math.hypot(en.x-me.x,en.d-me.d);
   // 残血隐身
   if(me.hp<me.maxHp*BALANCE.aiStealthHp && me.xLeft>0 && Math.random()<0.5){ stealth(me); return; }
   // 大招
@@ -1057,9 +1106,10 @@ function aiUpdate(dt,now){
   }else if(d>90){
     me.state='run';
     me.vx=sign(en.x-me.x)*me.speed*(0.75+rnd(0,0.35));
+    me.vd=sign(en.d-me.d)*me.speed*0.6;
   }else{
     if(me.state==='run')me.state='idle';
-    me.vx=0;
+    me.vx=0; me.vd=0;
   }
 }
 
@@ -1091,13 +1141,13 @@ function updateFighter(f,dt,now){
       if(f.state==='attack1'||f.state==='attack2'){
         const en=f.isPlayer?E:P;
         const hit=f.state==='attack1'?'a1hit':'a2hit';
-        if(!f[hit]&&!en.dead&&Math.abs(en.x-f.x)<f.cfg.basicRange&&Math.abs(en.y-f.y)<90){
+        if(!f[hit]&&!en.dead&&Math.abs(en.x-f.x)<f.cfg.basicRange&&Math.abs(en.y-f.y)<90&&Math.abs(en.d-f.d)<70){
           f[hit]=true; tryHit(f,en,f.cfg.basicDmg,f.dir*220,120,false,'#ffffff');
         }
       }
       if(f.state==='attack3'){
         const en=f.isPlayer?E:P;
-        if(!f.a3hit&&!en.dead&&Math.abs(en.x-f.x)<f.cfg.basicRange*1.5&&Math.abs(en.y-f.y)<90){
+        if(!f.a3hit&&!en.dead&&Math.abs(en.x-f.x)<f.cfg.basicRange*1.5&&Math.abs(en.y-f.y)<90&&Math.abs(en.d-f.d)<70){
           f.a3hit=true; tryHit(f,en,f.cfg.enhDmg,f.dir*420,260,false,'#ffd75e');
           burst(en.x,en.y-60,'#ffe9a8',20,380,0.5,400);
         }
@@ -1107,7 +1157,7 @@ function updateFighter(f,dt,now){
     case 's2second': {
       const en=f.isPlayer?E:P;
       f.s2Travel2=(f.s2Travel2||0)+Math.abs(f.vx)*dt;
-      if(!f.s2Hit2&&!en.dead&&Math.abs(en.x-f.x)<50&&Math.abs(en.y-f.y)<85){
+      if(!f.s2Hit2&&!en.dead&&Math.abs(en.x-f.x)<50&&Math.abs(en.y-f.y)<85&&Math.abs(en.d-f.d)<70){
         f.s2Hit2=true;
         tryHit(f,en,f.cfg.s2Dmg,f.dir*BALANCE.sasukeS2SecondKnock,280,true,'#c9b8ff');
         burst(en.x,en.y-60,'#c9b8ff',18,340,0.5);
@@ -1119,7 +1169,7 @@ function updateFighter(f,dt,now){
     case 's2dash': {
       const en=f.isPlayer?E:P;
       f.s2Travel+=Math.abs(f.vx)*dt;
-      if(!f.s2HitDone&&!en.dead&&Math.abs(en.x-f.x)<46&&Math.abs(en.y-f.y)<80){
+      if(!f.s2HitDone&&!en.dead&&Math.abs(en.x-f.x)<46&&Math.abs(en.y-f.y)<80&&Math.abs(en.d-f.d)<70){
         f.s2HitDone=true; tryHit(f,en,f.cfg.s2Dmg,0,0,true,'#c9b8ff');
         burst(f.x,f.y-60,'#c9b8ff',16,300,0.4);
         f.vx=0;
@@ -1133,7 +1183,7 @@ function updateFighter(f,dt,now){
       f.vx=0; f.vy=0;
       if(f.grabbedBy){
         const t=tails.find(t=>t.from===f.grabbedBy);
-        if(t){ f.x=t.x; f.y=t.y+30; }
+        if(t){ f.x=t.x; f.y=t.y+30; f.d=t.d; }
         else { f.grabbedBy=null; f.state='idle'; }
       }else f.state='idle';
       break;
@@ -1164,19 +1214,28 @@ function updateFighter(f,dt,now){
   }else if(f.state==='launch'&&!f.onGround){
     f.x+=f.vx*dt;
   }
-  if(f.state!=='run')f.vx*=Math.pow(0.002,dt); // 摩擦
+  f.d+=f.vd*dt; f.d=clamp(f.d,0,DEPTH); // 纵深移动积分
+  if(f.state!=='run'){ f.vx*=Math.pow(0.002,dt); f.vd*=Math.pow(0.002,dt); } // 摩擦
   f.x=clamp(f.x,46,ARENA_W-46);
 }
 
-function move(f,dx,dt){
+function move(f,dx,dy,dt){
   if(f.dead||f.busy||f.inAir)return;
-  if(dx!==0){ f.state='run'; f.dir=dx>=0?1:-1; f.vx=dx*f.speed; }
-  else if(f.state==='run'){ f.state='idle'; f.vx=0; }
+  if(dx!==0||dy!==0){
+    f.state='run';
+    if(dx!==0){ f.dir=dx>=0?1:-1; f.vx=dx*f.speed; }
+    f.vd=dy!==0?-dy*f.speed*0.8:0; // 摇杆向上=进入纵深(变远)
+  }else if(f.state==='run'){
+    f.state='idle'; f.vx=0; f.vd=0;
+  }
 }
 // 客机端本地预测移动(仅客机使用; 房主/单机端位置积分由 updateFighter 完成)
-function moveLocal(f,dx,dt){
-  move(f,dx,dt);
-  if(f.state==='run'){ f.x+=f.vx*dt; f.x=clamp(f.x,46,ARENA_W-46); }
+function moveLocal(f,dx,dy,dt){
+  move(f,dx,dy,dt);
+  if(f.state==='run'){
+    f.x+=f.vx*dt; f.x=clamp(f.x,46,ARENA_W-46);
+    f.d+=f.vd*dt; f.d=clamp(f.d,0,DEPTH);
+  }
 }
 // 客机端仅推进动画/闪烁计时(状态与物理由房主快照权威), 修复客机角色动画冻结
 function updateAnimOnly(f,dt,now){
@@ -1214,49 +1273,63 @@ function drawBg(){
   // 远山两层(视差0.18/0.3)
   const ridge=function(off,amp,base,col){
     ctx.fillStyle=col;ctx.beginPath();
-    ctx.moveTo(x0,groundY);
+    ctx.moveTo(x0,HORIZON);
     for(let x=x0;x<=x1;x+=40){
-      const y=groundY-base-amp*(0.5+0.5*Math.sin((x+off)*0.011))*Math.max(0.3,Math.sin((x+off)*0.003)+0.7);
+      const y=HORIZON-base-amp*(0.5+0.5*Math.sin((x+off)*0.011))*Math.max(0.3,Math.sin((x+off)*0.003)+0.7);
       ctx.lineTo(x,y);
     }
-    ctx.lineTo(x1,groundY);ctx.closePath();ctx.fill();
+    ctx.lineTo(x1,HORIZON);ctx.closePath();ctx.fill();
   };
   ridge(-camX*0.3,120,90,'rgba(26,34,60,.95)');
   ridge(-camX*0.18+300,150,170,'rgba(16,22,44,.98)');
-  // 树林/木叶剪影(视差0.5)
+  // 树林/木叶剪影(视差0.5, 矗立在地平线后)
   ctx.fillStyle='rgba(8,10,18,.62)';
   for(let i=0;i<10;i++){
     const bx=((i*263+37)-camX*0.5)%(WORLD.w+240);
     const x=bx<0?bx+WORLD.w+240:bx;
     const th=70+((i*53)%110);
-    ctx.fillRect(x,groundY-th,14,th);
-    ctx.beginPath();ctx.arc(x+7,groundY-th,26+(i%3)*10,0,TAU);ctx.fill();
+    ctx.fillRect(x,HORIZON-th,14,th);
+    ctx.beginPath();ctx.arc(x+7,HORIZON-th,26+(i%3)*10,0,TAU);ctx.fill();
   }
-  // 房屋剪影+灯笼(视差0.5)
+  // 房屋剪影+灯笼(视差0.5, 坐落地平线)
   ctx.fillStyle='rgba(10,12,20,.5)';
-  ctx.fillRect(x0+170-camX*0.5,groundY-88,120,88);
-  ctx.beginPath();ctx.moveTo(x0+150-camX*0.5,groundY-88);ctx.lineTo(x0+230-camX*0.5,groundY-128);ctx.lineTo(x0+310-camX*0.5,groundY-88);ctx.closePath();ctx.fill();
+  ctx.fillRect(x0+170-camX*0.5,HORIZON-88,120,88);
+  ctx.beginPath();ctx.moveTo(x0+150-camX*0.5,HORIZON-88);ctx.lineTo(x0+230-camX*0.5,HORIZON-128);ctx.lineTo(x0+310-camX*0.5,HORIZON-88);ctx.closePath();ctx.fill();
   ctx.fillStyle='rgba(255,190,90,.8)';
-  ctx.beginPath();ctx.arc(x0+195-camX*0.5,groundY-118,4,0,TAU);ctx.arc(x0+265-camX*0.5,groundY-118,4,0,TAU);ctx.fill();
-  // 地面主体(视差1)
-  const g2=ctx.createLinearGradient(0,groundY,0,WORLD.h);
-  g2.addColorStop(0,'#4d4438');g2.addColorStop(0.25,'#3a332c');g2.addColorStop(1,'#1c1915');
-  ctx.fillStyle=g2;ctx.fillRect(x0,groundY,x1-x0,WORLD.h-groundY);
-  // 地面纹理条
-  ctx.strokeStyle='rgba(255,255,255,.05)';ctx.lineWidth=1.5;
-  for(let i=0;i<9;i++){
-    const y=groundY+18+i*((WORLD.h-groundY-36)/8);
-    ctx.beginPath();ctx.moveTo(x0,y);ctx.lineTo(x1,y);ctx.stroke();
+  ctx.beginPath();ctx.arc(x0+195-camX*0.5,HORIZON-118,4,0,TAU);ctx.arc(x0+265-camX*0.5,HORIZON-118,4,0,TAU);ctx.fill();
+  // ==== 三维透视地面: 从前景到地平线的纵深平面 ====
+  const g2=ctx.createLinearGradient(0,HORIZON,0,WORLD.h+40);
+  g2.addColorStop(0,'#2b2f3f');g2.addColorStop(0.45,'#4d4438');g2.addColorStop(1,'#241f18');
+  ctx.fillStyle=g2;
+  ctx.beginPath();
+  ctx.moveTo(x0,WORLD.h+40);ctx.lineTo(x1,WORLD.h+40);ctx.lineTo(x1,HORIZON);ctx.lineTo(x0,HORIZON);
+  ctx.closePath();ctx.fill();
+  // 地平线光带
+  ctx.fillStyle='rgba(255,220,160,.18)';
+  ctx.fillRect(x0,HORIZON,x1-x0,2.5);
+  // 纵深网格: 由消失点辐射的纵向线 + 深度横线
+  const vpX=camX+WORLD.w/2, vpY=HORIZON-6;
+  ctx.strokeStyle='rgba(255,255,255,.07)';ctx.lineWidth=1.2;
+  for(let i=-9;i<=9;i++){
+    const fx=vpX+i*(WORLD.w/9);
+    ctx.beginPath();ctx.moveTo(vpX,vpY);ctx.lineTo(fx,WORLD.h+40);ctx.stroke();
   }
-  // 地表高光线
-  ctx.strokeStyle='rgba(255,235,190,.28)';ctx.lineWidth=2.5;
-  ctx.beginPath();ctx.moveTo(x0,groundY+1.5);ctx.lineTo(x1,groundY+1.5);ctx.stroke();
-  // 草与碎石(视差1)
-  for(let i=0;i<34;i++){
-    const gx=((i*97+13))%WORLD.w+camX%WORLD.w; // 简化平铺
+  ctx.strokeStyle='rgba(255,255,255,.09)';ctx.lineWidth=1.5;
+  for(let k=0;k<=6;k++){
+    const t=k/6;
+    const yy=HORIZON+(WORLD.h+40-HORIZON)*Math.pow(t,1.5);
+    ctx.beginPath();ctx.moveTo(x0,yy);ctx.lineTo(x1,yy);ctx.stroke();
+  }
+  // 前景高光线(人物站立的最近沿)
+  ctx.strokeStyle='rgba(255,235,190,.3)';ctx.lineWidth=2.5;
+  ctx.beginPath();ctx.moveTo(x0,WORLD.ground+1.5);ctx.lineTo(x1,WORLD.ground+1.5);ctx.stroke();
+  // 草与碎石(分布在前半段纵深)
+  for(let i=0;i<30;i++){
+    const gx=((i*97+13))%WORLD.w+camX%WORLD.w;
     const x=gx>=WORLD.w+camX?gx-WORLD.w:gx;
-    const y=groundY+4+((i*31)%14);
-    ctx.strokeStyle='rgba(110,140,90,'+(0.25+0.2*((i%3)/2))+')';
+    const t=((i*37)%10)/10;
+    const y=WORLD.ground+(WORLD.h+40-WORLD.ground)*Math.pow(t,1.4);
+    ctx.strokeStyle='rgba(110,140,90,'+(0.22+0.16*((i%3)/2))+')';
     ctx.lineWidth=1.6;
     ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+(i%2?2:-2),y-7-((i*7)%5));ctx.stroke();
   }
@@ -1284,9 +1357,10 @@ function drawNameTags(){
     const name=(G.mode==='online')?(f.isPlayer?ON.name:ON.peer)+'·'+f.c.name:f.c.name;
     ctx.lineWidth=Math.max(3,fs*0.25);
     ctx.strokeStyle='rgba(0,0,0,.8)';
-    ctx.strokeText(name,f.x,f.y-128);
+    const ny=f.y+liftOf(f.d||0)-128*scaleOf(f.d||0);
+    ctx.strokeText(name,f.x,ny);
     ctx.fillStyle=f.isPlayer?'#ffd75e':'#ff8a80';
-    ctx.fillText(name,f.x,f.y-128);
+    ctx.fillText(name,f.x,ny);
   });
   ctx.textAlign='left';
 }
@@ -1436,10 +1510,11 @@ function drawAura(f){
   }
 }
 function drawFighter(f){
-  // 脚下阴影(3D感, 跳起时缩小变淡)
-  const airH=clamp((WORLD.ground+6-f.y)/130,0,1);
+  // 脚下阴影: 投影到对应深度地面(3D), 跳起时缩小变淡
+  const d=f.d||0, s=scaleOf(d), gy=groundYOf(d);
+  const airH=clamp((gy+6-f.y)/130,0,1);
   ctx.fillStyle='rgba(0,0,0,'+(0.34*(1-airH*0.55))+')';
-  ctx.beginPath();ctx.ellipse(f.x,WORLD.ground+6,34*(1-airH*0.35),8*(1-airH*0.35),0,0,TAU);ctx.fill();
+  ctx.beginPath();ctx.ellipse(f.x,gy+6,34*s*(1-airH*0.35),8*s*(1-airH*0.35),0,0,TAU);ctx.fill();
   // 冲刺残影(贴近动漫的高速感)
   if(f.state==='s1'||f.state==='s2dash'||f.state==='attack3'){
     ctx.save();
@@ -1450,6 +1525,10 @@ function drawFighter(f){
     ctx.restore();
   }
   ctx.save();
+  // 3D纵深投影: 深度越大越往上(远)且整体缩小
+  ctx.translate(f.x,f.y+liftOf(d));
+  ctx.scale(s,s);
+  ctx.translate(-f.x,-f.y);
   const sc=f.scale||1;
   ctx.translate(f.x,f.y);
   if(f.landT>0){ // 落地挤压动画
@@ -1477,6 +1556,10 @@ function drawFighter(f){
 function drawProjs(){
   for(const p of projs){
     ctx.save();
+    const pd=p.d||0, ps=scaleOf(pd);
+    ctx.translate(p.x,p.y+liftOf(pd));
+    ctx.scale(ps,ps);
+    ctx.translate(-p.x,-p.y);
     if(p.type==='shuriken'){
       ctx.translate(p.x,p.y);ctx.rotate(p.angle);
       ctx.fillStyle='#8ecbff';
@@ -1494,6 +1577,10 @@ function drawProjs(){
   }
   for(const t of tails){
     ctx.save();
+    const td=t.d||0, ts=scaleOf(td);
+    ctx.translate(t.x,t.y+liftOf(td));
+    ctx.scale(ts,ts);
+    ctx.translate(-t.x,-t.y);
     const segs=6;
     for(let i=0;i<segs;i++){
       const k=i/(segs-1);
@@ -1682,6 +1769,7 @@ function startBattleInner(mode){
   camX=0;
   P=new Fighter(pick,WORLD.w*0.3,1,true,G.skins[pick.id]||0);
   E=new Fighter(foeChar,WORLD.w*0.7,-1,false,mode==='practice'?0:Math.floor(Math.random()*3));
+  P.d=DEPTH*0.4; E.d=DEPTH*0.6;
   projs=[];tails=[];particles=[];floaters=[];
   document.getElementById('menu').classList.add('hidden');
   document.getElementById('onlinePanel').classList.add('hidden');
@@ -1839,7 +1927,7 @@ const ON={
   mode:'draw', timeLimit:90, timeLeft:0,
   picker:'', picks:{}, myChar:'', peerChar:'',
   snap:null, snapTime:0, prevSnap:null, prevSnapTime:0, lastActT:0, lastSnapT:0,
-  remote:{x:0,pend:[]},
+  remote:{x:0,y:0,pend:[]},
   pollTimer:null, pingTimer:null, actTimer:null, snapTimer:null,
   ended:false, pollCount:0, pollBusy:false, seen:new Set(), started:false,
   seenFx:new Set(), lastMyHp:null, lastHpA:null, pendAge:0,
@@ -1942,6 +2030,7 @@ function onMsg(t){
     ON.lastSeq=a.seq;
     ON.lastActT=performance.now();
     ON.remote.x=a.x||0;
+    ON.remote.y=a.y||0;
     if(a.act)ON.remote.pend.push(a.act);
     // 收到客机输入立即回快照(节流50ms), 缩短客机反馈回路
     if(!ON.lastSnapT||performance.now()-ON.lastSnapT>50)onSendSnap();
@@ -1984,7 +2073,7 @@ async function onPoll(){
 }
 function onStartPoll(){
   if(ON.pollTimer)return;
-  ON.pollTimer=setInterval(onPoll,70);
+  ON.pollTimer=setInterval(onPoll,60);
   ON.pingTimer=setInterval(()=>{ onApi('/api/ping').catch(()=>{}); },10000);
 }
 function onStopPoll(){
@@ -2098,7 +2187,7 @@ function onStartOnlineFight(){
   ON.rankSent=false;
   ON.seenFx.clear(); ON.lastMyHp=null; ON.lastHpA=null;
   G.mode='online'; ON.state='fight'; ON.ended=false;
-  ON.snap=null; ON.prevSnap=null; ON.remote={x:0,pend:[]};
+  ON.snap=null; ON.prevSnap=null; ON.remote={x:0,y:0,pend:[]};
   const myChar=CHARS[ON.myChar]||CHARS.naruto;
   const peerChar=CHARS[ON.peerChar]||CHARS.sasuke;
   if(ON.host){
@@ -2108,6 +2197,7 @@ function onStartOnlineFight(){
     P=new Fighter(myChar,WORLD.w*0.7,-1,true,ON.mySkin||0);
     E=new Fighter(peerChar,WORLD.w*0.3,1,false,ON.peerSkin||0);
   }
+  P.d=DEPTH*0.45; E.d=DEPTH*0.55;
   projs=[];tails=[];particles=[];floaters=[];
   document.getElementById('menu').classList.add('hidden');
   document.getElementById('onlinePanel').classList.add('hidden');
@@ -2137,16 +2227,16 @@ function onStartOnlineFight(){
       if(G.state!=='fight'||G.mode!=='online')return;
       // 无条件周期上报(含x=0): 修复松手后房主端移动不归零的丢包问题
       ON.seq++;
-      onSend('ACT',JSON.stringify({seq:ON.seq,x:Math.round(ON.remote.x*100)/100}));
-    },60);
+      onSend('ACT',JSON.stringify({seq:ON.seq,x:Math.round(ON.remote.x*100)/100,y:Math.round(ON.remote.y*100)/100}));
+    },45);
   }
 }
 function onSendSnap(){
   if(G.state!=='fight'||G.mode!=='online'||!ON.host)return;
   if(!P||!E)return;
   ON.lastSnapT=performance.now();
-  const fA={x:Math.round(P.x),y:Math.round(P.y),dir:P.dir,state:P.state,stealth:P.stealth,dead:P.dead,s2Stage:P.s2Stage,flash:P.flash,scale:P.scale,dots:P.dots.length>0?1:0,slow:P.slow>0?1:0,cd1:Math.round(P.cd1),cd2:Math.round(P.cd2),cdU:Math.round(P.cdU),cdX:Math.round(P.cdX)};
-  const fB={x:Math.round(E.x),y:Math.round(E.y),dir:E.dir,state:E.state,stealth:E.stealth,dead:E.dead,s2Stage:E.s2Stage,flash:E.flash,scale:E.scale,dots:E.dots.length>0?1:0,slow:E.slow>0?1:0,cd1:Math.round(E.cd1),cd2:Math.round(E.cd2),cdU:Math.round(E.cdU),cdX:Math.round(E.cdX)};
+  const fA={x:Math.round(P.x),d:Math.round(P.d),y:Math.round(P.y),dir:P.dir,state:P.state,stealth:P.stealth,dead:P.dead,s2Stage:P.s2Stage,flash:P.flash,scale:P.scale,dots:P.dots.length>0?1:0,slow:P.slow>0?1:0,cd1:Math.round(P.cd1),cd2:Math.round(P.cd2),cdU:Math.round(P.cdU),cdX:Math.round(P.cdX)};
+  const fB={x:Math.round(E.x),d:Math.round(E.d),y:Math.round(E.y),dir:E.dir,state:E.state,stealth:E.stealth,dead:E.dead,s2Stage:E.s2Stage,flash:E.flash,scale:E.scale,dots:E.dots.length>0?1:0,slow:E.slow>0?1:0,cd1:Math.round(E.cd1),cd2:Math.round(E.cd2),cdU:Math.round(E.cdU),cdX:Math.round(E.cdX)};
   const pl=projs.map(p=>({type:p.type,x:Math.round(p.x),y:Math.round(p.y),dir:p.dir})).slice(0,12);
   // 特效同步: 飘字/粒子(带ID供客机去重) + 震屏量 + 尾巴(抓取视觉)
   const fl=floaters.slice(-4).map(f=>({id:f.id,x:Math.round(f.x),y:Math.round(f.y),text:f.text,color:f.color,size:f.size,age:f.t}));
@@ -2177,7 +2267,8 @@ function onApplySnap(dt){
   if(prev){
     E.x=prev.fA.x+(s.fA.x-prev.fA.x)*k;
     E.y=prev.fA.y+(s.fA.y-prev.fA.y)*k;
-  }else{ E.x=s.fA.x; E.y=s.fA.y; }
+    E.d=(prev.fA.d||0)+(s.fA.d-(prev.fA.d||0))*k;
+  }else{ E.x=s.fA.x; E.y=s.fA.y; E.d=s.fA.d||0; }
   E.dir=s.fA.dir; E.state=s.fA.state; E.stealth=s.fA.stealth; E.dead=s.fA.dead;
   E.s2Stage=s.fA.s2Stage; E.flash=s.fA.flash; E.scale=s.fA.scale;
   E.hp=s.hpA; E.maxHp=E.cfg.hp; E.skillHits=s.skillHitsA; E.ultReady=s.ultA; E.xLeft=s.xLeftA;
@@ -2186,6 +2277,8 @@ function onApplySnap(dt){
   const pc=movingNow?dt*6:dt*15;
   P.x+=(s.fB.x-P.x)*Math.min(1,pc);
   P.y+=(s.fB.y-P.y)*Math.min(1,pc);
+  P.d+=((s.fB.d||0)-P.d)*Math.min(1,pc);
+  P.d=clamp(P.d,0,DEPTH);
   // 状态: 本地刚触发的技能动画不被房主 idle/run 快照打断(伤害仍以房主为准); 受击/死亡立即权威
   const sb=s.fB.state;
   const LOCAL_SKILL={'s1':1,'s2':1,'ult':1,'attack1':1,'attack2':1,'attack3':1,'s2dash':1,'s2second':1};
@@ -2236,7 +2329,7 @@ function onApplySnap(dt){
 function onAct(act){
   if(G.mode==='online'&&!ON.host){
     ON.seq++;
-    onSend('ACT',JSON.stringify({seq:ON.seq,x:ON.remote.x,act}));
+    onSend('ACT',JSON.stringify({seq:ON.seq,x:ON.remote.x,y:ON.remote.y,act}));
     // 本地先行: 立即执行同一动作(伤害/结果以房主快照为准), 消除客机出招延迟感
     if(P&&!P.dead){
       const before=P.state;
@@ -2270,22 +2363,24 @@ function showOnlineKO(win,reason){
   }
   if(ON.state==='fight')ON.state='lobby';
   G.state='ko';
-  musicSting(win);
-  document.getElementById('btnPause').classList.add('hidden');
-  const t=document.getElementById('koTitle');
-  t.textContent=win?'胜 利':'战 败';
-  t.className=win?'win':'lose';
-  document.getElementById('koSub').textContent=win
-    ?(reason==='time'?'⏱ 时间到! 血量占优获胜':'你击败了 '+ON.peer+'!')
-    :(reason==='time'?'⏱ 时间到! 血量落后惜败':'你被 '+ON.peer+' 击败');
-  document.getElementById('overlay').classList.remove('hidden');
-  document.getElementById('onTimer').classList.add('hidden');
+  playWinVideo(win,()=>{
+    musicSting(win);
+    document.getElementById('btnPause').classList.add('hidden');
+    const t=document.getElementById('koTitle');
+    t.textContent=win?'胜 利':'战 败';
+    t.className=win?'win':'lose';
+    document.getElementById('koSub').textContent=win
+      ?(reason==='time'?'⏱ 时间到! 血量占优获胜':'你击败了 '+ON.peer+'!')
+      :(reason==='time'?'⏱ 时间到! 血量落后惜败':'你被 '+ON.peer+' 击败');
+    document.getElementById('overlay').classList.remove('hidden');
+    document.getElementById('onTimer').classList.add('hidden');
+  });
 }
 function onFightCleanup(){
   if(ON.actTimer){ clearInterval(ON.actTimer); ON.actTimer=null; }
   if(ON.snapTimer){ clearInterval(ON.snapTimer); ON.snapTimer=null; }
   if(ON.state==='fight')ON.state='lobby';
-  ON.snap=null; ON.prevSnap=null; ON.remote={x:0,pend:[]};
+  ON.snap=null; ON.prevSnap=null; ON.remote={x:0,y:0,pend:[]};
   ON.started=false;
 }
 function onResetMatch(keepPanel){
@@ -2398,22 +2493,26 @@ function loop(now){
     if(!paused){
       if(G.mode==='online'&&!ON.host){
         // 客机: 本地预测移动(立即响应) + 上报 + 应用房主快照校正
-        let ldx=0;
-        if(joystick.active)ldx=joystick.dir.x;
+        let ldx=0,ldy=0;
+        if(joystick.active){ldx=joystick.dir.x;ldy=joystick.dir.y;}
         if(keys['a']||keys['arrowleft'])ldx=-1;
         if(keys['d']||keys['arrowright'])ldx=1;
-        ON.remote.x=ldx;
-        if(P&&!P.dead)moveLocal(P,ldx,dt);
+        if(keys['w']||keys['arrowup'])ldy=-1;
+        if(keys['s']||keys['arrowdown'])ldy=1;
+        ON.remote.x=ldx; ON.remote.y=ldy;
+        if(P&&!P.dead)moveLocal(P,ldx,ldy,dt);
         if(P){ updateAnimOnly(P,dt,now); updateAnimOnly(E,dt,now); }
         onApplySnap(dt);
       }else{
         // 输入 → 移动
         if(P&&!P.dead){
-          let dx=0;
-          if(joystick.active)dx=joystick.dir.x;
+          let dx=0,dy=0;
+          if(joystick.active){dx=joystick.dir.x;dy=joystick.dir.y;}
           if(keys['a']||keys['arrowleft'])dx=-1;
           if(keys['d']||keys['arrowright'])dx=1;
-          move(P,dx,dt);
+          if(keys['w']||keys['arrowup'])dy=-1;
+          if(keys['s']||keys['arrowdown'])dy=1;
+          move(P,dx,dy,dt);
         }
         if(G.mode!=='online')aiUpdate(dt,now);
         updateProjs(dt,now);
@@ -2422,8 +2521,8 @@ function loop(now){
         if(G.mode==='online'&&ON.host){
           // 房主: 应用客机输入(输入缓冲: 角色忙时下一帧重试, 不丢操作) + 倒计时
           // 客机 ACT 断流超时(丢包/卡顿)则移动归零, 防止客机角色在房主端持续乱走
-          if(ON.lastActT&&now-ON.lastActT>500)ON.remote.x=0;
-          if(E&&!E.dead)move(E,ON.remote.x,dt);
+          if(ON.lastActT&&now-ON.lastActT>500){ON.remote.x=0;ON.remote.y=0;}
+          if(E&&!E.dead)move(E,ON.remote.x,ON.remote.y,dt);
           if(ON.remote.pend.length){
             const a=ON.remote.pend[0];
             const st0=E.state, cdX0=E.cdX, cd10=E.cd1, cd20=E.cd2, cdU0=E.cdU;
