@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -10,12 +10,12 @@
 html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:"PingFang SC","Microsoft YaHei",sans-serif;color:#fff;touch-action:none;user-select:none;-webkit-user-select:none}
 #gl{position:fixed;inset:0;width:100%;height:100%;display:block}
 #hud{position:fixed;inset:0;pointer-events:none}
-#topbar{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;gap:8px;padding:calc(8px + env(safe-area-inset-top)) 10px 8px;background:linear-gradient(180deg,rgba(0,0,0,.6),rgba(0,0,0,0));pointer-events:auto}
+#topbar{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:calc(8px + env(safe-area-inset-top)) 10px 8px;background:linear-gradient(180deg,rgba(0,0,0,.6),rgba(0,0,0,0));pointer-events:auto}
 #topbar a{color:#fff;text-decoration:none;font-size:13px;background:rgba(255,255,255,.16);padding:7px 11px;border-radius:9px;backdrop-filter:blur(6px)}
 #topbar .tt{flex:1;text-align:center;font-size:15px;font-weight:600;text-shadow:0 1px 6px rgba(0,0,0,.8)}
 #topbar .tb{background:rgba(255,255,255,.16);border:none;color:#fff;font-size:13px;padding:7px 11px;border-radius:9px;backdrop-filter:blur(6px)}
 #topbar .tb.on{background:#07c160}
-#hint{position:absolute;left:10px;top:calc(58px + env(safe-area-inset-top));font-size:11px;line-height:1.7;color:#d7e3f7;background:rgba(0,0,0,.4);padding:8px 10px;border-radius:10px;max-width:62vw;backdrop-filter:blur(4px)}
+#hint{position:absolute;left:10px;top:calc(96px + env(safe-area-inset-top));font-size:11px;line-height:1.7;color:#d7e3f7;background:rgba(0,0,0,.4);padding:8px 10px;border-radius:10px;max-width:62vw;backdrop-filter:blur(4px)}
 #hint b{color:#8fe2b3}
 #cross{position:absolute;left:50%;top:50%;width:16px;height:16px;margin:-8px 0 0 -8px}
 #cross:before,#cross:after{content:'';position:absolute;background:rgba(255,255,255,.85);box-shadow:0 0 3px rgba(0,0,0,.7)}
@@ -34,7 +34,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
 #hotbar .slot.on{border-color:#fff;box-shadow:0 0 0 2px rgba(7,193,96,.7)}
 #hotbar .sw{width:19px;height:19px;border-radius:4px;margin-bottom:2px}
 #info{position:absolute;left:10px;bottom:calc(214px + env(safe-area-inset-bottom));font-size:11px;line-height:1.6;color:#dbe7fa;background:rgba(0,0,0,.42);padding:7px 9px;border-radius:9px;max-width:60vw;backdrop-filter:blur(4px);pointer-events:none}
-#atomPanel{position:absolute;right:10px;top:calc(58px + env(safe-area-inset-top));width:min(68vw,300px);background:rgba(10,16,26,.86);border:1px solid rgba(120,170,255,.35);border-radius:12px;padding:10px 12px;font-size:12px;line-height:1.75;color:#cfe0ff;pointer-events:auto;backdrop-filter:blur(8px)}
+#atomPanel{position:absolute;right:10px;top:calc(96px + env(safe-area-inset-top));width:min(68vw,300px);background:rgba(10,16,26,.86);border:1px solid rgba(120,170,255,.35);border-radius:12px;padding:10px 12px;font-size:12px;line-height:1.75;color:#cfe0ff;pointer-events:auto;backdrop-filter:blur(8px)}
 #atomPanel h3{font-size:13px;color:#8fe2b3;margin-bottom:4px}
 #atomPanel .el{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px;vertical-align:-1px}
 #aiPanel{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom));width:min(92vw,420px);max-height:56vh;background:rgba(12,18,28,.94);border:1px solid rgba(120,170,255,.3);border-radius:14px;display:flex;flex-direction:column;overflow:hidden;pointer-events:auto;z-index:20}
@@ -101,6 +101,118 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
   .mgrid{grid-template-columns:1fr 1fr}
 }
 
+/* ---------- 时序 / 地域 / 生态 / 卦象 ---------- */
+#clockChip{flex-basis:100%;display:flex;justify-content:space-between;align-items:center;gap:8px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:5px 9px;font-size:10.5px;color:#dce7f7;backdrop-filter:blur(6px);pointer-events:auto;line-height:1.45;cursor:pointer}
+#clockChip .ck1{font-weight:600;color:#fff;font-size:11px;white-space:nowrap}
+#clockChip .ck1 .sp{color:#8fa6c4;font-weight:400;margin-left:6px;font-size:10px}
+#clockChip .ck2{display:flex;gap:8px;color:#a9bad2;white-space:nowrap;font-size:10px}
+#clockChip .ck2 b{color:#8fe2b3;font-weight:600}
+#world{position:fixed;inset:0;z-index:70;background:rgba(7,11,17,.965);backdrop-filter:blur(16px);display:flex;flex-direction:column;color:#dce7f7}
+.whead{display:flex;align-items:center;gap:8px;padding:calc(10px + env(safe-area-inset-top)) 10px 8px;border-bottom:1px solid rgba(255,255,255,.08)}
+.whead .wback{background:none;border:none;color:#dce7f7;font-size:26px;width:34px;line-height:1;padding:0}
+.whead .wtitle{font-size:15px;font-weight:600;flex:1}
+.whead .wsub{font-size:10px;color:#7e8ea6;white-space:nowrap}
+.wtabs{display:flex;gap:6px;padding:8px 12px;overflow-x:auto;flex-shrink:0}
+.wtabs button{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#b9c8dd;border-radius:999px;padding:6px 11px;font-size:12px;white-space:nowrap}
+.wtabs button.on{background:#dce7f7;color:#0a1018;border-color:#dce7f7;font-weight:600}
+.wbody{flex:1;min-height:0;overflow-y:auto;padding:2px 12px calc(28px + env(safe-area-inset-bottom));-webkit-overflow-scrolling:touch}
+.wpanel{display:none}.wpanel.on{display:block}
+.wclock{text-align:center;padding:12px 0 2px}
+.wclock .d{font-size:12px;color:#8ea1ba;letter-spacing:.08em}
+.wclock .t{font-size:32px;font-weight:700;letter-spacing:.03em;font-variant-numeric:tabular-nums;margin-top:2px}
+.wclock .s{font-size:12px;color:#8fe2b3;margin-top:3px}
+.wclock .l{font-size:10px;color:#6f8199;margin-top:3px;letter-spacing:.04em}
+.sunarc{width:100%;max-width:420px;display:block;margin:4px auto 0}
+.sunarc .arc{fill:none;stroke:rgba(255,255,255,.14);stroke-width:1.5;stroke-dasharray:3 3}
+.sunarc .horizon{stroke:rgba(255,255,255,.22);stroke-width:1}
+.sunarc .sun{fill:#ffd36b;filter:drop-shadow(0 0 4px rgba(255,211,107,.8))}
+.sunarc .moon{fill:#cfe0ff}
+.sunarc text{fill:#7e8ea6;font-size:8px}
+.wrow{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0;align-items:center}
+.wrow button{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.13);color:#c3d3e8;border-radius:8px;padding:7px 10px;font-size:12px}
+.wrow button.on{background:#8fe2b3;color:#08120c;border-color:#8fe2b3;font-weight:600}
+.wrow .lab{font-size:11px;color:#7e8ea6;margin-right:2px}
+.wsec{font-size:11px;color:#7e8ea6;letter-spacing:.08em;margin:14px 0 6px}
+.wgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.wmetric{background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.09);border-radius:10px;padding:9px 10px}
+.wmetric .k{font-size:10px;color:#7e8ea6}
+.wmetric .v{font-size:16px;font-weight:600;color:#fff;margin-top:2px;font-variant-numeric:tabular-nums}
+.wmetric .v small{font-size:10px;color:#9fb3d8;font-weight:400}
+.wbar{height:8px;border-radius:5px;background:rgba(255,255,255,.08);overflow:hidden;margin:5px 0 2px}
+.wbar i{display:block;height:100%;border-radius:5px;background:linear-gradient(90deg,#5fd0a0,#8fd6ff)}
+.wbar.night i{background:linear-gradient(90deg,#4a5fae,#8f9fe8)}
+.yearbar{position:relative;height:26px;border-radius:7px;overflow:hidden;background:rgba(255,255,255,.06);margin:6px 0 4px}
+.yearbar .seg{position:absolute;top:0;bottom:0;opacity:.5}
+.yearbar .mark{position:absolute;top:18px;bottom:0;width:1px;background:rgba(255,255,255,.22)}
+.yearbar .now{position:absolute;top:-2px;bottom:-2px;width:2px;background:#fff;box-shadow:0 0 6px #fff;z-index:3}
+.legend{display:flex;gap:10px;flex-wrap:wrap;font-size:10px;color:#8ea1ba}
+.legend i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:3px;vertical-align:-1px}
+.termList{display:flex;flex-direction:column}
+.termRow{display:flex;align-items:center;gap:8px;padding:8px 2px;border-bottom:1px dashed rgba(255,255,255,.07);font-size:12px;cursor:pointer}
+.termRow .tn{width:52px;font-weight:600;color:#e8f1ff}
+.termRow .td{width:74px;color:#8ea1ba;font-size:11px}
+.termRow .tl{flex:1;color:#a9bad2;font-size:11px;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.termRow.on{background:rgba(143,226,179,.08)}
+.termRow.on .tn{color:#8fe2b3}
+.wdetail{border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.045);border-radius:12px;padding:12px 14px;font-size:12px;line-height:1.8;color:#c3d3e8;margin-top:10px}
+.wdetail h3{font-size:15px;color:#fff;margin-bottom:6px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.wdetail .badge{font-size:10px;padding:2px 7px;border-radius:999px;background:rgba(255,255,255,.12);font-weight:400}
+.wdetail .kv{display:flex;justify-content:space-between;gap:12px;border-bottom:1px dashed rgba(255,255,255,.08);padding:4px 0}
+.wdetail .kv span:last-child{text-align:right;color:#eaf2ff}
+.regionWrap{position:relative;margin:4px auto 0;max-width:430px}
+.regionWrap svg{width:100%;display:block}
+.regionDot{cursor:pointer}
+.regionDot circle{fill:rgba(90,141,239,.45);stroke:#dce7f7;stroke-width:1}
+.regionDot.on circle{fill:#8fe2b3;stroke:#fff}
+.regionDot text{fill:#fff;font-size:7.5px;pointer-events:none}
+.regionChips{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.regionChips button{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#c3d3e8;border-radius:999px;padding:6px 11px;font-size:12px}
+.regionChips button.on{background:#dce7f7;color:#0a1018;font-weight:600}
+.cmpTable{width:100%;border-collapse:collapse;font-size:11px;margin-top:4px}
+.cmpTable th,.cmpTable td{padding:6px 4px;border-bottom:1px solid rgba(255,255,255,.07);text-align:right;white-space:nowrap}
+.cmpTable th:first-child,.cmpTable td:first-child{text-align:left}
+.cmpTable th{color:#7e8ea6;font-weight:500}
+.cmpTable tr.on td{color:#8fe2b3}
+.spgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px}
+.spcard{background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.09);border-radius:10px;padding:8px 10px}
+.spcard .n{font-size:13px;color:#eaf2ff;font-weight:600}
+.spcard .r{font-size:10px;color:#8ea1ba;margin-top:2px;line-height:1.5}
+.spcard .t{display:inline-block;font-size:9px;padding:1px 6px;border-radius:999px;background:rgba(255,255,255,.1);color:#c3d3e8;margin-top:4px}
+.chain{font-size:12px;line-height:2.1}
+.chain .lv{display:inline-block;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:7px;padding:2px 7px;margin:2px 0}
+.chain .ar{color:#5fd0a0;margin:0 5px}
+.relGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+.relBox{background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.09);border-radius:10px;padding:9px 10px;font-size:11.5px;line-height:1.85}
+.relBox h4{font-size:11px;color:#8fe2b3;margin-bottom:4px}
+.relBox.ke h4{color:#ff9c8a}
+.hexNow{display:flex;gap:14px;align-items:center;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.045);border-radius:12px;padding:12px 14px;margin-top:8px}
+.hexLines{width:44px;flex-shrink:0}
+.hexLines .ln{height:4px;border-radius:2px;background:#dce7f7;margin:4px 0;display:flex;gap:5px}
+.hexLines .ln.yin{background:transparent}
+.hexLines .ln.yin i{display:block;height:4px;border-radius:2px;background:#dce7f7;flex:1}
+.hexNow .hn{font-size:19px;font-weight:700;color:#fff}\n.hexNow .badge{font-size:10px;padding:2px 7px;border-radius:999px;background:rgba(255,255,255,.12);font-weight:400;color:#c3d3e8;vertical-align:2px}
+.hexNow .hm{font-size:11px;color:#8ea1ba;margin-top:2px;line-height:1.7}
+.hexGrid{display:grid;grid-template-columns:repeat(8,1fr);gap:4px;margin-top:6px}
+.hcell{aspect-ratio:1;border-radius:6px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:9px;color:#9fb3d8;line-height:1.1;cursor:pointer;padding:1px}
+.hcell b{font-size:10px;color:#eaf2ff;font-weight:600}
+.hcell.on{background:#8fe2b3;border-color:#8fe2b3;color:#08120c}
+.hcell.on b{color:#08120c}
+.hcell.cur{box-shadow:inset 0 0 0 1px #8fd6ff}
+.hcell.on.cur{box-shadow:inset 0 0 0 2px #0a1018}
+.hcell .mini{display:flex;flex-direction:column;gap:1px;margin-top:1px}
+.hcell .mini i{display:block;width:10px;height:1.5px;background:currentColor}
+.hcell .mini i.y{background:transparent;position:relative}
+.hcell .mini i.y:before,.hcell .mini i.y:after{content:'';position:absolute;top:0;width:4px;height:1.5px;background:currentColor}
+.hcell .mini i.y:before{left:0}.hcell .mini i.y:after{right:0}
+.trigramRow{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.trigramRow .tg{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:9px;padding:6px 9px;font-size:11px;line-height:1.5}
+.trigramRow .tg b{color:#fff;font-size:13px}
+.trigramRow .tg.on{border-color:#8fe2b3;background:rgba(143,226,179,.1)}
+.linkBtn{background:none;border:none;color:#8fd6ff;font-size:12px;padding:0;text-decoration:underline;cursor:pointer;text-align:left;line-height:1.8}
+.note{font-size:10.5px;color:#6f8199;line-height:1.7;margin-top:12px}
+@media (max-width:420px){.hcell{font-size:8px}.hcell b{font-size:9px}.hexGrid{gap:3px}.wclock .t{font-size:27px}.whead .wsub{display:none}#clockChip .ck2{font-size:9px}}
+@media (max-width:360px){#clockChip .ck1{font-size:10px}#clockChip .ck2{font-size:9px;gap:5px}}
+
 @media (max-width:760px){
   #hint{max-width:58vw;font-size:10px}
   #acts{grid-template-columns:repeat(3,50px);gap:6px}
@@ -117,10 +229,15 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
   <div id="topbar">
     <a href="/">‹ 首页</a>
     <div class="tt">映射 + AI 世界</div>
+    <button class="tb" id="btnWorld">时序</button>
     <button class="tb" id="btnChem">化学</button>
     <button class="tb" id="btnAI">AI</button>
+    <div id="clockChip" role="button" title="打开时序面板">
+      <div class="ck1"><span id="ckDate">公元0年1月1日 01:00:01</span><span class="sp" id="ckSpeed">60×</span></div>
+      <div class="ck2"><span id="ckTerm">冬 · 小寒</span><b id="ckTemp">—</b><span id="ckLight">光 —</span></div>
+    </div>
   </div>
-  <div id="hint">拖动画面看向四周 · 左下摇杆移动<br>对准方块点 <b>挖</b> / <b>放</b> · 点右上 <b>化学</b> 查元素与反应</div>
+  <div id="hint">拖动画面看向四周 · 左下摇杆移动<br>对准方块点 <b>挖</b> / <b>放</b> · 点右上 <b>时序</b> 看昼夜节气 · <b>化学</b> 查元素与反应</div>
   <div id="cross"></div>
   <div id="joy"><div id="knob"></div></div>
   <div id="acts">
@@ -186,10 +303,100 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
   </div>
   <div id="toast"></div>
 </div>
+<div id="world" class="hidden">
+  <div class="whead">
+    <button class="wback" id="worldBack" type="button">‹</button>
+    <div class="wtitle">时序 · 地域 · 生态 · 卦象</div>
+    <div class="wsub">中国板块 · 教学映射</div>
+  </div>
+  <div class="wtabs">
+    <button data-wtab="time" class="on" type="button">时序</button>
+    <button data-wtab="terms" type="button">二十四节气</button>
+    <button data-wtab="region" type="button">地域地貌</button>
+    <button data-wtab="eco" type="button">生态</button>
+    <button data-wtab="hex" type="button">六十四卦</button>
+  </div>
+  <div class="wbody">
+    <div id="wpanel-time" class="wpanel on">
+      <div class="wclock"><div class="d" id="tDate">公元0年1月1日</div><div class="t" id="tClock">01:00:01</div><div class="s" id="tSeason">冬 · 冬至</div><div class="l" id="tLeap">闰年 · 366 天 · 2 月 29 天</div></div>
+      <svg class="sunarc" viewBox="0 0 320 116" id="sunArc">
+        <path class="arc" d="M20 100 Q160 -18 300 100"/>
+        <line class="horizon" x1="8" y1="100" x2="312" y2="100"/>
+        <text x="8" y="112">0时</text><text x="148" y="112">12时</text><text x="290" y="112">24时</text>
+        <circle class="sun" id="sunDot" cx="160" cy="40" r="6"/>
+        <circle class="moon" id="moonDot" cx="160" cy="40" r="5" opacity="0"/>
+      </svg>
+      <div class="wrow"><span class="lab">时间</span><button data-speed="0">暂停</button><button data-speed="1">1×</button><button data-speed="60" class="on">60×</button><button data-speed="600">600×</button><button data-speed="3600">3600×</button></div>
+      <div class="wrow"><span class="lab">跳转</span><button data-jump="lichun">立春</button><button data-jump="chunfen">春分</button><button data-jump="xiazhi">夏至</button><button data-jump="qiufen">秋分</button><button data-jump="dongzhi">冬至</button><button data-jump="reset">回到起点</button></div>
+      <div class="wsec">此刻环境 · <span id="tRegionName">华北</span></div>
+      <div class="wgrid" id="tMetrics"></div>
+      <div class="wsec">昼夜构成</div>
+      <div class="wdetail" id="tDayNight"></div>
+      <div class="wsec">一年 · 四季 · 二十四节气</div>
+      <div class="yearbar" id="yearBar"></div>
+      <div class="legend"><span><i style="background:#8fe2b3"></i>春</span><span><i style="background:#ff9c8a"></i>夏</span><span><i style="background:#ffc98a"></i>秋</span><span><i style="background:#8fd6ff"></i>冬</span><span style="color:#6f8199">竖线为二十四节气，白线为当前时刻</span></div>
+      <div class="wsec">切换地域</div>
+      <div class="regionChips" id="timeRegionChips"></div>
+      <div class="note">时间从公元 0 年 1 月 1 日 01:00:01 起算，按天文纪年（有 0 年，0 年为闰年）。太阳位置用低精度天文公式；温度、辐照、光照为教学近似模型，不是气象预报。夜间光照由月光与星光组成。</div>
+    </div>
+    <div id="wpanel-terms" class="wpanel">
+      <div class="wdetail" id="termNow"></div>
+      <div class="wsec">当年二十四节气 · 按太阳黄经每 15°</div>
+      <div class="termList" id="termList"></div>
+      <div class="note">节气日期按东八区民用时计算，四立（立春、立夏、立秋、立冬）作为四季起点。点击任意节气，可把时间跳到它的交节时刻。公元 0 年等远年使用简化太阳公式，日期可能有 1–2 天误差；近现代年份更准。</div>
+    </div>
+    <div id="wpanel-region" class="wpanel">
+      <div class="regionWrap" id="regionMap"></div>
+      <div class="regionChips" id="regionChips"></div>
+      <div class="wdetail" id="regionDetail"></div>
+      <div class="wsec">同一时刻 · 八地域对照</div>
+      <div style="overflow-x:auto"><table class="cmpTable" id="cmpTable"></table></div>
+      <div class="wrow"><button id="applyRegion" type="button">把 3D 世界切到该地域</button></div>
+      <div class="note">地图为示意，不按行政边界绘制。3D 地形按地域参数重建：基准高度、起伏、植被密度、地表类型不同；不包含道路、建筑、农田等人类改造地貌。</div>
+    </div>
+    <div id="wpanel-eco" class="wpanel">
+      <div class="regionChips" id="ecoRegionChips"></div>
+      <div class="wgrid" id="ecoMetrics"></div>
+      <div class="wdetail" id="ecoSummary"></div>
+      <div class="wsec">植物 · 生产者</div>
+      <div class="spgrid" id="ecoPlants"></div>
+      <div class="wsec">动物 · 消费者</div>
+      <div class="spgrid" id="ecoAnimals"></div>
+      <div class="wsec">食物链</div>
+      <div class="chain" id="ecoChain"></div>
+      <div class="wsec">相生相克</div>
+      <div class="relGrid" id="ecoRel"></div>
+      <div class="note">物种为地域代表种，分布为教学示意；食物链省略了多数杂食、寄生与分解环节。相生＝促进/供养，相克＝捕食/竞争/环境限制。</div>
+    </div>
+    <div id="wpanel-hex" class="wpanel">
+      <div class="hexNow" id="hexNow"></div>
+      <div class="wsec">卦象结构 · 相生相克</div>
+      <div class="relGrid" id="hexRel"></div>
+      <div class="wsec">一年六十四卦 · 年度卦序</div>
+      <div class="yearbar" id="hexYearBar"></div>
+      <div class="hexGrid" id="hexGrid"></div>
+      <div class="wsec">十二月建 · 消息卦（近似）</div>
+      <div class="trigramRow" id="hexMonths"></div>
+      <div class="note">以《周易》六十四卦的“时位—发展”结构作教学映射：一年等分为 64 段，每段一卦；六爻对应当日六个时段；上下卦对应八个方位与地域。错卦、综卦、互卦用于展示阴阳互根与内在演化。不是占卜，也不预测现实事件。</div>
+    </div>
+  </div>
+</div>
 <script>
 (function(){
 'use strict';
 var WX=64,WZ=64,WY=28,SEA=8;
+/* 八地域地形生成参数：基准高度 / 起伏 / 植被密度 / 地表类型 */
+var REGION_GEN={
+  ne:{base:8,amp:7,scale:0.085,tree:0.010,conifer:true,surface:'grass',snowLine:21},
+  hb:{base:7,amp:5,scale:0.085,tree:0.006,conifer:false,surface:'grass',snowLine:99},
+  hd:{base:6,amp:4,scale:0.090,tree:0.010,conifer:false,surface:'grass',snowLine:99},
+  hz:{base:8,amp:5,scale:0.085,tree:0.012,conifer:false,surface:'grass',snowLine:99},
+  hn:{base:7,amp:4,scale:0.090,tree:0.014,conifer:false,surface:'red',snowLine:99},
+  xn:{base:10,amp:10,scale:0.100,tree:0.008,conifer:true,surface:'grass',snowLine:20,ridge:true},
+  xb:{base:7,amp:3,scale:0.075,tree:0.001,conifer:false,surface:'sand',snowLine:99},
+  qz:{base:13,amp:8,scale:0.110,tree:0.0005,conifer:true,surface:'snow',snowLine:15,ridge:true}
+};
+var RG=REGION_GEN.hb;
 var canvas=document.getElementById('gl');
 var gl=canvas.getContext('webgl',{antialias:true,alpha:false});
 if(!gl){document.body.innerHTML='<div style="padding:30px;color:#fff;font-size:14px;line-height:1.8">当前浏览器不支持 WebGL，无法进入方块世界。<br>请用 Chrome / Edge / Safari 打开。</div>';return;}
@@ -212,9 +419,11 @@ var B={
   14:{n:'生石灰',col:[0.88,0.86,0.82],f:'CaO',atoms:[['Ca','#8fd6a8',0.5,0.5,0.5],['O','#e05050',0.7,0.5,0.5]]},
   15:{n:'熟石灰',col:[0.92,0.92,0.88],f:'Ca(OH)₂',atoms:[['Ca','#8fd6a8',0.5,0.45,0.5],['O','#e05050',0.5,0.7,0.5],['H','#f2f6ff',0.35,0.55,0.7],['H','#f2f6ff',0.65,0.55,0.7]]},
   16:{n:'铜',col:[0.72,0.45,0.28],f:'Cu',atoms:[['Cu','#d08a4a',0.45,0.45,0.45],['Cu','#d08a4a',0.65,0.6,0.55]]},
-  17:{n:'铁',col:[0.55,0.57,0.60],f:'Fe',atoms:[['Fe','#c98a5a',0.45,0.45,0.45],['Fe','#c98a5a',0.65,0.6,0.55]]}
+  17:{n:'铁',col:[0.55,0.57,0.60],f:'Fe',atoms:[['Fe','#c98a5a',0.45,0.45,0.45],['Fe','#c98a5a',0.65,0.6,0.55]]},
+  18:{n:'雪块',col:[0.92,0.95,1.0],f:'H₂O（固态）',atoms:[['O','#e05050',0.5,0.5,0.5],['H','#f2f6ff',0.32,0.66,0.62],['H','#f2f6ff',0.68,0.66,0.62]]},
+  19:{n:'红壤块',col:[0.55,0.26,0.18],f:'铁铝氧化物 + 黏土矿物',atoms:[['Fe','#c98a5a',0.45,0.45,0.45],['Al','#b9c0cc',0.68,0.55,0.5],['O','#e05050',0.4,0.7,0.62]]}
 };
-var BLOCK_MAT={1:'soil',2:'soil',3:'granite',4:'sand',5:'water',6:'wood',7:'leaves',8:'plank',9:'hematite',10:'coal',11:'limestone',12:'halite',13:'glass',14:'quicklime',15:'slaked',16:'copper',17:'iron'};
+var BLOCK_MAT={1:'soil',2:'soil',3:'granite',4:'sand',5:'water',6:'wood',7:'leaves',8:'plank',9:'hematite',10:'coal',11:'limestone',12:'halite',13:'glass',14:'quicklime',15:'slaked',16:'copper',17:'iron',18:'snow',19:'redsoil'};
 function solid(t){return t!==0&&t!==5;}
 var blocks=new Uint8Array(WX*WY*WZ);
 function idx(x,y,z){return x+WX*(z+WZ*y);}
@@ -228,17 +437,25 @@ function noise2(x,z){
   return a*(1-u)*(1-v)+b*u*(1-v)+c*(1-u)*v+d*u*v;
 }
 function heightAt(x,z){
-  var s=0.085;
+  var s=RG.scale||0.085;
   var n=noise2(x*s,z*s)*0.68+noise2(x*s*2.4+11,z*s*2.4+7)*0.32;
-  return Math.floor(6+n*9);
+  if(RG.ridge)n=n*(0.55+0.90*noise2(x*0.05+31,z*0.05+17));
+  n=Math.max(0,Math.min(1,n));
+  return Math.max(2,Math.min(WY-3,Math.floor(RG.base+n*RG.amp)));
 }
 function genWorld(){
   blocks.fill(0);
   for(var x=0;x<WX;x++)for(var z=0;z<WZ;z++){
     var h=heightAt(x,z);
-    var top=h>=SEA?1:4;
+    var top;
+    if(h<SEA)top=4;
+    else if(RG.surface==='sand')top=4;
+    else if(RG.surface==='red')top=19;
+    else if(RG.surface==='snow'||h>=(RG.snowLine||99))top=18;
+    else top=1;
+    var sub=(top===4)?4:(top===18?3:2);
     for(var y=0;y<=h;y++){
-      var t=y===h?top:(y>h-3?2:3);
+      var t=y===h?top:(y>h-3?sub:3);
       if(h<SEA&&y>=h)t=4;
       setB(x,y,z,t);
     }
@@ -246,18 +463,30 @@ function genWorld(){
   }
   // 树
   for(var x2=3;x2<WX-3;x2++)for(var z2=3;z2<WZ-3;z2++){
-    if(hash2(x2+101,z2+57)<0.994)continue;
+    if(hash2(x2+101,z2+57)<(1-(RG.tree||0.006)))continue;
     if(Math.abs(x2-WX/2)<10&&Math.abs(z2-WZ/2)<10)continue;
     var hh=heightAt(x2,z2);
     if(hh<=SEA+1)continue;
     var th=4+Math.floor(hash2(x2,z2)*2);
     for(var y2=1;y2<=th;y2++)setB(x2,hh+y2,z2,6);
-    for(var dx=-2;dx<=2;dx++)for(var dz=-2;dz<=2;dz++)for(var dy=-1;dy<=1;dy++){
-      if(Math.abs(dx)+Math.abs(dz)+Math.abs(dy)<3)continue;
-      if(Math.abs(dx)===2&&Math.abs(dz)===2)continue;
-      if(getB(x2+dx,hh+th+dy,z2+dz)===0)setB(x2+dx,hh+th+dy,z2+dz,7);
+    if(RG.conifer){
+      // 针叶树：分层圆锥冠
+      for(var cy=1;cy<=th;cy++){
+        var rr=Math.max(1,Math.floor((th-cy)/1.6)+1);
+        for(var dxc=-rr;dxc<=rr;dxc++)for(var dzc=-rr;dzc<=rr;dzc++){
+          if(Math.abs(dxc)+Math.abs(dzc)>rr+1)continue;
+          if(getB(x2+dxc,hh+cy,z2+dzc)===0)setB(x2+dxc,hh+cy,z2+dzc,7);
+        }
+      }
+      setB(x2,hh+th+1,z2,7);
+    }else{
+      for(var dx=-2;dx<=2;dx++)for(var dz=-2;dz<=2;dz++)for(var dy=-1;dy<=1;dy++){
+        if(Math.abs(dx)+Math.abs(dz)+Math.abs(dy)<3)continue;
+        if(Math.abs(dx)===2&&Math.abs(dz)===2)continue;
+        if(getB(x2+dx,hh+th+dy,z2+dz)===0)setB(x2+dx,hh+th+dy,z2+dz,7);
+      }
+      setB(x2,hh+th+1,z2,7);
     }
-    setB(x2,hh+th+1,z2,7);
   }
   // ---- 矿脉：按现实成矿深度近似 ----
   for(var ox=2;ox<WX-2;ox++)for(var oz=1;oz<WZ-1;oz++){
@@ -668,7 +897,9 @@ function pickSpawn(){
       var x=cx+dx,z=cz+dz;
       if(x<2||z<2||x>WX-3||z>WZ-3)continue;
       var top=surfaceY(x,z);
-      if(top<=SEA+1||getB(x,top-1,z)!==1)continue;
+      if(top<=SEA+1)continue;
+      var tb=getB(x,top-1,z);
+      if(tb!==1&&tb!==4&&tb!==18&&tb!==19)continue;
       var clear=true;
       for(var ax=-1;ax<=1&&clear;ax++)for(var az=-1;az<=1&&clear;az++){
         for(var ay=0;ay<5;ay++){
@@ -722,7 +953,7 @@ function ai(cmd){
   if(cmd==='house')return buildHouse();
   if(cmd==='tree')return plantTree();
   if(cmd==='flat')return flatten();
-  if(cmd==='day'){day=!day;aiSay(day?'切到白天：天空与光照已恢复。':'切到夜晚：光照变暗，注意脚下。',true);return;}
+  if(cmd==='day'){sim+=43200;updateEnv(0);renderAll();aiSay('时间前进 12 小时：现在是 '+fmtDate(env.D)+' '+fmtClock(env.D)+'，'+env.season.n+'季 · '+(env.term.now?env.term.now.n:'')+'，气温 '+env.temp.toFixed(1)+' °C。',true);return;}
   if(cmd==='walk'){player.x=spawn.x;player.z=spawn.z;player.y=spawn.y;player.vy=0;aiSay('已把你送回出生点。',true);return;}
   if(cmd==='what'){
     var h=raycast(8);
@@ -735,7 +966,7 @@ function ai(cmd){
 
 /* ---------- 渲染 ---------- */
 var VP=new Float32Array(16),MVP=new Float32Array(16),proj=null;
-var day=true;
+/* 昼夜由时序模型驱动 */
 var apos,anrm,acol,apos2,acol2;
 function resize(){
   var dpr=Math.min(devicePixelRatio||1,2);
@@ -751,6 +982,9 @@ var last=0,frame=0,tick=0;
 function loop(ts){
   var dt=Math.min(0.05,(ts-last)/1000||0.016);last=ts;
   updatePlayer(dt);
+  updateEnv(dt);
+  hudAcc+=dt;if(hudAcc>=0.25){hudAcc=0;updateHUD();}
+  uiAcc+=dt;if(uiAcc>=0.6){uiAcc=0;refreshWorldUI();}
   var eye,lookYaw=player.yaw,pitch=player.pitch;
   if(thirdPerson){
     var sy=Math.sin(player.yaw),cy=Math.cos(player.yaw);
@@ -764,14 +998,14 @@ function loop(ts){
   }
   var view=mView(eye,lookYaw,pitch);
   var mv=mMul(proj,view,VP);MVP.set(mv);
-  var sky=day?[0.55,0.72,0.95]:[0.04,0.06,0.12];
+  var sky=env.sky;
   gl.clearColor(sky[0],sky[1],sky[2],1);
   gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
   gl.enable(gl.DEPTH_TEST);
   gl.enable(gl.CULL_FACE);
   gl.cullFace(gl.BACK);
 
-  var dim=atomMode?0.32:(day?1:0.45);
+  var dim=atomMode?0.32:env.dim;
   if(mesh.opaque&&mesh.nOpaque){
     gl.useProgram(P_BLOCK);
     gl.bindBuffer(gl.ARRAY_BUFFER,mesh.opaque);
@@ -806,7 +1040,7 @@ function loop(ts){
     gl.uniform1f(UB.alpha,1);
     gl.drawArrays(gl.TRIANGLES,0,off/9);
   }
-  window.__dbg={p:[player.x,player.y,player.z],eye:eye,tp:thirdPerson,off:off};
+  window.__dbg={p:[player.x,player.y,player.z],eye:eye,tp:thirdPerson,off:off,sim:sim,date:env.D,env:{alt:env.alt,temp:env.temp,light:env.light,solar:env.solar,weather:env.w.n,term:env.term.now?env.term.now.n:null,season:env.season.n,region:curRegion}};
 
   // 水
   if(mesh.water&&mesh.nWater){
@@ -849,7 +1083,7 @@ function loop(ts){
     if(!hh){var tb=getB(Math.floor(player.x),Math.floor(player.y)-1,Math.floor(player.z));if(tb)hh={b:tb};}
     var inf=document.getElementById('info');
     var mm=hh?MATS[BLOCK_MAT[hh.b]]:null;
-    inf.innerHTML='坐标 '+player.x.toFixed(1)+' , '+player.y.toFixed(1)+' , '+player.z.toFixed(1)+(hh?('<br>'+B[hh.b].n+(mm?(' · '+mm.n+' '+mm.f):'')+'<br><span style="opacity:.7">'+(mm?mm.props:B[hh.b].f)+'</span>'):'');
+    inf.innerHTML='坐标 '+player.x.toFixed(1)+' , '+player.y.toFixed(1)+' , '+player.z.toFixed(1)+(hh?('<br>'+B[hh.b].n+(mm?(' · '+(mm.n===B[hh.b].n?'':mm.n+' ')+mm.f):'')+'<br><span style="opacity:.7">'+(mm?mm.props:B[hh.b].f)+'</span>'):'');
   }
   requestAnimationFrame(loop);
 }
@@ -996,6 +1230,8 @@ var MATS={
  slaked:{n:'熟石灰',f:'Ca(OH)2',block:15,color:'#eeeee8',st:'固',props:'微溶，密度 2.21 g/cm³，强碱',struct:'层状 Ca(OH)₂ 晶体',where:'生石灰与水反应产物：可放置'},
  copper:{n:'铜',f:'Cu',block:16,color:'#b8714a',st:'固',props:'密度 8.96 g/cm³，熔点 1085 °C，良导电导热',struct:'面心立方金属晶体',where:'还原氧化铜产物：可放置'},
  iron:{n:'铁',f:'Fe',block:17,color:'#8c8f95',st:'固',props:'密度 7.87 g/cm³，熔点 1538 °C，铁磁性',struct:'体心立方金属晶体',where:'还原氧化铁产物：可放置'},
+ snow:{n:'积雪',f:'H2O',block:18,color:'#eef4ff',st:'固',props:'密度约 0.1–0.4 g/cm³（新雪），反射率高，融化吸热',struct:'冰晶六方骨架与孔隙的混合物',where:'高寒山地与冬季地表：可放置'},
+ redsoil:{n:'红壤',f:'—',block:19,color:'#8c422e',st:'固（混合物）',props:'酸性、黏重、富铁铝氧化物，易板结',struct:'高岭石黏土 + 赤铁矿胶结的团粒',where:'华南湿热丘陵地表：可放置',comp:{O:48,Si:26,Al:13,Fe:8,K:2,Mg:1,H:2}},
  o2:{n:'氧气',f:'O2',block:0,color:'#9fc7ff',st:'气',props:'密度 1.43 g/L，助燃，无色无味',struct:'双原子分子 O=O'},
  h2:{n:'氢气',f:'H2',block:0,color:'#cfe0ff',st:'气',props:'密度 0.089 g/L，易燃易爆',struct:'双原子分子 H–H'},
  co2:{n:'二氧化碳',f:'CO2',block:0,color:'#b9c4d6',st:'气',props:'密度 1.98 g/L，溶于水生成碳酸',struct:'直线形分子 O=C=O'},
@@ -1286,6 +1522,7 @@ function renderDist(){
     ['煤','地下 3–10 m，C 与挥发分'],
     ['赤铁矿','地下 3–12 m，Fe₂O₃ 矿脉'],
     ['岩盐','海平面附近，NaCl 盐层'],
+    ['积雪 / 红壤','高寒山地雪线以上 / 华南湿热丘陵（随地域切换）'],
     ['水','海平面以下的湖泊与海洋']
   ];
   document.getElementById('dist').innerHTML=dep.map(function(d){
@@ -1352,7 +1589,765 @@ document.getElementById('rSwap').addEventListener('click',function(){
 });
 document.getElementById('rRun').addEventListener('click',runReaction);
 
+/* ================= 时序 · 地域 · 生态 · 卦象 ================= */
+var RAD=Math.PI/180;
+var EPOCH_JDN=1721060;          // 公元0-01-01（天文纪年）儒略日数
+var SIM0=3601;                  // 0年1月1日 01:00:01
+var sim=SIM0,speed=60,worldTab='time',curRegion='hb',hexSel=1,env=null;
+var uiAcc=0,hudAcc=0,termListYear=-1,hexGridBuilt=false,regionMapBuilt=false;
+var REGION_KEYS=['ne','hb','hd','hz','hn','xn','xb','qz'];
+
+/* ---------- 公历（天文纪年：有 0 年，0 年为闰年） ---------- */
+var MONTH_DAYS=[31,28,31,30,31,30,31,31,30,31,30,31];
+function isLeap(y){return (y%4===0&&y%100!==0)||(y%400===0);}
+function daysInMonth(y,m){return (m===2&&isLeap(y))?29:MONTH_DAYS[m-1];}
+function daysInYear(y){return isLeap(y)?366:365;}
+function daysBeforeYear(y){
+  var yy=y-1;
+  return 365*y+Math.floor(yy/4)-Math.floor(yy/100)+Math.floor(yy/400)+1;
+}
+function dateOf(s){
+  var days=Math.floor(s/86400),sod=s-days*86400;
+  var y=Math.floor(days/365.2425);
+  if(y<0)y=0;
+  while(daysBeforeYear(y+1)<=days)y++;
+  while(daysBeforeYear(y)>days)y--;
+  var doy=days-daysBeforeYear(y)+1,rem=doy,m=1;
+  while(rem>daysInMonth(y,m)){rem-=daysInMonth(y,m);m++;}
+  return {y:y,m:m,d:rem,doy:doy,days:days,sod:sod,
+    hh:Math.floor(sod/3600),mm:Math.floor(sod%3600/60),ss:Math.floor(sod%60)};
+}
+function simFromDate(y,m,d,hh,mm,ss){
+  var days=daysBeforeYear(y);
+  for(var i=1;i<m;i++)days+=daysInMonth(y,i);
+  days+=d-1;
+  return days*86400+(hh||0)*3600+(mm||0)*60+(ss||0);
+}
+function pad2(n){return n<10?('0'+n):(''+n);}
+function fmtDate(D){var ys=D.y<0?('公元前'+(-D.y)+'年'):('公元'+D.y+'年');return ys+D.m+'月'+D.d+'日';}
+function fmtClock(D){return pad2(D.hh)+':'+pad2(D.mm)+':'+pad2(D.ss);}
+
+/* ---------- 太阳位置 / 节气 ---------- */
+function jdUT(s){return EPOCH_JDN+s/86400-0.5-8/24;}
+function simFromJdUT(jd){return (jd-EPOCH_JDN+0.5+8/24)*86400;}
+function sunLon(jd){
+  var n=jd-2451545.0;
+  var L=(280.460+0.9856474*n)%360;
+  var g=(357.528+0.9856003*n)%360;
+  var lam=L+1.915*Math.sin(g*RAD)+0.020*Math.sin(2*g*RAD);
+  return ((lam%360)+360)%360;
+}
+function termJd(y,lambda){
+  var start=EPOCH_JDN+daysBeforeYear(y)-0.5-8/24;
+  var l0=sunLon(start);
+  var d=((lambda-l0)%360+360)%360;
+  var jd=start+d/0.98565;
+  for(var i=0;i<8;i++){
+    var l=sunLon(jd);
+    var diff=((lambda-l+540)%360)-180;
+    jd+=diff/0.98565;
+  }
+  return jd;
+}
+var TERM_DATA=[
+ {n:'春分',lon:0,hou:'玄鸟至，雷乃发声，始电',agri:'昼夜平分；冬小麦返青，候鸟北迁，春播备耕'},
+ {n:'清明',lon:15,hou:'桐始华，田鼠化为鴽，虹始见',agri:'气清景明；踏青植树，昆虫与微生物活跃'},
+ {n:'谷雨',lon:30,hou:'萍始生，鸣鸠拂其羽，戴胜降于桑',agri:'雨生百谷；春播关键期，茶芽肥厚'},
+ {n:'立夏',lon:45,hou:'蝼蝈鸣，蚯蚓出，王瓜生',agri:'万物繁茂；夏收作物灌浆，林冠郁闭'},
+ {n:'小满',lon:60,hou:'苦菜秀，靡草死，麦秋至',agri:'麦粒渐满；江河渐满，南方进入雨季'},
+ {n:'芒种',lon:75,hou:'螳螂生，鵙始鸣，反舌无声',agri:'有芒麦收、有芒稻种；最忙的“双抢”'},
+ {n:'夏至',lon:90,hou:'鹿角解，蝉始鸣，半夏生',agri:'白昼最长；北半球太阳高度最高'},
+ {n:'小暑',lon:105,hou:'温风至，蟋蟀居壁，鹰始挚',agri:'荷花开，雷雨多；作物进入旺盛生长'},
+ {n:'大暑',lon:120,hou:'腐草为萤，土润溽暑，大雨时行',agri:'一年最热；水稻抽穗，防旱防涝'},
+ {n:'立秋',lon:135,hou:'凉风至，白露降，寒蝉鸣',agri:'梧桐落叶；作物灌浆成熟，候鸟准备南迁'},
+ {n:'处暑',lon:150,hou:'鹰乃祭鸟，天地始肃，禾乃登',agri:'暑气止；秋收备镰，昼夜温差增大'},
+ {n:'白露',lon:165,hou:'鸿雁来，玄鸟归，群鸟养羞',agri:'露凝而白；棉花吐絮，果树成熟'},
+ {n:'秋分',lon:180,hou:'雷始收声，蛰虫坯户，水始涸',agri:'昼夜再平分；秋收秋种，候鸟南迁'},
+ {n:'寒露',lon:195,hou:'鸿雁来宾，雀入大水为蛤，菊有黄华',agri:'露气寒冷将凝；北方初霜，南方秋燥'},
+ {n:'霜降',lon:210,hou:'豺乃祭兽，草木黄落，蛰虫咸俯',agri:'初霜出现；柿子红，落叶归根'},
+ {n:'立冬',lon:225,hou:'水始冰，地始冻，雉入大水为蜃',agri:'万物收藏；北方封冻，南方收晒'},
+ {n:'小雪',lon:240,hou:'虹藏不见，天气上升，闭塞成冬',agri:'初雪；腌菜储粮，土壤微生物活动减弱'},
+ {n:'大雪',lon:255,hou:'鹖鴠不鸣，虎始交，荔挺出',agri:'雪盛河封；越冬作物进入休眠'},
+ {n:'冬至',lon:270,hou:'蚯蚓结，麋角解，水泉动',agri:'白昼最短；数九开始，阳气初生'},
+ {n:'小寒',lon:285,hou:'雁北乡，鹊始巢，雉始雊',agri:'三九严寒；动物储食，部分候鸟开始北归'},
+ {n:'大寒',lon:300,hou:'鸡始乳，征鸟厉疾，水泽腹坚',agri:'一年最冷；冰坚，冬眠动物最深眠'},
+ {n:'立春',lon:315,hou:'东风解冻，蛰虫始振，鱼陟负冰',agri:'岁首；春耕备耕，阳气回升'},
+ {n:'雨水',lon:330,hou:'獭祭鱼，候雁北，草木萌动',agri:'冰雪融化，降水增多；草木萌芽'},
+ {n:'惊蛰',lon:345,hou:'桃始华，仓庚鸣，鹰化为鸠',agri:'春雷惊醒蛰虫；病虫开始活动，春播展开'}
+];
+var TERM_CACHE={};
+function termsOfYear(y){
+  if(TERM_CACHE[y])return TERM_CACHE[y];
+  var arr=[];
+  for(var i=0;i<24;i++){
+    var t=TERM_DATA[i],jd=termJd(y,t.lon),s=simFromJdUT(jd);
+    arr.push({n:t.n,lon:t.lon,hou:t.hou,agri:t.agri,sim:s,date:dateOf(s)});
+  }
+  arr.sort(function(a,b){return a.sim-b.sim;});
+  TERM_CACHE[y]=arr;
+  return arr;
+}
+function currentTerm(){
+  var D=dateOf(sim),best=null,next=null;
+  for(var yy=D.y-1;yy<=D.y+1;yy++){
+    var arr=termsOfYear(yy);
+    for(var i=0;i<arr.length;i++){
+      if(arr[i].sim<=sim){if(!best||arr[i].sim>best.sim)best=arr[i];}
+      else if(!next||arr[i].sim<next.sim)next=arr[i];
+    }
+  }
+  return {now:best,next:next};
+}
+function seasonOf(lon){
+  if(lon>=315||lon<45)return {n:'春',key:'spring',color:'#8fe2b3'};
+  if(lon<135)return {n:'夏',key:'summer',color:'#ff9c8a'};
+  if(lon<225)return {n:'秋',key:'autumn',color:'#ffc98a'};
+  return {n:'冬',key:'winter',color:'#8fd6ff'};
+}
+
+/* ---------- 八地域：气候与生态 ---------- */
+var REGIONS={
+ ne:{key:'ne',n:'东北',lat:45.0,lon:125.0,alt:200,trigram:'艮',dir:'东北',
+  tmean:5,tamp:20,tdiurnal:9,humid:.62,cloud:.35,bio:.78,
+  climate:'温带季风气候，冬季漫长严寒，夏季短促湿润',
+  landform:'大兴安岭、小兴安岭、长白山山地与松嫩平原',
+  biome:'温带针阔混交林 / 草甸草原',
+  plants:[['红松','乔木 · 针叶','针叶林优势种，种子是松鼠与鸟类的越冬食物'],['落叶松','乔木 · 针叶','耐寒速生，秋季针叶金黄后脱落'],['白桦','乔木 · 落叶','次生林先锋树种，树皮白色'],['人参','草本 · 林下','喜阴，依赖阔叶林冠层遮阴'],['东北红豆杉','乔木 · 珍稀','生长极慢，树皮与种子具毒性']],
+  animals:[['东北虎','顶级捕食者','需要大面积连续针阔混交林与充足猎物'],['梅花鹿','初级消费者','取食草本、嫩枝与浆果'],['紫貂','次级消费者','树栖，捕食松鼠与小型鸟兽'],['黑熊','杂食','秋季大量进食储脂，冬季冬眠'],['丹顶鹤','湿地消费者','在沼泽湿地筑巢，迁徙途经沿海']],
+  chain:[['红松种子','松鼠','紫貂'],['草本与浆果','梅花鹿','东北虎'],['鱼与蛙','丹顶鹤']],
+  sheng:['红松林为松鼠、紫貂提供食物与巢材','落叶分解后滋养林下人参和草本','湿地芦苇为丹顶鹤提供筑巢材料'],
+  ke:['东北虎压制梅花鹿数量，避免幼树被过度啃食','严寒与短生长季限制常绿阔叶树','黑熊翻土觅食，改变草本更新格局'],
+  seasons:{spring:'冰雪消融，候鸟北归，林下先花植物开放',summer:'林冠郁闭，昆虫与繁殖活动达到高峰',autumn:'浆果与松子成熟，动物集中储食',winter:'积雪覆盖，黑熊冬眠，部分鸟类南迁'}},
+ hb:{key:'hb',n:'华北',lat:39.0,lon:116.0,alt:50,trigram:'坎',dir:'北',
+  tmean:12,tamp:14,tdiurnal:10,humid:.50,cloud:.40,bio:.62,
+  climate:'暖温带半湿润季风气候，夏热冬冷，降水集中',
+  landform:'华北平原、太行山、燕山与坝上高原',
+  biome:'落叶阔叶林与灌草丛',
+  plants:[['油松','乔木 · 针叶','耐旱耐瘠，山地阳坡常见'],['栓皮栎','乔木 · 落叶','坚果是兽类与鸟类的重要食物'],['酸枣','灌木','耐旱，果实与花蜜供养昆虫'],['黄栌','灌木 · 落叶','秋季叶色变红，形成红叶景观'],['荆条','灌木','石灰岩山地常见，蜜源植物']],
+  animals:[['华北豹','顶级捕食者','极危，依赖山地森林与充足的有蹄类'],['褐马鸡','次级消费者','中国特有雉类，取食昆虫与草籽'],['狍','初级消费者','取食草本与嫩枝，冬季集群'],['岩松鼠','初级消费者','储食栎实，帮助种子扩散'],['中华草龟','湿地消费者','溪流与湿地活动，雨季上岸']],
+  chain:[['栎树坚果','岩松鼠','华北豹'],['草本','狍','华北豹'],['昆虫','褐马鸡']],
+  sheng:['栎林坚果养育岩松鼠，松鼠埋藏种子帮助栎树扩散','灌丛为褐马鸡提供隐蔽与筑巢地','山地垂直带增加生境多样性'],
+  ke:['华北豹控制狍与野猪数量，维持林下更新','干旱与冬季缺食限制大型兽类密度','春季晚霜伤害花芽，影响结实'],
+  seasons:{spring:'花芽萌发，候鸟过境，昆虫开始活动',summer:'林冠繁茂，暴雨集中，溪流涨水',autumn:'落叶与坚果成熟，兽类储食',winter:'落叶休眠，兽类留下雪地足迹'}},
+ hd:{key:'hd',n:'华东',lat:31.0,lon:120.0,alt:10,trigram:'震',dir:'东',
+  tmean:16,tamp:11,tdiurnal:7,humid:.75,cloud:.50,bio:.82,
+  climate:'亚热带季风气候，四季分明，梅雨显著',
+  landform:'长江中下游平原、丘陵、滨海湿地与河口沙洲',
+  biome:'常绿阔叶林、竹林与淡水/滨海湿地',
+  plants:[['马尾松','乔木 · 针叶','耐酸瘠，丘陵先锋树种'],['香樟','乔木 · 常绿','常绿阔叶林代表种，果实供养鸟类'],['毛竹','竹类','地下茎连片生长，形成竹海'],['茶','灌木 · 常绿','喜酸怕涝，林缘与坡地常见'],['芦苇','水生草本','湿地优势种，为水鸟提供巢材']],
+  animals:[['扬子鳄','顶级捕食者','中国特有鳄类，栖息低海拔湿地'],['白鹭','次级消费者','浅水捕鱼虾，湿地指示种'],['獐','初级消费者','取食草与嫩叶，善隐蔽'],['中华鲟','洄游消费者','溯河洄游产卵，连接海洋与内陆养分'],['东方白鹳','湿地消费者','在湿地与浅水区觅食鱼类']],
+  chain:[['芦苇与水生植物','螺与虾','白鹭'],['鱼苗','中华鲟'],['草与嫩叶','獐','豹猫']],
+  sheng:['湿地芦苇为白鹭、东方白鹳提供巢材与隐蔽','竹林涵养水源，减缓地表径流','洄游鱼把海洋养分带入内陆河流'],
+  ke:['扬子鳄控制鱼虾密度，维持湿地群落平衡','梅雨洪涝改变湿地范围与植物带','台风折枝打开林窗，改变光照格局'],
+  seasons:{spring:'梅雨前的繁殖季，湿地水位上涨',summer:'湿热多雨，台风与暴雨频繁',autumn:'候鸟越冬抵达，湿地进入枯水前期',winter:'常绿林仍保持叶面积，水鸟聚集'}},
+ hz:{key:'hz',n:'华中',lat:30.0,lon:113.0,alt:50,trigram:'离',dir:'南',
+  tmean:16.5,tamp:11,tdiurnal:8,humid:.78,cloud:.50,bio:.84,
+  climate:'亚热带季风气候，夏热冬温，降水丰沛',
+  landform:'长江中游平原、洞庭湖与鄱阳湖湿地、武陵山',
+  biome:'常绿阔叶林与淡水湖泊湿地',
+  plants:[['樟树','乔木 · 常绿','常绿阔叶林建群种，耐湿'],['水杉','乔木 · 落叶','孑遗植物，喜水湿，秋叶红褐'],['莲','水生草本','湖泊浅水区，根茎与叶为多种动物食物'],['芦苇','水生草本','湖滩湿地优势种'],['蕨类','草本 · 蕨类','林下阴湿处，指示高湿度']],
+  animals:[['大鲵','次级消费者','中国特有，栖息清凉山溪'],['江豚','顶级捕食者','淡水豚类，依赖江湖连通'],['白鹤','湿地消费者','越冬于浅水湿地，取食植物根茎'],['麂','初级消费者','林缘取食嫩叶，善隐蔽'],['鸳鸯','湿地消费者','林间溪流与湖泊，树洞营巢']],
+  chain:[['水生植物','螺虾','鲤鱼'],['鱼','江豚'],['草籽与嫩芽','白鹤']],
+  sheng:['湖泊浅滩养育螺虾，支撑鱼类与候鸟','水杉林调蓄洪水、稳定河岸','候鸟粪便把养分带回湿地'],
+  ke:['江豚捕食鱼类，控制鱼群结构','夏季高温缺氧限制鱼类与底栖动物','水位涨落筛选湿地植物带'],
+  seasons:{spring:'水位上涨，鱼类繁殖，候鸟北迁',summer:'洪峰与高温，湿地面积最大',autumn:'水位回落，冬候鸟陆续抵达',winter:'枯水期，越冬水鸟在浅滩聚集'}},
+ hn:{key:'hn',n:'华南',lat:23.0,lon:113.0,alt:20,trigram:'巽',dir:'东南',
+  tmean:22,tamp:7,tdiurnal:6,humid:.80,cloud:.55,bio:.90,
+  climate:'热带—南亚热带季风气候，长夏无冬，雨热同期',
+  landform:'丘陵、喀斯特峰林、河谷与红壤台地',
+  biome:'季雨林、常绿阔叶林与红壤灌丛',
+  plants:[['榕树','乔木 · 常绿','气生根形成独木成林与微型生境'],['木棉','乔木 · 落叶','先花后叶，花蜜供养鸟类与昆虫'],['桫椤','蕨类 · 树蕨','孑遗植物，喜阴湿沟谷'],['棕榈','乔木状','耐湿热，果实为兽类食物'],['兰花','草本 · 附生','附生于树干与岩壁，指示湿度']],
+  animals:[['穿山甲','次级消费者','专食蚂蚁与白蚁，挖掘洞穴'],['蟒蛇','顶级捕食者','控制鼠类与小型兽类'],['猕猴','初级消费者','取食果实与嫩叶，群体活动'],['白鹇','次级消费者','林下取食昆虫与果实'],['树蛙','次级消费者','依赖高湿林冠与溪流繁殖']],
+  chain:[['榕果','果蝠','蟒蛇'],['昆虫','树蛙','白鹇'],['嫩叶','猕猴','豹猫']],
+  sheng:['榕树气生根与落果形成多层微生境','喀斯特裂隙储存水分，维持旱季湿岛','厚落叶层养活分解者与土壤动物'],
+  ke:['蟒蛇控制鼠类与小兽数量','干季缺水限制两栖类活动','台风折枝形成林窗，改变演替方向'],
+  seasons:{spring:'雨季开始，两栖类集中繁殖',summer:'高温多雨，林冠最密，果实丰富',autumn:'台风季，落果与倒木增加',winter:'仍常绿，冬候鸟在湿地越冬'}},
+ xn:{key:'xn',n:'西南',lat:27.0,lon:103.0,alt:1500,trigram:'坤',dir:'西南',
+  tmean:15,tamp:7,tdiurnal:10,humid:.70,cloud:.45,bio:.92,
+  climate:'高原季风与亚热带山地气候，垂直分异显著',
+  landform:'横断山、云贵高原、深切河谷与高山草甸',
+  biome:'山地常绿阔叶林—针叶林—高山草甸垂直带',
+  plants:[['珙桐','乔木 · 落叶','孑遗植物，苞片似白鸽'],['冷杉','乔木 · 针叶','高海拔针叶林建群种'],['杜鹃','灌木','高山灌丛，花期集中'],['高山栎','乔木 · 常绿','耐寒耐瘠，构成硬叶林'],['竹','竹类','林下成片，是大熊猫的主食']],
+  animals:[['大熊猫','初级消费者','专食竹类，依赖连片竹林'],['金丝猴','初级消费者','高山森林，取食叶、芽与果实'],['小熊猫','初级消费者','林下取食竹笋与果实'],['羚牛','初级消费者','高山草甸与林缘，群居'],['朱鹮','湿地消费者','在稻田与溪流觅食，营巢于高树']],
+  chain:[['竹','大熊猫'],['竹笋与嫩叶','小熊猫'],['苔藓与竹','羚牛','豹']],
+  sheng:['竹林为大熊猫、小熊猫提供主食与隐蔽','垂直带让物种在气候波动中上下迁移','杜鹃花蜜供养高山昆虫'],
+  ke:['竹子周期性开花结实后大面积枯死，造成食物短缺','豹控制羚牛与野猪数量','陡坡水土流失限制幼苗定居'],
+  seasons:{spring:'低海拔先绿，垂直带花开错峰',summer:'高山草甸开花，动物上迁',autumn:'针叶林结籽，兽类育肥',winter:'雪线下降，动物向低海拔迁移'}},
+ xb:{key:'xb',n:'西北',lat:40.0,lon:95.0,alt:1200,trigram:'乾',dir:'西北',
+  tmean:8,tamp:16,tdiurnal:14,humid:.30,cloud:.20,bio:.48,
+  climate:'温带大陆性干旱气候，温差大，降水稀少',
+  landform:'塔里木盆地、准噶尔盆地、戈壁沙漠与天山',
+  biome:'荒漠、荒漠草原与山地草原',
+  plants:[['胡杨','乔木 · 落叶','沿河走廊林，耐盐耐旱'],['梭梭','灌木','深根固沙，为昆虫与小兽提供荫蔽'],['沙棘','灌木','耐旱耐盐，果实富含维生素'],['骆驼刺','草本/半灌木','深根汲取地下水，骆驼食物'],['天山雪莲','草本 · 高山','高寒岩缝，生长缓慢']],
+  animals:[['普氏野马','初级消费者','草原群居，重引入种群'],['蒙古野驴','初级消费者','荒漠草原，耐旱善跑'],['鹅喉羚','初级消费者','取食荒漠灌丛与草本'],['沙蜥','次级消费者','沙地体温调节，捕食昆虫'],['金雕','顶级捕食者','利用上升气流盘旋，捕食中型兽类']],
+  chain:[['梭梭与骆驼刺','鹅喉羚','金雕'],['草籽','蒙古野驴'],['沙蜥','蛇','金雕']],
+  sheng:['胡杨沿河形成走廊林，阻挡风沙','梭梭固沙并为昆虫、蜥蜴提供荫蔽','高山冰雪融水补给绿洲与湿地'],
+  ke:['长期干旱与强蒸发限制乔木定居','金雕控制啮齿类与中型兽类','沙尘与放牧压力限制幼苗更新'],
+  seasons:{spring:'雪水融化，短命植物集中萌发',summer:'酷热干旱，动物多在晨昏活动',autumn:'胡杨金黄，种子与草籽成熟',winter:'严寒，动物集群并降低活动'}},
+ qz:{key:'qz',n:'青藏',lat:32.0,lon:90.0,alt:4000,trigram:'兑',dir:'西',
+  tmean:-1,tamp:10,tdiurnal:12,humid:.45,cloud:.35,bio:.58,
+  climate:'高原高寒气候，空气稀薄，日照强，昼夜温差大',
+  landform:'青藏高原、念青唐古拉山、冰川与高寒草甸',
+  biome:'高寒草甸、高寒荒漠与冰川边缘',
+  plants:[['高山嵩草','草本 · 莎草','高寒草甸建群种，根系密集'],['雪莲','草本 · 高山','岩缝与流石滩，生长极慢'],['垫状点地梅','草本 · 垫状','贴地生长，抵御强风与低温'],['红景天','草本 · 高山','高山碎石坡，耐寒耐旱'],['匍匐柳','灌木 · 匍匐','极地—高山型矮柳，贴地越冬']],
+  animals:[['藏羚羊','初级消费者','高原草甸迁徙，雌性集中产仔'],['雪豹','顶级捕食者','岩羊与藏羚羊的主要天敌'],['黑颈鹤','湿地消费者','高原湿地繁殖，迁徙越冬'],['藏野驴','初级消费者','高寒草原群居'],['高原鼠兔','初级消费者','挖洞，改变土壤通气与植被']],
+  chain:[['高山嵩草','高原鼠兔','藏狐'],['草甸','藏羚羊','雪豹'],['水生植物','黑颈鹤']],
+  sheng:['嵩草草甸是鼠兔、藏羚羊的基础食物','鼠兔洞穴改善土壤通气与水分下渗','冰川融水维持高寒湿地与黑颈鹤栖息地'],
+  ke:['雪豹控制岩羊、藏羚羊数量','低温、强风与短生长季限制高大植物','鼠兔过度啃食可导致草甸退化'],
+  seasons:{spring:'冰雪消融，牧草返青，动物向高处迁移',summer:'生长季短促，繁殖集中',autumn:'草籽成熟，动物育肥储脂',winter:'严寒大风，部分动物迁往低海拔'}}
+};
+
+/* ---------- 环境计算：太阳高度 / 昼夜 / 温度 / 光照 ---------- */
+function mix3(a,b,t){return [a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];}
+function skyColor(alt,cloud){
+  var night=[0.018,0.028,0.075],dawn=[0.62,0.34,0.26],dayc=[0.50,0.69,0.95];
+  var t=Math.max(0,Math.min(1,(alt+6)/14));
+  var c=mix3(dawn,dayc,t);
+  var nt=Math.max(0,Math.min(1,(-alt-1)/12));
+  c=mix3(c,night,nt);
+  var g=(c[0]+c[1]+c[2])/3;
+  return mix3(c,[g*0.86,g*0.89,g*0.96],cloud*0.55);
+}
+function computeEnv(R,D,at){
+  var jd=jdUT(at===undefined?sim:at),lam=sunLon(jd),eps=23.439-0.0000004*(jd-2451545);
+  var decl=Math.asin(Math.sin(eps*RAD)*Math.sin(lam*RAD))/RAD;
+  var B=360*(D.doy-81)/364*RAD;
+  var eot=9.87*Math.sin(2*B)-7.53*Math.cos(B)-1.5*Math.sin(B);
+  var solarTime=(D.sod/3600)+(R.lon-120)/15+eot/60;
+  var H=(solarTime-12)*15*RAD;
+  var sinAlt=Math.sin(R.lat*RAD)*Math.sin(decl*RAD)+Math.cos(R.lat*RAD)*Math.cos(decl*RAD)*Math.cos(H);
+  sinAlt=Math.max(-1,Math.min(1,sinAlt));
+  var alt=Math.asin(sinAlt)/RAD;
+  var cosH0=-Math.tan(R.lat*RAD)*Math.tan(decl*RAD);
+  var dayLen=cosH0<=-1?24:(cosH0>=1?0:2*Math.acos(Math.max(-1,Math.min(1,cosH0)))/RAD/15);
+  var seas=-Math.cos(2*Math.PI*(D.doy-15)/365.2422);
+  var diur=R.tdiurnal*0.5*Math.cos(2*Math.PI*((D.sod/3600)-14)/24);
+  var t0=R.tmean+R.tamp*seas+diur;
+  var wi=REGION_KEYS.indexOf(R.key);
+  var wh=hash2((D.days%200000)+wi*37,wi*97+11);
+  var summer=Math.cos(2*Math.PI*(D.doy-197)/365.2422);
+  var rainP=Math.max(0.02,Math.min(0.72,(R.humid-0.35)*1.55+0.10*summer));
+  var wname,wcloud,precip;
+  if(wh<rainP*0.55){wname=t0<1?'雪':'雨';wcloud=0.88;precip=1;}
+  else if(wh<rainP*0.55+R.cloud*0.30){wname='阴';wcloud=0.82;precip=0;}
+  else if(wh<rainP*0.55+R.cloud*0.30+0.22){wname='多云';wcloud=0.45;precip=0;}
+  else {wname='晴';wcloud=0.10;precip=0;}
+  var temp=t0-(precip?1.8:0)-(wcloud>0.7?0.7:0)+(wname==='晴'?0.4:0);
+  if(alt<0)temp-=(1-wcloud)*1.1*Math.min(1,-alt/10);
+  var trans=0.72+0.28*(1-wcloud)+Math.min(0.10,R.alt/4000*0.10);
+  var direct=Math.max(0,sinAlt)*1361*trans*(1-wcloud*0.82);
+  var diffuse=Math.max(0,sinAlt)*130*(0.35+wcloud);
+  var solar=direct+diffuse;
+  var dayF=Math.max(0,Math.min(1,(sinAlt+0.09)/0.30));
+  var phase=(((jd-2451550.26)/29.530588)%1+1)%1;
+  var illum=(1-Math.cos(2*Math.PI*phase))/2;
+  var moonAlt=Math.max(0,-sinAlt);
+  var moonLight=illum*moonAlt*0.26;
+  var light=Math.min(1.15,dayF*(0.22+0.78*(1-wcloud*0.8))+moonLight+0.0025);
+  var dim=0.20+0.80*dayF;
+  dim*=(1-wcloud*0.10);
+  if(alt<0)dim=Math.max(0.26,dim+moonLight*0.35);
+  return {D:D,R:R,lam:lam,decl:decl,alt:alt,sinAlt:sinAlt,dayLen:dayLen,solarTime:solarTime,
+    temp:temp,tBase:t0,w:{n:wname,cloud:wcloud,precip:precip},solar:solar,direct:direct,diffuse:diffuse,
+    light:light,dayF:dayF,moon:illum,moonLight:moonLight,sky:skyColor(alt,wcloud),
+    dim:Math.max(0.26,Math.min(1,dim)),season:seasonOf(lam)};
+}
+function updateEnv(dt){
+  if(dt&&speed>0)sim+=dt*speed;
+  var D=dateOf(sim);
+  env=computeEnv(REGIONS[curRegion],D);
+  env.term=currentTerm();
+  return env;
+}
+function yearFrac(D){
+  var a=simFromDate(D.y,1,1,0,0,0),b=simFromDate(D.y+1,1,1,0,0,0);
+  return Math.max(0,Math.min(1,(sim-a)/(b-a)));
+}
+function weatherIcon(n){return n==='晴'?'☀':(n==='多云'?'⛅':(n==='阴'?'☁':(n==='雨'?'🌧':'🌨')));}
+
+/* ---------- 时序面板 ---------- */
+function syncRegionChips(){
+  Array.prototype.forEach.call(document.querySelectorAll('#world .regionChips button[data-region]'),function(b){
+    b.classList.toggle('on',b.getAttribute('data-region')===curRegion);
+  });
+}
+function buildRegionChips(){
+  var html=REGION_KEYS.map(function(k){return '<button type="button" data-region="'+k+'">'+REGIONS[k].n+'</button>';}).join('');
+  ['timeRegionChips','regionChips','ecoRegionChips'].forEach(function(id){
+    var el=document.getElementById(id);if(el)el.innerHTML=html;
+  });
+  syncRegionChips();
+}
+function updateHUD(){
+  if(!env)return;
+  var D=env.D;
+  document.getElementById('ckDate').textContent=fmtDate(D)+' '+fmtClock(D);
+  document.getElementById('ckSpeed').textContent=speed?(speed+'×'):'暂停';
+  document.getElementById('ckTerm').textContent=env.season.n+' · '+(env.term.now?env.term.now.n:'—');
+  document.getElementById('ckTemp').textContent=env.temp.toFixed(1)+'°C';
+  document.getElementById('ckLight').textContent='光 '+env.light.toFixed(2);
+}
+function sunArcHTML(){
+  var h=env.D.sod/3600;
+  var x=20+h/24*280;
+  var sy=100-Math.max(0,env.sinAlt)*82;
+  var mh=(h+12)%24,mx=20+mh/24*280,my=100-Math.max(0,-env.sinAlt)*70;
+  var sun=document.getElementById('sunDot'),moon=document.getElementById('moonDot');
+  if(sun){sun.setAttribute('cx',x.toFixed(1));sun.setAttribute('cy',sy.toFixed(1));sun.setAttribute('opacity',env.alt>-1?1:0);}
+  if(moon){moon.setAttribute('cx',mx.toFixed(1));moon.setAttribute('cy',my.toFixed(1));moon.setAttribute('r',(3+3*env.moon).toFixed(1));moon.setAttribute('opacity',env.alt<0?0.9:0.12);}
+}
+function yearBarHTML(D){
+  var y=D.y,arr=termsOfYear(y),next=termsOfYear(y+1);
+  var a=simFromDate(y,1,1,0,0,0),b=simFromDate(y+1,1,1,0,0,0),span=b-a;
+  function frac(s){return Math.max(0,Math.min(1,(s-a)/span));}
+  function find(name){
+    for(var i=0;i<arr.length;i++)if(arr[i].n===name)return arr[i].sim;
+    for(var j=0;j<next.length;j++)if(next[j].n===name)return next[j].sim;
+    return a;
+  }
+  var lc=find('立春'),lx=find('立夏'),lq=find('立秋'),ld=find('立冬');
+  var segs=[[a,lc,'#8fd6ff'],[lc,lx,'#8fe2b3'],[lx,lq,'#ff9c8a'],[lq,ld,'#ffc98a'],[ld,b,'#8fd6ff']];
+  var html='';
+  segs.forEach(function(s){
+    var f1=frac(s[0]),f2=frac(s[1]);
+    html+='<div class="seg" style="left:'+(f1*100).toFixed(2)+'%;width:'+Math.max(0,(f2-f1)*100).toFixed(2)+'%;background:'+s[2]+'"></div>';
+  });
+  arr.forEach(function(t){
+    html+='<div class="mark" style="left:'+(frac(t.sim)*100).toFixed(2)+'%" title="'+t.n+'"></div>';
+  });
+  html+='<div class="now" style="left:'+(yearFrac(D)*100).toFixed(2)+'%"></div>';
+  return html;
+}
+function renderTimeDyn(){
+  if(!env)return;
+  var D=env.D,R=env.R;
+  document.getElementById('tDate').textContent=fmtDate(D);
+  document.getElementById('tClock').textContent=fmtClock(D);
+  document.getElementById('tSeason').textContent=env.season.n+' · '+(env.term.now?env.term.now.n:'—')+' · '+weatherIcon(env.w.n)+' '+env.w.n;
+  document.getElementById('tLeap').textContent=(isLeap(D.y)?'闰年':'平年')+' · '+daysInYear(D.y)+' 天 · 2 月 '+daysInMonth(D.y,2)+' 天 · 12 个月';
+  document.getElementById('tRegionName').textContent=R.n;
+  var sr=12-env.dayLen/2,ss=12+env.dayLen/2;
+  function hm(h){h=(h+24)%24;return pad2(Math.floor(h))+':'+pad2(Math.floor((h%1)*60));}
+  var m=[
+    ['太阳高度角',env.alt.toFixed(1)+'°',env.alt>0?'地平线以上':'地平线以下'],
+    ['太阳辐照',Math.round(env.solar)+' W/m²','直射 '+Math.round(env.direct)+' / 散射 '+Math.round(env.diffuse)],
+    ['气温',env.temp.toFixed(1)+' °C','年较差约 '+R.tamp.toFixed(0)+' K'],
+    ['相对光照',env.light.toFixed(2),'白昼因子 '+env.dayF.toFixed(2)],
+    ['白昼时长',env.dayLen.toFixed(2)+' h','日出 '+hm(sr)+'–'+hm(ss)],
+    ['云量 / 月相',Math.round(env.w.cloud*100)+'% / '+Math.round(env.moon*100)+'%','月光 '+env.moonLight.toFixed(2)]
+  ];
+  document.getElementById('tMetrics').innerHTML=m.map(function(x){
+    return '<div class="wmetric"><div class="k">'+x[0]+'</div><div class="v">'+x[1]+' <small>'+x[2]+'</small></div></div>';
+  }).join('');
+  var dayStart=Math.floor(sim/86400)*86400;
+  var de=computeEnv(R,dateOf(dayStart+43200),dayStart+43200);
+  var ne=computeEnv(R,dateOf(dayStart+7200),dayStart+7200);
+  var dp=Math.round(de.light*100),np=Math.round(ne.light*100);
+  document.getElementById('tDayNight').innerHTML=
+    '<div class="kv"><span>白天光照（12:00，相对）</span><span>'+de.light.toFixed(2)+'</span></div>'+
+    '<div class="wbar"><i style="width:'+Math.max(2,Math.min(100,dp))+'%"></i></div>'+
+    '<div class="kv"><span>夜间光照（02:00，月光 + 星光）</span><span>'+ne.light.toFixed(2)+'</span></div>'+
+    '<div class="wbar night"><i style="width:'+Math.max(2,Math.min(100,np))+'%"></i></div>'+
+    '<div class="kv"><span>白天 12:00</span><span>'+de.temp.toFixed(1)+' °C · '+Math.round(de.solar)+' W/m² · 光 '+de.light.toFixed(2)+'</span></div>'+
+    '<div class="kv"><span>夜间 02:00</span><span>'+ne.temp.toFixed(1)+' °C · '+Math.round(ne.solar)+' W/m² · 光 '+ne.light.toFixed(2)+'</span></div>'+
+    '<div class="kv"><span>夜间光源</span><span>月光 '+Math.round(env.moon*100)+'% · 星光 常驻</span></div>'+
+    '<div class="kv"><span>昼夜能量比</span><span>'+(env.solar>1?('1 : '+(env.moonLight/1.0).toFixed(3)):'0 : 夜')+'</span></div>';
+  document.getElementById('yearBar').innerHTML=yearBarHTML(D);
+  sunArcHTML();
+}
+function jumpTerm(name){
+  var D=dateOf(sim),best=null;
+  for(var yy=D.y-1;yy<=D.y+1;yy++){
+    var arr=termsOfYear(yy);
+    for(var i=0;i<arr.length;i++){
+      if(arr[i].n!==name)continue;
+      if(arr[i].sim>=sim&&(!best||arr[i].sim<best.sim))best=arr[i];
+    }
+  }
+  if(!best){
+    for(var y2=D.y;y2<=D.y+1&&!best;y2++){
+      var a2=termsOfYear(y2);
+      for(var j=0;j<a2.length;j++)if(a2[j].n===name){best=a2[j];break;}
+    }
+  }
+  if(best){
+    sim=Math.floor(best.sim/86400)*86400+12*3600;
+    updateEnv(0);renderAll();
+    var dd=dateOf(sim);
+    toast('已跳到下一次「'+name+'」当日 12:00：'+fmtDate(dd));
+  }
+}
+
+/* ---------- 节气面板 ---------- */
+function renderTerms(){
+  var D=dateOf(sim),arr=termsOfYear(D.y),cur=env.term.now;
+  var cross=cur&&cur.date.y!==D.y;
+  var key=D.y+'_'+(cross?cur.sim:'');
+  if(termListYear!==key){
+    termListYear=key;
+    var rows=cross?[cur].concat(arr):arr;
+    document.getElementById('termList').innerHTML=rows.map(function(t,i){
+      return '<div class="termRow" data-tsim="'+t.sim+'"><span class="tn">'+t.n+'</span><span class="td">'+(cross&&i===0?'上一年 ':'')+t.date.m+'月'+t.date.d+'日 '+pad2(t.date.hh)+':'+pad2(t.date.mm)+'</span><span class="tl">'+t.hou+'</span></div>';
+    }).join('');
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('#termList .termRow'),function(r){
+    var ts=parseFloat(r.getAttribute('data-tsim'));
+    r.classList.toggle('on',cur&&Math.abs(ts-cur.sim)<1);
+  });
+  var t=cur||arr[0];
+  document.getElementById('termNow').innerHTML='<h3>'+t.n+' <span class="badge">太阳黄经 '+t.lon+'°</span><span class="badge">'+(seasonOf(t.lon).n)+'季</span>'+(t.sim<0?'<span class="badge">纪元起点前</span>':'')+'</h3>'+
+    '<div class="kv"><span>交节时刻</span><span>'+fmtDate(t.date)+' '+pad2(t.date.hh)+':'+pad2(t.date.mm)+'</span></div>'+
+    '<div class="kv"><span>物候</span><span>'+t.hou+'</span></div>'+
+    '<div class="kv"><span>农事 / 生态</span><span>'+t.agri+'</span></div>'+
+    '<div class="kv"><span>此刻 '+REGIONS[curRegion].n+'</span><span>'+env.temp.toFixed(1)+' °C · '+Math.round(env.solar)+' W/m² · 光 '+env.light.toFixed(2)+'</span></div>';
+}
+function renderTermNow(){
+  if(worldTab==='terms')renderTerms();
+}
+
+/* ---------- 地域面板 ---------- */
+var REGION_POS={ne:[238,62],hb:[205,96],hd:[232,128],hz:[192,142],hn:[198,178],xn:[140,172],xb:[108,92],qz:[72,138]};
+function renderRegionMap(){
+  if(regionMapBuilt)return;
+  regionMapBuilt=true;
+  var path='M252 34 L224 30 L198 38 L170 26 L146 32 L122 24 L96 40 L70 48 L54 70 L38 94 L46 118 L30 144 L50 172 L78 188 L92 212 L118 204 L138 224 L162 210 L180 220 L200 196 L220 186 L234 160 L254 150 L264 122 L284 106 L276 82 L256 68 L262 48 Z';
+  var grid='';
+  for(var gx=40;gx<300;gx+=40)grid+='<line x1="'+gx+'" y1="18" x2="'+gx+'" y2="235" stroke="rgba(255,255,255,.05)" stroke-width="1"/>';
+  for(var gy=40;gy<240;gy+=40)grid+='<line x1="20" y1="'+gy+'" x2="305" y2="'+gy+'" stroke="rgba(255,255,255,.05)" stroke-width="1"/>';
+  var dots='';
+  REGION_KEYS.forEach(function(k){
+    var p=REGION_POS[k],R=REGIONS[k];
+    dots+='<g class="regionDot" data-region="'+k+'"><circle cx="'+p[0]+'" cy="'+p[1]+'" r="5"/>'+
+      '<text x="'+p[0]+'" y="'+(p[1]+15)+'" text-anchor="middle">'+R.n+'</text></g>';
+  });
+  document.getElementById('regionMap').innerHTML='<svg viewBox="0 0 320 250">'+
+    '<path d="'+path+'" fill="rgba(90,141,239,.10)" stroke="rgba(180,205,255,.45)" stroke-width="1.2"/>'+
+    '<ellipse cx="273" cy="172" rx="6" ry="11" fill="rgba(90,141,239,.18)" stroke="rgba(180,205,255,.35)"/>'+
+    '<ellipse cx="198" cy="236" rx="7" ry="5" fill="rgba(90,141,239,.18)" stroke="rgba(180,205,255,.35)"/>'+
+    grid+dots+'</svg>';
+}
+function renderRegionDetail(){
+  var R=REGIONS[curRegion],e=computeEnv(R,dateOf(sim));
+  document.getElementById('regionDetail').innerHTML='<h3>'+R.n+' <span class="badge">'+R.dir+' · '+R.trigram+'卦位</span></h3>'+
+    '<div class="kv"><span>经纬度 / 海拔</span><span>'+R.lon.toFixed(1)+'°E · '+R.lat.toFixed(1)+'°N · '+R.alt+' m</span></div>'+
+    '<div class="kv"><span>气候</span><span>'+R.climate+'</span></div>'+
+    '<div class="kv"><span>自然地貌</span><span>'+R.landform+'</span></div>'+
+    '<div class="kv"><span>植被 / 生境</span><span>'+R.biome+'</span></div>'+
+    '<div class="kv"><span>生物多样性指数</span><span>'+Math.round(R.bio*100)+' / 100</span></div>'+
+    '<div class="wbar"><i style="width:'+Math.round(R.bio*100)+'%"></i></div>'+
+    '<div class="kv"><span>此刻天气</span><span>'+weatherIcon(e.w.n)+' '+e.w.n+' · 云量 '+Math.round(e.w.cloud*100)+'%</span></div>'+
+    '<div class="kv"><span>此刻气温 / 光照</span><span>'+e.temp.toFixed(1)+' °C · '+e.light.toFixed(2)+' · '+Math.round(e.solar)+' W/m²</span></div>'+
+    '<div class="kv"><span>季节 / 节气</span><span>'+e.season.n+' · '+(env.term.now?env.term.now.n:'—')+'</span></div>'+
+    '<div class="kv"><span>当前物候</span><span>'+R.seasons[e.season.key]+'</span></div>';
+}
+function renderCmpTable(){
+  var D=dateOf(sim);
+  var rows=REGION_KEYS.map(function(k){
+    var R=REGIONS[k],e=computeEnv(R,D);
+    return {k:k,n:R.n,t:e.temp,s:e.solar,l:e.light,w:e.w.n,dl:e.dayLen};
+  });
+  var html='<thead><tr><th>地域</th><th>气温</th><th>辐照</th><th>光照</th><th>天气</th><th>白昼</th></tr></thead><tbody>';
+  rows.forEach(function(r){
+    html+='<tr data-region="'+r.k+'" class="'+(r.k===curRegion?'on':'')+'"><td>'+r.n+'</td><td>'+r.t.toFixed(1)+'°C</td><td>'+Math.round(r.s)+'</td><td>'+r.l.toFixed(2)+'</td><td>'+weatherIcon(r.w)+r.w+'</td><td>'+r.dl.toFixed(1)+'h</td></tr>';
+  });
+  document.getElementById('cmpTable').innerHTML=html+'</tbody>';
+}
+function selectRegion(k){
+  if(!REGIONS[k])return;
+  curRegion=k;updateEnv(0);syncRegionChips();
+  renderTimeDyn();renderRegionDetail();renderCmpTable();renderEco();renderHexDetail();
+}
+function applyRegionTerrain(){
+  RG=REGION_GEN[curRegion];
+  genWorld();buildMesh();
+  var sp2=pickSpawn();
+  player.x=sp2.x;player.y=sp2.y;player.z=sp2.z;player.vy=0;
+  spawn={x:sp2.x,y:sp2.y,z:sp2.z};
+  npc={x:sp2.x-Math.sin(player.yaw)*7+Math.cos(player.yaw)*3.5,z:sp2.z-Math.cos(player.yaw)*7-Math.sin(player.yaw)*3.5};
+  if(atomMode){buildAtoms();updateAtomPanel();}
+  closeWorld();
+  toast('3D 世界已切到「'+REGIONS[curRegion].n+'」：'+REGIONS[curRegion].landform);
+}
+
+/* ---------- 生态面板 ---------- */
+function renderEco(){
+  var R=REGIONS[curRegion],e=computeEnv(R,dateOf(sim)),se=e.season.key;
+  document.getElementById('ecoMetrics').innerHTML=
+    '<div class="wmetric"><div class="k">代表植物</div><div class="v">'+R.plants.length+' <small>类</small></div></div>'+
+    '<div class="wmetric"><div class="k">代表动物</div><div class="v">'+R.animals.length+' <small>类</small></div></div>'+
+    '<div class="wmetric"><div class="k">多样性指数</div><div class="v">'+Math.round(R.bio*100)+' <small>/100</small></div></div>'+
+    '<div class="wmetric"><div class="k">当前季节</div><div class="v">'+e.season.n+' <small>'+(env.term.now?env.term.now.n:'')+'</small></div></div>';
+  document.getElementById('ecoSummary').innerHTML='<h3>'+R.n+' · '+R.biome+'</h3>'+
+    '<div class="kv"><span>自然地貌</span><span>'+R.landform+'</span></div>'+
+    '<div class="kv"><span>气候</span><span>'+R.climate+'</span></div>'+
+    '<div class="kv"><span>当季物候</span><span>'+R.seasons[se]+'</span></div>'+
+    '<div class="wbar"><i style="width:'+Math.round(R.bio*100)+'%"></i></div>';
+  document.getElementById('ecoPlants').innerHTML=R.plants.map(function(p){
+    return '<div class="spcard"><div class="n">'+p[0]+'</div><div class="r">'+p[2]+'</div><span class="t">'+p[1]+'</span></div>';
+  }).join('');
+  document.getElementById('ecoAnimals').innerHTML=R.animals.map(function(a){
+    return '<div class="spcard"><div class="n">'+a[0]+'</div><div class="r">'+a[2]+'</div><span class="t">'+a[1]+'</span></div>';
+  }).join('');
+  document.getElementById('ecoChain').innerHTML=R.chain.map(function(c){
+    return '<div>'+c.map(function(s,i){return (i?'<span class="ar">→</span>':'')+'<span class="lv">'+s+'</span>';}).join('')+'<span class="ar">→</span><span class="lv">分解者</span></div>';
+  }).join('');
+  document.getElementById('ecoRel').innerHTML=
+    '<div class="relBox"><h4>相生 · 促进与供养</h4>'+R.sheng.map(function(s){return '· '+s;}).join('<br>')+'</div>'+
+    '<div class="relBox ke"><h4>相克 · 捕食与限制</h4>'+R.ke.map(function(s){return '· '+s;}).join('<br>')+'</div>';
+}
+
+/* ---------- 六十四卦 ---------- */
+var HEX=[
+ {n:'乾',b:'111111',k:'创造 · 进取',t:'天行健，君子以自强不息。'},
+ {n:'坤',b:'000000',k:'包容 · 承载',t:'地势坤，君子以厚德载物。'},
+ {n:'屯',b:'100010',k:'初创 · 艰难',t:'云雷屯，君子以经纶。'},
+ {n:'蒙',b:'010001',k:'启蒙 · 学习',t:'山下出泉，蒙以养正。'},
+ {n:'需',b:'111010',k:'等待 · 蓄势',t:'云上于天，饮食之道。'},
+ {n:'讼',b:'010111',k:'争讼 · 慎始',t:'天与水违行，作事谋始。'},
+ {n:'师',b:'010000',k:'组织 · 纪律',t:'地中有水，容民畜众。'},
+ {n:'比',b:'000010',k:'亲附 · 联合',t:'地上有水，建万国亲诸侯。'},
+ {n:'小畜',b:'111011',k:'小蓄 · 积累',t:'风行天上，懿文德。'},
+ {n:'履',b:'110111',k:'践行 · 礼序',t:'上天下泽，辨上下定民志。'},
+ {n:'泰',b:'111000',k:'通泰 · 交流',t:'天地交泰，财成天地之道。'},
+ {n:'否',b:'000111',k:'闭塞 · 守正',t:'天地不交，俭德辟难。'},
+ {n:'同人',b:'101111',k:'同道 · 协作',t:'天与火，类族辨物。'},
+ {n:'大有',b:'111101',k:'丰有 · 分享',t:'火在天上，遏恶扬善。'},
+ {n:'谦',b:'001000',k:'谦抑 · 平衡',t:'地中有山，裒多益寡。'},
+ {n:'豫',b:'000100',k:'和乐 · 预备',t:'雷出地奋，作乐崇德。'},
+ {n:'随',b:'100110',k:'随时 · 跟随',t:'泽中有雷，向晦入宴息。'},
+ {n:'蛊',b:'011001',k:'整治 · 革新',t:'山下有风，振民育德。'},
+ {n:'临',b:'110000',k:'临近 · 督导',t:'泽上有地，教思无穷。'},
+ {n:'观',b:'000011',k:'观察 · 示范',t:'风行地上，省方观民设教。'},
+ {n:'噬嗑',b:'100101',k:'决断 · 法度',t:'雷电，明罚敕法。'},
+ {n:'贲',b:'101001',k:'文饰 · 修饰',t:'山下有火，明庶政无敢折狱。'},
+ {n:'剥',b:'000001',k:'剥落 · 守本',t:'山附于地，厚下安宅。'},
+ {n:'复',b:'100000',k:'回复 · 归正',t:'雷在地中，闭关商旅不行。'},
+ {n:'无妄',b:'100111',k:'真实 · 顺时',t:'天下雷行，茂对时育万物。'},
+ {n:'大畜',b:'111001',k:'大蓄 · 储备',t:'天在山中，多识前言往行。'},
+ {n:'颐',b:'100001',k:'颐养 · 节制',t:'山下有雷，慎言语节饮食。'},
+ {n:'大过',b:'011110',k:'过载 · 担当',t:'泽灭木，独立不惧遁世无闷。'},
+ {n:'坎',b:'010010',k:'险陷 · 习险',t:'水洊至，常德行习教事。'},
+ {n:'离',b:'101101',k:'光明 · 依附',t:'明两作，继明照于四方。'},
+ {n:'咸',b:'001110',k:'感应 · 交感',t:'山上有泽，虚受人。'},
+ {n:'恒',b:'011100',k:'恒久 · 守常',t:'雷风，立不易方。'},
+ {n:'遁',b:'001111',k:'退避 · 保全',t:'天下有山，远小人不恶而严。'},
+ {n:'大壮',b:'111100',k:'强盛 · 守礼',t:'雷在天上，非礼弗履。'},
+ {n:'晋',b:'000101',k:'进展 · 显扬',t:'明出地上，自昭明德。'},
+ {n:'明夷',b:'101000',k:'晦藏 · 守明',t:'明入地中，用晦而明。'},
+ {n:'家人',b:'101011',k:'齐家 · 内治',t:'风自火出，言有物行有恒。'},
+ {n:'睽',b:'110101',k:'分歧 · 求同',t:'上火下泽，同而异。'},
+ {n:'蹇',b:'001010',k:'蹇难 · 反省',t:'山上有水，反身修德。'},
+ {n:'解',b:'010100',k:'解脱 · 化解',t:'雷雨作，赦过宥罪。'},
+ {n:'损',b:'110001',k:'减损 · 舍取',t:'山下有泽，惩忿窒欲。'},
+ {n:'益',b:'100011',k:'增益 · 利他',t:'风雷，见善则迁有过则改。'},
+ {n:'夬',b:'111110',k:'决断 · 清除',t:'泽上于天，施禄及下。'},
+ {n:'姤',b:'011111',k:'相遇 · 警惕',t:'天下有风，施命诰四方。'},
+ {n:'萃',b:'000110',k:'聚集 · 防患',t:'泽上于地，除戎器戒不虞。'},
+ {n:'升',b:'011000',k:'上升 · 积累',t:'地中生木，积小以高大。'},
+ {n:'困',b:'010110',k:'困穷 · 守志',t:'泽无水，致命遂志。'},
+ {n:'井',b:'011010',k:'井养 · 共享',t:'木上有水，劳民劝相。'},
+ {n:'革',b:'101110',k:'变革 · 顺时',t:'泽中有火，治历明时。'},
+ {n:'鼎',b:'011101',k:'鼎新 · 定命',t:'木上有火，正位凝命。'},
+ {n:'震',b:'100100',k:'震动 · 警醒',t:'洊雷，恐惧修省。'},
+ {n:'艮',b:'001001',k:'止守 · 边界',t:'兼山，思不出其位。'},
+ {n:'渐',b:'001011',k:'渐进 · 有序',t:'山上有木，居贤德善俗。'},
+ {n:'归妹',b:'110100',k:'婚配 · 知弊',t:'泽上有雷，永终知敝。'},
+ {n:'丰',b:'101100',k:'丰盛 · 明断',t:'雷电皆至，折狱致刑。'},
+ {n:'旅',b:'001101',k:'行旅 · 谨慎',t:'山上有火，明慎用刑。'},
+ {n:'巽',b:'011011',k:'顺入 · 申命',t:'随风，申命行事。'},
+ {n:'兑',b:'110110',k:'喜悦 · 交流',t:'丽泽，朋友讲习。'},
+ {n:'涣',b:'010011',k:'涣散 · 聚心',t:'风行水上，享帝立庙。'},
+ {n:'节',b:'110010',k:'节制 · 制度',t:'泽上有水，制数度议德行。'},
+ {n:'中孚',b:'110011',k:'诚信 · 感通',t:'泽上有风，议狱缓死。'},
+ {n:'小过',b:'001100',k:'小过 · 谨微',t:'山上有雷，行过乎恭。'},
+ {n:'既济',b:'101010',k:'已成 · 防患',t:'水在火上，思患预防。'},
+ {n:'未济',b:'010101',k:'未成 · 续进',t:'火在水上，慎辨物居方。'}
+];
+var HEX_BIN={};
+HEX.forEach(function(h,i){HEX_BIN[h.b]=i+1;});
+var TRIGRAMS={
+ '111':{n:'乾',sym:'☰',wx:'金',dir:'西北',nat:'天'},
+ '110':{n:'兑',sym:'☱',wx:'金',dir:'西',nat:'泽'},
+ '101':{n:'离',sym:'☲',wx:'火',dir:'南',nat:'火'},
+ '100':{n:'震',sym:'☳',wx:'木',dir:'东',nat:'雷'},
+ '011':{n:'巽',sym:'☴',wx:'木',dir:'东南',nat:'风'},
+ '010':{n:'坎',sym:'☵',wx:'水',dir:'北',nat:'水'},
+ '001':{n:'艮',sym:'☶',wx:'土',dir:'东北',nat:'山'},
+ '000':{n:'坤',sym:'☷',wx:'土',dir:'西南',nat:'地'}
+};
+var TRIGRAM_REGION={'西北':'西北','西':'青藏','南':'华中','东':'华东','东南':'华南','北':'华北','东北':'东北','西南':'西南'};
+var SHENG={木:'火',火:'土',土:'金',金:'水',水:'木'};
+var KE={木:'土',土:'水',水:'火',火:'金',金:'木'};
+var MSG_HEX={1:11,2:34,3:43,4:1,5:44,6:33,7:12,8:20,9:23,10:2,11:24,12:19};
+var STAGES=['初：潜藏萌芽，宜静不宜动','二：得位成长，可小成','三：进退交界，需警惕','四：跃迁试行，承上启下','五：鼎盛主导，守中不骄','上：过极收束，转向下一轮'];
+function hexIndexNow(){
+  var D=dateOf(sim);
+  return Math.min(63,Math.floor(yearFrac(D)*64))+1;
+}
+function wxRel(a,b){
+  if(a===b)return '同气相求（'+a+'）';
+  if(SHENG[a]===b)return a+'生'+b;
+  if(SHENG[b]===a)return b+'生'+a;
+  if(KE[a]===b)return a+'克'+b;
+  if(KE[b]===a)return b+'克'+a;
+  return '无明显生克';
+}
+function hexLinesHTML(b,big){
+  var h='';
+  for(var i=5;i>=0;i--)h+='<div class="ln'+(b.charAt(i)==='1'?'':' yin')+'">'+(b.charAt(i)==='1'?'':'<i></i><i></i>')+'</div>';
+  return h;
+}
+function hexMiniHTML(b){
+  var h='<div class="mini">';
+  for(var i=5;i>=0;i--)h+='<i class="'+(b.charAt(i)==='1'?'':'y')+'"></i>';
+  return h+'</div>';
+}
+function hexDetailHTML(id){
+  var h=HEX[id-1],b=h.b,lo=b.substr(0,3),up=b.substr(3,3);
+  var lt=TRIGRAMS[lo],ut=TRIGRAMS[up];
+  var cuo=b.split('').map(function(c){return c==='1'?'0':'1';}).join('');
+  var zong=b.split('').reverse().join('');
+  var hu=b.substr(1,3)+b.substr(2,3);
+  var ci=HEX_BIN[cuo]||1,zi=HEX_BIN[zong]||1,hi=HEX_BIN[hu]||1;
+  var D=env.D;
+  var stage=Math.min(5,Math.floor(D.hh/4));
+  var mi=MSG_HEX[D.m]||1;
+  var upR=TRIGRAM_REGION[ut.dir],loR=TRIGRAM_REGION[lt.dir];
+  return '<div class="hexLines">'+hexLinesHTML(b)+'</div><div style="flex:1;min-width:0">'+
+    '<div class="hn">'+h.n+' <span style="font-size:11px;color:#7e8ea6;font-weight:400">第 '+id+' 卦</span> <span class="badge">'+(id===hexIndexNow()?'当前年度卦':'查看')+'</span></div>'+
+    '<div class="hm">'+ut.sym+' '+ut.n+'（'+ut.nat+'·'+ut.wx+'·'+ut.dir+'）上 · '+lt.sym+' '+lt.n+'（'+lt.nat+'·'+lt.wx+'·'+lt.dir+'）下<br>'+h.k+'</div>'+
+    '<div style="font-size:12px;color:#c3d3e8;margin-top:5px">'+h.t+'</div></div>';
+}
+function renderHexDetail(){
+  if(!env)return;
+  var cur=hexIndexNow();
+  var id=hexSel||cur;
+  var el=document.getElementById('hexNow');
+  el.innerHTML=hexDetailHTML(id);
+  var h=HEX[id-1],b=h.b,lo=b.substr(0,3),up=b.substr(3,3),lt=TRIGRAMS[lo],ut=TRIGRAMS[up];
+  var cuo=b.split('').map(function(c){return c==='1'?'0':'1';}).join('');
+  var zong=b.split('').reverse().join('');
+  var hu=b.substr(1,3)+b.substr(2,3);
+  var ci=HEX_BIN[cuo]||1,zi=HEX_BIN[zong]||1,hi=HEX_BIN[hu]||1;
+  var mi=MSG_HEX[env.D.m]||1;
+  var stage=Math.min(5,Math.floor(env.D.hh/4));
+  document.getElementById('hexRel').innerHTML=
+    '<div class="relBox"><h4>相生 · 上下卦</h4>'+
+      '上卦 '+ut.n+'（'+ut.wx+'）与下卦 '+lt.n+'（'+lt.wx+'）：'+wxRel(ut.wx,lt.wx)+'<br>'+
+      '上卦方位：'+ut.dir+' → '+TRIGRAM_REGION[ut.dir]+'<br>下卦方位：'+lt.dir+' → '+TRIGRAM_REGION[lt.dir]+'<br>'+
+      '互卦：<button class="linkBtn" data-hex="'+hi+'">'+HEX[hi-1].n+'</button>（内在演化）</div>'+
+    '<div class="relBox ke"><h4>相克 · 对立与反转</h4>'+
+      '错卦：<button class="linkBtn" data-hex="'+ci+'">'+HEX[ci-1].n+'</button>（六爻全反，阴阳对峙）<br>'+
+      '综卦：<button class="linkBtn" data-hex="'+zi+'">'+HEX[zi-1].n+'</button>（上下颠倒，换位反思）<br>'+
+      '当前时位：'+STAGES[stage]+'<br>'+
+      '月建消息卦：'+HEX[mi-1].n+'（'+env.D.m+'月，近似）</div>';
+  Array.prototype.forEach.call(document.querySelectorAll('#hexGrid .hcell'),function(c){
+    var cid=+c.getAttribute('data-hex');
+    c.classList.toggle('on',cid===id);
+    c.classList.toggle('cur',cid===cur);
+  });
+  document.getElementById('hexGrid').setAttribute('data-cur',cur);
+  document.getElementById('hexMonths').innerHTML=Object.keys(MSG_HEX).map(function(m){
+    var hid=MSG_HEX[m];
+    return '<div class="tg'+(+m===env.D.m?' on':'')+'" data-hex="'+hid+'">'+(+m)+'月<br><b>'+HEX[hid-1].n+'</b></div>';
+  }).join('');
+  var D=env.D,y=D.y;
+  var hb='';
+  for(var i=0;i<64;i++)hb+='<div class="mark" style="left:'+((i+0.5)/64*100).toFixed(2)+'%;top:14px" title="第 '+(i+1)+' 卦 '+HEX[i].n+'"></div>';
+  hb+='<div class="now" style="left:'+(yearFrac(D)*100).toFixed(2)+'%"></div>';
+  hb+='<div style="position:absolute;left:6px;top:4px;font-size:9px;color:#7e8ea6">第 '+cur+' 卦 / 64</div>';
+  document.getElementById('hexYearBar').innerHTML=hb;
+}
+function renderHexGrid(){
+  if(hexGridBuilt)return;
+  hexGridBuilt=true;
+  document.getElementById('hexGrid').innerHTML=HEX.map(function(h,i){
+    return '<div class="hcell" data-hex="'+(i+1)+'" title="第 '+(i+1)+' 卦 '+h.n+'：'+h.k+'"><b>'+h.n+'</b>'+hexMiniHTML(h.b)+'</div>';
+  }).join('');
+}
+function renderHex(){
+  renderHexGrid();renderHexDetail();
+}
+
+/* ---------- 面板开关 ---------- */
+function setWorldTab(t){
+  worldTab=t;
+  ['time','terms','region','eco','hex'].forEach(function(k){
+    document.getElementById('wpanel-'+k).classList.toggle('on',k===t);
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('.wtabs button'),function(b){
+    b.classList.toggle('on',b.getAttribute('data-wtab')===t);
+  });
+  if(t==='time'){renderTimeDyn();}
+  if(t==='terms'){renderTerms();}
+  if(t==='region'){renderRegionMap();renderRegionDetail();renderCmpTable();}
+  if(t==='eco'){renderEco();}
+  if(t==='hex'){renderHex();}
+}
+function openWorld(tab){
+  closeChem();
+  document.getElementById('world').classList.remove('hidden');
+  updateEnv(0);
+  setWorldTab(tab||'time');
+}
+function closeWorld(){document.getElementById('world').classList.add('hidden');}
+function renderAll(){
+  renderTimeDyn();renderTerms();renderRegionDetail();renderCmpTable();renderEco();renderHexDetail();
+}
+function refreshWorldUI(){
+  if(document.getElementById('world').classList.contains('hidden'))return;
+  updateHUD();
+  if(worldTab==='time')renderTimeDyn();
+  else if(worldTab==='terms')renderTerms();
+  else if(worldTab==='region'){renderRegionDetail();renderCmpTable();}
+  else if(worldTab==='eco'){renderEco();}
+  else if(worldTab==='hex'){renderHexDetail();}
+}
+function bindWorldUI(){
+  buildRegionChips();
+  document.getElementById('btnWorld').addEventListener('click',function(){openWorld('time');});
+  document.getElementById('clockChip').addEventListener('click',function(){openWorld('time');});
+  document.getElementById('worldBack').addEventListener('click',closeWorld);
+  Array.prototype.forEach.call(document.querySelectorAll('.wtabs button'),function(b){
+    b.addEventListener('click',function(){setWorldTab(b.getAttribute('data-wtab'));});
+  });
+  document.getElementById('applyRegion').addEventListener('click',applyRegionTerrain);
+  document.getElementById('world').addEventListener('click',function(e){
+    var el=e.target;
+    var rb=el.closest('[data-region]');
+    if(rb){selectRegion(rb.getAttribute('data-region'));return;}
+    var sb=el.closest('[data-speed]');
+    if(sb){
+      speed=parseInt(sb.getAttribute('data-speed'),10)||0;
+      Array.prototype.forEach.call(document.querySelectorAll('[data-speed]'),function(x){x.classList.toggle('on',x.getAttribute('data-speed')===sb.getAttribute('data-speed'));});
+      updateHUD();return;
+    }
+    var jb=el.closest('[data-jump]');
+    if(jb){
+      var j=jb.getAttribute('data-jump');
+      if(j==='reset'){sim=SIM0;updateEnv(0);renderAll();toast('已回到公元0年1月1日 01:00:01');}
+      else if(j==='lichun')jumpTerm('立春');
+      else if(j==='chunfen')jumpTerm('春分');
+      else if(j==='xiazhi')jumpTerm('夏至');
+      else if(j==='qiufen')jumpTerm('秋分');
+      else if(j==='dongzhi')jumpTerm('冬至');
+      return;
+    }
+    var hx=el.closest('[data-hex]');
+    if(hx){hexSel=parseInt(hx.getAttribute('data-hex'),10);renderHexDetail();return;}
+    var tr=el.closest('.termRow');
+    if(tr){
+      var ts=parseFloat(tr.getAttribute('data-tsim'));
+      if(ts<0){toast('时间轴从公元 0 年 1 月 1 日开始；当前仍是起点前的冬至');return;}
+      sim=ts;updateEnv(0);renderAll();setWorldTab('terms');toast('已跳到该节气');
+      return;
+    }
+  });
+  addEventListener('keydown',function(e){if(e.key==='Escape')closeWorld();});
+}
+
 /* ---------- 启动 ---------- */
+
 resize();
 genWorld();
 var sp=pickSpawn();
@@ -1361,6 +2356,17 @@ spawn={x:sp.x,y:sp.y,z:sp.z};
 npc={x:sp.x-Math.sin(player.yaw)*7+Math.cos(player.yaw)*3.5,z:sp.z-Math.cos(player.yaw)*7-Math.sin(player.yaw)*3.5};
 buildMesh();
 buildHotbar();
+updateEnv(0);
+buildRegionChips();
+bindWorldUI();
+updateHUD();
+setTimeout(function(){toast('时间起点：公元0年1月1日 01:00:01 · 当前 60× 流动');},1200);
+window.__world={
+  get:function(){return {sim:sim,speed:speed,region:curRegion,date:env.D,env:env};},
+  set:function(s){sim=s;updateEnv(0);updateHUD();renderAll();},
+  setSpeed:function(v){speed=v;updateHUD();},
+  setRegion:function(k){selectRegion(k);}
+};
 requestAnimationFrame(function(t){last=t;loop(t);});
 setTimeout(function(){document.getElementById('hint').style.opacity='0';document.getElementById('hint').style.transition='opacity 1.2s';},9000);
 })();
