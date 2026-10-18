@@ -87,6 +87,13 @@ canvas{display:block;width:100%;height:100%}
 .friendItem.offline .dot{background:#666}
 .friendItem.offline{opacity:.5;cursor:default}
 #onFriends{max-height:30vh;overflow-y:auto;touch-action:pan-y;-webkit-overflow-scrolling:touch}
+#contacts{position:absolute;left:0;top:10%;bottom:10%;width:min(300px,36vw);z-index:36;background:rgba(14,18,30,.97);border:1px solid rgba(255,255,255,.2);border-left:none;border-radius:0 14px 14px 0;display:flex;flex-direction:column;transition:width .18s;box-shadow:6px 0 24px rgba(0,0,0,.35);overflow:hidden}
+#contactsHead{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;color:#ffd75e;font-weight:700;font-size:14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.12);user-select:none;-webkit-user-select:none}
+#contactsBody{flex:1;overflow-y:auto;touch-action:pan-y;-webkit-overflow-scrolling:touch;padding:10px 12px}
+#contacts.collapsed{width:40px}
+#contacts.collapsed #contactsBody{display:none}
+#contacts.collapsed #contactsTitle{display:none}
+#contacts.collapsed #contactsHead{justify-content:center;padding:10px 4px}
 
 /* ---- 操作按钮 ---- */
 #btns{position:absolute;right:2%;bottom:4%;z-index:6;display:grid;grid-template-columns:repeat(3,64px);grid-template-rows:repeat(2,64px);gap:10px;pointer-events:none}
@@ -230,7 +237,7 @@ canvas{display:block;width:100%;height:100%}
   </div>
   <div class="menuBtns">
     <button id="goBtn" disabled>开始对战</button>
-    <button id="btnPractice">🥋 练习模式(AI不死)</button>
+    <button id="btnPractice">🥋 练习模式</button>
     <button id="btnOnline">🌐 联机对战</button>
     <button id="btnRank">🏆 排行榜</button>
     <button id="btnCfg">⚙ 参数设置</button>
@@ -275,11 +282,17 @@ canvas{display:block;width:100%;height:100%}
       <div class="cfgTip" id="onMsg">用极简聊天 v3.0.5 的账号登录 · 双方需先加为好友</div>
     </div>
     <div id="onLobby" class="hidden">
-      <div class="cfgTip" id="onMe"></div>
-      <div class="cfgRow"><label>添加好友</label><input id="onAddName" type="text" placeholder="输入对方昵称"><button id="onAddBtn" style="flex:0 0 auto;padding:6px 14px;border-radius:8px;border:none;background:linear-gradient(180deg,#ff9d2e,#e5600a);color:#fff;cursor:pointer;font-size:13px">添加</button></div>
-      <div class="cfgTip" id="onAddMsg"></div>
-      <div class="cfgTip">👇 点击在线好友发起挑战(对方需打开本游戏)</div>
-      <div id="onFriends"></div>
+      <div id="contacts">
+        <div id="contactsHead"><span id="contactsTitle">📇 通讯录</span><span id="contactsArrow">◀</span></div>
+        <div id="contactsBody">
+          <div class="cfgTip" id="onMe"></div>
+          <div class="cfgRow"><label>添加好友</label><input id="onAddName" type="text" placeholder="输入对方昵称"><button id="onAddBtn" style="flex:0 0 auto;padding:6px 14px;border-radius:8px;border:none;background:linear-gradient(180deg,#ff9d2e,#e5600a);color:#fff;cursor:pointer;font-size:13px">添加</button></div>
+          <div class="cfgTip" id="onAddMsg"></div>
+          <div class="cfgTip">👇 点击在线好友发起挑战</div>
+          <div id="onFriends"></div>
+        </div>
+      </div>
+      <div class="cfgTip" style="margin-top:10px">📇 左侧通讯录可点击折叠/展开 · 点击在线好友发起挑战</div>
       <div class="cfgBtns">
         <button id="onLogoutBtn" style="background:rgba(255,255,255,.15)">退出登录</button>
         <button id="onBackBtn" style="background:linear-gradient(180deg,#ff9d2e,#e5600a)">返回游戏</button>
@@ -322,7 +335,7 @@ canvas{display:block;width:100%;height:100%}
 
 <div id="rankPanel" class="hidden">
   <div class="cfgCard" style="text-align:center">
-    <h2>🏆 排行榜</h2>
+    <h2>🏆 排行榜 · 按胜率排序</h2>
     <div id="rankList" style="text-align:left;font-size:13px;max-height:52vh;overflow-y:auto"></div>
     <div class="cfgBtns"><button id="rankClose" style="background:linear-gradient(180deg,#ff9d2e,#e5600a)">关闭</button></div>
   </div>
@@ -838,7 +851,6 @@ function tryHit(att,def,dmg,knockx,knocky,isSkill,color){
   def.hp=Math.max(0,def.hp-dmg);
   def.flash=0.12;
   if(def.hp<=0){
-    if(G.mode==='practice'&&def===E){ def.hp=1; def.flash=0.12; return true; } // 练习模式: AI 不会死亡
     koDefeated(def,att); return true;
   }
   if(knockx||knocky){
@@ -867,7 +879,10 @@ function koDefeated(def,att){
 }
 function showKO(winner){
   const isWin=winner.isPlayer;
-  playWinVideo(isWin,()=>{
+  // 胜负双方都播放获胜者角色的奥义动画(优先从本地缓存调取)
+  const cid=winner.c.id;
+  const n=cid==='naruto'?4:3;
+  playWinnerVideo(cid,1+Math.floor(Math.random()*n),()=>{
     musicSting(isWin);
     document.getElementById('btnPause').classList.add('hidden');
     document.getElementById('overlay').classList.remove('hidden');
@@ -880,15 +895,16 @@ function showKO(winner){
 }
 // 胜利奥义视频: 获胜随机播放对应角色视频, 播完/点击/出错后进入结算
 function playWinVideo(win,thenShow){
+  // 单机结算: 胜利随机播放自己角色的奥义
+  if(!win||!P){ thenShow(); return; }
+  const n=P.c.id==='naruto'?4:3;
+  playWinnerVideo(P.c.id,1+Math.floor(Math.random()*n),thenShow);
+}
+// 播放指定角色/编号的奥义动画(联机时胜方广播编号, 双方播放同一段); 优先本地缓存
+function playWinnerVideo(charId,idx,thenShow){
   const vbox=document.getElementById('winVideoBox');
   const v=document.getElementById('winV');
-  let src='';
-  if(win&&P){
-    const n=P.c.id==='naruto'?4:3;
-    const idx=1+Math.floor(Math.random()*n);
-    src='video/'+P.c.id+'_win'+idx+'.mp4';
-  }
-  if(!src){ thenShow(); return; }
+  const src='video/'+charId+'_win'+idx+'.mp4';
   let objUrl=null;
   // KO结算优先从手机本地缓存播放(登录时已校验下载)
   vcGet(src).then(rec=>{
@@ -1782,13 +1798,13 @@ function startBattleInner(mode){
   document.getElementById('overlay').classList.add('hidden');
   const tag=document.getElementById('modeTag');
   if(mode==='fight'){ tag.classList.add('hidden'); }
-  else { tag.classList.remove('hidden'); tag.textContent=mode==='practice'?'🥋 练习模式(AI不死)':'🌐 联机对战'; }
+  else { tag.classList.remove('hidden'); tag.textContent=mode==='practice'?'🥋 练习模式':'🌐 联机对战'; }
   G.state='fight';
   paused=false;
   document.getElementById('pausePanel').classList.add('hidden');
   if(mode==='online')document.getElementById('btnPause').classList.add('hidden');
   else document.getElementById('btnPause').classList.remove('hidden');
-  showBanner(mode==='practice'?'练习模式: AI 不会死亡!':'战斗开始!');
+  showBanner('战斗开始!');
   updateHUD();
   if(mode!=='online')musicPlay(Math.floor(Math.random()*8));
 }
@@ -2040,6 +2056,13 @@ function onMsg(t){
     if(e.room){ ON.room=e.room; onStartOnlineFight(); }
     return;
   }
+  if(verb==='KOVID'&&t.from===ON.peer){
+    // 胜方奥义动画编号: 败方同步播放同一段
+    let e={};
+    try{ e=JSON.parse(data||'{}'); }catch(err){}
+    onKOVideoMsg(e);
+    return;
+  }
 }
 async function onPoll(){
   if(!ON.token||ON.pollBusy)return;
@@ -2097,8 +2120,8 @@ function onLoggedIn(r,n){
 async function onRefreshFriends(){
   try{
     const r=await onApi('/api/friends');
-    ON.friends=(r&&r.friends)||[];
-    ON.friendRequests=(r&&r.requests)||[];
+    ON.friends=((r&&r.friends)||[]).slice().sort((a,b)=>String(a.name).localeCompare(String(b.name),'zh'));
+    ON.friendRequests=((r&&r.requests)||[]).slice().sort((a,b)=>String(a.name).localeCompare(String(b.name),'zh'));
     const box=document.getElementById('onFriends');
     box.innerHTML='';
     ON.friendRequests.forEach(fr=>{
@@ -2123,7 +2146,7 @@ async function onRefreshFriends(){
     ON.friends.forEach(fr=>{
       const it=document.createElement('div');
       it.className='friendItem '+(fr.online?'online':'offline');
-      it.innerHTML='<span><span class="dot"></span>'+fr.name+'</span><span style="font-size:11px;color:#9fb3d8">'+(fr.online?'在线':'离线')+'</span>';
+      it.innerHTML='<span><span class="dot"></span>'+fr.name+'</span><span style="font-size:11px;color:#9fb3d8">'+(fr.online?'在线':'离线')+(fr.wins!==undefined?(' · 胜率'+(fr.rate||0)+'% · '+(fr.wins||0)+'胜'):'')+'</span>';
       if(fr.online&&fr.name!==ON.name){
         it.addEventListener('click',()=>{
           ON.peer=fr.name;
@@ -2238,28 +2261,53 @@ function onlineEndByTime(){
   ON.ended=true;
   showOnlineKO(hostWin,'time');
 }
+// 联机KO动画同步: 胜方随机选段并广播编号, 双方播放同一段后再各自结算
+const KOVID={active:false,win:false,reason:'ko',playing:false,waitTimer:null};
 function showOnlineKO(win,reason){
   if(ON.ended&&G.state==='ko')return;
   ON.ended=true;
   // 对局结果上报排行榜(云服务端支持; 本地服务端 404 静默忽略)
   if(ON.token&&!ON.rankSent){
     ON.rankSent=true;
-    onApi('/api/rank/report',{win:win}).catch(()=>{});
+    onApi('/api/rank/report',{win:win}).then(()=>{ setTimeout(()=>{ try{onRefreshFriends();}catch(e){} },600); }).catch(()=>{});
   }
   if(ON.state==='fight')ON.state='lobby';
   G.state='ko';
-  playWinVideo(win,()=>{
-    musicSting(win);
-    document.getElementById('btnPause').classList.add('hidden');
-    const t=document.getElementById('koTitle');
-    t.textContent=win?'胜 利':'战 败';
-    t.className=win?'win':'lose';
-    document.getElementById('koSub').textContent=win
-      ?(reason==='time'?'⏱ 时间到! 血量占优获胜':'你击败了 '+ON.peer+'!')
-      :(reason==='time'?'⏱ 时间到! 血量落后惜败':'你被 '+ON.peer+' 击败');
-    document.getElementById('overlay').classList.remove('hidden');
-    document.getElementById('onTimer').classList.add('hidden');
-  });
+  KOVID.active=true; KOVID.win=win; KOVID.reason=reason; KOVID.playing=false;
+  clearTimeout(KOVID.waitTimer);
+  if(win&&P&&ON.peer){
+    // 胜方: 随机选段并广播给对手 → 双屏同步播放同一动画
+    const n=P.c.id==='naruto'?4:3;
+    const idx=1+Math.floor(Math.random()*n);
+    onSend('KOVID',JSON.stringify({c:P.c.id,i:idx}));
+    KOVID.playing=true;
+    playWinnerVideo(P.c.id,idx,()=>showOnlineResult());
+  }else{
+    // 败方: 最多等1.2秒胜方动画消息; 收到则同播
+    KOVID.waitTimer=setTimeout(()=>{ if(!KOVID.playing)showOnlineResult(); },1200);
+  }
+}
+function onKOVideoMsg(e){
+  if(!KOVID.active||KOVID.win||KOVID.playing)return;
+  if(!e||!e.c||!e.i)return;
+  clearTimeout(KOVID.waitTimer);
+  KOVID.playing=true;
+  playWinnerVideo(e.c,e.i,()=>showOnlineResult());
+}
+function showOnlineResult(){
+  KOVID.active=false;
+  clearTimeout(KOVID.waitTimer);
+  const win=KOVID.win, reason=KOVID.reason;
+  musicSting(win);
+  document.getElementById('btnPause').classList.add('hidden');
+  const t=document.getElementById('koTitle');
+  t.textContent=win?'胜 利':'战 败';
+  t.className=win?'win':'lose';
+  document.getElementById('koSub').textContent=win
+    ?(reason==='time'?'⏱ 时间到! 血量占优获胜':'你击败了 '+ON.peer+'!')
+    :(reason==='time'?'⏱ 时间到! 血量落后惜败':'你被 '+ON.peer+' 击败');
+  document.getElementById('overlay').classList.remove('hidden');
+  document.getElementById('onTimer').classList.add('hidden');
 }
 function onFightCleanup(){
   fsStop();
@@ -2298,6 +2346,14 @@ document.getElementById('onAddBtn').addEventListener('click',async()=>{
     else msg.textContent=(r&&r.error)||'添加失败';
   }catch(e){ msg.textContent='添加失败: 无法连接服务器'; }
 });
+// 通讯录侧栏: 点击标题折叠/展开
+const contactsHead=document.getElementById('contactsHead');
+if(contactsHead)contactsHead.addEventListener('click',()=>{
+  const c=document.getElementById('contacts');
+  c.classList.toggle('collapsed');
+  const ar=document.getElementById('contactsArrow');
+  if(ar)ar.textContent=c.classList.contains('collapsed')?'▶':'◀';
+});
 /* ============================================================
    排行榜
    ============================================================ */
@@ -2312,10 +2368,10 @@ document.getElementById('btnRank').addEventListener('click',async()=>{
     let html='';
     (r.top||[]).forEach((x,i)=>{
       const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'.';
-      html+='<div style="display:flex;justify-content:space-between;padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.08)"><span>'+medal+' '+x.name+'</span><span style="color:#ffd75e">'+x.pts+'分 ('+x.wins+'胜'+x.losses+'负)</span></div>';
+      html+='<div style="display:flex;justify-content:space-between;padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.08)"><span>'+medal+' '+x.name+'</span><span style="color:#ffd75e">'+(x.rate||0)+'% · '+x.wins+'胜'+x.losses+'负 · '+x.pts+'分</span></div>';
     });
     if(!html)html='<div class="cfgTip">暂无战绩, 打完联机对局自动上榜</div>';
-    if(r.me&&r.me.name)html+='<div style="margin-top:8px;padding:6px 8px;background:rgba(255,217,94,.12);border-radius:8px;color:#ffd75e">我的战绩: '+r.me.pts+'分 · '+r.me.wins+'胜 '+r.me.losses+'负</div>';
+    if(r.me&&r.me.name)html+='<div style="margin-top:8px;padding:6px 8px;background:rgba(255,217,94,.12);border-radius:8px;color:#ffd75e">我的战绩: 胜率'+(r.me.rate||0)+'% · '+r.me.wins+'胜 '+r.me.losses+'负 · '+r.me.pts+'分</div>';
     list.innerHTML=html;
   }catch(e){ list.innerHTML='<div class="cfgTip">该服务器暂不支持排行榜</div>'; }
 });
@@ -2412,6 +2468,8 @@ async function vcSync(){
     console.log('🎬 奥义视频缓存同步完成: 更新', changed, '个, 失败', failed, '个');
   }finally{ VCACHE.syncing=false; }
 }
+// 页面加载即开始校验/下载视频缓存(单机/练习也能本地播放)
+setTimeout(vcSync,800);
 
 /* ============================================================
    对战界面状态条: 联机延时(ms) + 渲染帧率(FPS)

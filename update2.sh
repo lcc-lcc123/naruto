@@ -14,7 +14,7 @@ for i in 1 2 3 4 5 6 7 8; do
 done
 echo "== 下载配音(6句) =="
 rm -f voice/naruto_stl.mp3 voice/naruto_atk3.mp3 voice/sasuke_stl.mp3 voice/sasuke_atk3.mp3 voice/naruto_s1.mp3 voice/naruto_s2.mp3
-for f in naruto_s1.m4a naruto_s2.m4a naruto_ult.mp3 sasuke_s1 sasuke_s2 sasuke_ult; do
+for f in naruto_s1.m4a naruto_s2.m4a naruto_ult.mp3 sasuke_s1.mp3 sasuke_s2.mp3 sasuke_ult.mp3; do
   curl -fsSL --max-time 120 -o "voice/$f" "$BASE/voice/$f?t=$TS" && echo "ok  $f" || echo "fail $f"
 done
 echo "== 下载胜利奥义视频(7个) =="

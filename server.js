@@ -98,7 +98,9 @@ function inGroup(name, gid) {
 }
 function userDTO(n) {
   const u = state.users[n];
-  return { name: n, color: u ? u.color : colorOf(n), online: onlineOf(n) };
+  const r = state.rank[n] || { wins: 0, losses: 0, pts: 1000 };
+  const total = (r.wins || 0) + (r.losses || 0);
+  return { name: n, color: u ? u.color : colorOf(n), online: onlineOf(n), wins: r.wins || 0, losses: r.losses || 0, rate: total ? Math.round((r.wins || 0) * 100 / total) : 0 };
 }
 function canSee(m, name) {
   if (m.to === name || m.from === name) return true;
@@ -619,10 +621,17 @@ const server = http.createServer(async function (req, res) {
   if (p === '/api/rank' && req.method === 'GET') {
     const name = auth(req);
     const arr = Object.keys(state.rank).map(function (n) {
-      return { name: n, pts: state.rank[n].pts, wins: state.rank[n].wins, losses: state.rank[n].losses };
-    }).sort(function (a, b) { return b.pts - a.pts; });
+      const R = state.rank[n];
+      const total = (R.wins || 0) + (R.losses || 0);
+      return { name: n, pts: R.pts, wins: R.wins, losses: R.losses, rate: total ? Math.round((R.wins || 0) * 100 / total) : 0 };
+    }).sort(function (a, b) { return (b.rate - a.rate) || (b.wins - a.wins) || (b.pts - a.pts); });
     let me = null;
-    if (name) me = state.rank[name] ? { name: name, pts: state.rank[name].pts, wins: state.rank[name].wins, losses: state.rank[name].losses } : { name: name, pts: 0, wins: 0, losses: 0 };
+    if (name) {
+      const R = state.rank[name];
+      const total = R ? (R.wins || 0) + (R.losses || 0) : 0;
+      me = R ? { name: name, pts: R.pts, wins: R.wins, losses: R.losses, rate: total ? Math.round((R.wins || 0) * 100 / total) : 0 }
+             : { name: name, pts: 0, wins: 0, losses: 0, rate: 0 };
+    }
     return ok(res, { ok: true, top: arr.slice(0, 30), me: me });
   }
 
@@ -636,7 +645,8 @@ const server = http.createServer(async function (req, res) {
     if (win) { r.wins++; r.pts += 25; }
     else { r.losses++; r.pts = Math.max(0, r.pts - 15); }
     saveState();
-    return ok(res, { ok: true, rank: { pts: r.pts, wins: r.wins, losses: r.losses } });
+    const total = r.wins + r.losses;
+    return ok(res, { ok: true, rank: { pts: r.pts, wins: r.wins, losses: r.losses, rate: total ? Math.round(r.wins * 100 / total) : 0 } });
   }
 
   fail(res, 404, '未知接口: ' + p);
