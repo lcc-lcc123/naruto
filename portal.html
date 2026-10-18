@@ -7,52 +7,63 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{min-height:100vh;background:radial-gradient(ellipse at 50% 0%,#2b3550,#0c0e18 70%);color:#fff;font-family:"PingFang SC","Microsoft YaHei",sans-serif;display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto}
-#all{display:flex;flex-direction:column;align-items:center;gap:20px;max-width:100%}
-.mods{display:flex;flex-direction:column;gap:16px;width:min(92vw,380px);align-items:stretch}
+#all{display:flex;flex-direction:column;align-items:center;gap:16px;max-width:100%}
+.mods{display:flex;flex-direction:column;gap:14px;width:min(92vw,380px);align-items:stretch}
 h1{font-size:26px;letter-spacing:4px;background:linear-gradient(180deg,#ffd75e,#ff7b00);-webkit-background-clip:text;background-clip:text;color:transparent}
 .sub{color:#9fb3d8;font-size:13px;text-align:center}
-.card{width:100%;border-radius:18px;padding:20px;text-decoration:none;color:#fff;display:flex;flex-direction:column;gap:8px;border:2px solid rgba(255,255,255,.15);transition:all .15s}
+.card{width:100%;border-radius:18px;padding:18px 20px;text-decoration:none;color:#fff;display:flex;flex-direction:column;gap:6px;border:2px solid rgba(255,255,255,.15);transition:all .15s;position:relative}
 .card:active{transform:scale(.97)}
-.card .ico{font-size:34px}
-.card .t{font-size:20px;font-weight:700}
+.card .ico{font-size:32px}
+.card .t{font-size:19px;font-weight:700;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .card .d{font-size:12px;color:#c8d4ea;line-height:1.6}
+.card .tag{font-size:10px;font-weight:600;padding:2px 7px;border-radius:999px;background:rgba(255,255,255,.16);color:#e8eefb}
+.card .tag.new{background:#07c160;color:#fff}
 #c-game{background:linear-gradient(135deg,rgba(247,147,30,.25),rgba(230,86,10,.15))}
 #c-chat{background:linear-gradient(135deg,rgba(7,193,96,.25),rgba(5,120,60,.15))}
 #c-rank{background:linear-gradient(135deg,rgba(155,109,255,.25),rgba(90,50,180,.15))}
+.sec{font-size:11px;line-height:1.7;text-align:center;padding:8px 14px;border-radius:12px;max-width:92vw}
+.sec.ok{background:rgba(7,193,96,.15);color:#8fe2b3;border:1px solid rgba(7,193,96,.35)}
+.sec.warn{background:rgba(255,176,32,.12);color:#ffd27a;border:1px solid rgba(255,176,32,.35)}
+.sec a{color:#ffd75e}
 .foot{margin-top:auto;color:#7d8fb0;font-size:11px;text-align:center;line-height:1.8}
 @media (orientation:landscape){
-  .mods{flex-direction:row;width:auto;max-width:96vw;gap:14px}
-  .mods .card{width:clamp(190px,29vw,300px);padding:14px}
+  body{padding:8px}
+  #all{gap:6px}
+  .mods{flex-direction:row;width:auto;max-width:96vw;gap:12px}
+  .mods .card{width:clamp(190px,28vw,290px);padding:12px;gap:4px}
   h1{font-size:20px;letter-spacing:3px}
-  .sub{font-size:11px}
-  .card .ico{font-size:26px}
-  .card .t{font-size:16px}
-  .card .d{font-size:11px;line-height:1.5}
-  .foot{font-size:10px;line-height:1.6}
+  .sub{font-size:10px}
+  .card .ico{font-size:22px}
+  .card .t{font-size:15px}
+  .card .d{font-size:10.5px;line-height:1.45}
+  .sec{font-size:10px;padding:5px 10px;line-height:1.5}
+  .foot{display:none}
+  footer{font-size:9px;line-height:1.5}
 }
 </style>
 </head>
 <body><div id="all">
 <h1>⛩ 忍界云</h1>
-<div class="sub">你和朋友的小天地 · 7×24 在线</div>
+<div class="sub">你和朋友的小天地 · 聊天与格斗，一个地址全都有</div>
+<div id="sec" class="sec warn">正在检测连接安全状态…</div>
 <div class="mods">
+<a class="card" id="c-chat" href="/m">
+  <span class="ico">💬</span>
+  <span class="t">极简聊天 <span class="tag new">v3.3.0</span></span>
+  <span class="d">信息 / 通讯录 / 我的三页 · 好友与群聊 · 语音消息（可转文字）· 语音通话 / 视频通话 · 聊天信息与记录搜索</span>
+</a>
 <a class="card" id="c-game" href="/game">
   <span class="ico">🎮</span>
   <span class="t">火影忍者 · 忍界对决</span>
-  <span class="d">1v1 联机格斗（支持抽签选人/自由选人/时间限制/参数自定义）+ 练习模式</span>
-</a>
-<a class="card" id="c-chat" href="/m">
-  <span class="ico">💬</span>
-  <span class="t">极简聊天 · 云版</span>
-  <span class="d">好友私聊 · 群聊 · 图片/文件 · 已读回执 · 消息撤回</span>
+  <span class="d">1v1 帧同步联机格斗 · 3D 纵深 · 抽签/自由选人 · 练习模式 · 胜率排行 · 自备 BGM/配音/奥义视频</span>
 </a>
 <a class="card" id="c-rank" href="/game">
   <span class="ico">🏆</span>
   <span class="t">排行榜</span>
-  <span class="d">联机对战战绩自动结算，打开游戏点「🏆 排行榜」查看</span>
+  <span class="d">联机对战战绩自动结算，打开游戏点「🏆 排行榜」查看连胜与胜率</span>
 </a>
 </div>
-<div class="foot">服务器时间由本机提供 · 登录账号与本地极简聊天独立<br>如需修改页面请联系管理员</div>
+<div class="foot">手机上建议横屏玩游戏 · 竖屏聊天<br>聊天记录保存在自己的服务器上</div>
   <footer style="color:#7d8fb0;font-size:11px;text-align:center;line-height:1.8">
     <div>游戏BGM/配音: 用户自备 · 仅供朋友间交流使用</div>
     <div>同人作品, 与火影忍者原作无关 · 仅供学习交流</div>
@@ -63,15 +74,25 @@ h1{font-size:26px;letter-spacing:4px;background:linear-gradient(180deg,#ffd75e,#
   function fit(){
     var a=document.getElementById('all');
     a.style.transform='none';
-    var r=a.getBoundingClientRect();
-    var k=Math.min(1,(innerWidth-24)/r.width,(innerHeight-24)/r.height);
-    document.body.style.overflow=(k<1)?'hidden':'auto';
-    if(k<1){a.style.transform='scale('+k+')';a.style.transformOrigin='center center';}
+    var w=a.offsetWidth,h=a.offsetHeight;
+    var k=Math.min(1,(innerWidth-20)/w,(innerHeight-16)/h);
+    a.style.transform=k<1?'scale('+k+')':'none';
+    a.style.transformOrigin='center center';
+    document.body.style.overflow='hidden';
   }
   addEventListener('resize',fit);
   addEventListener('orientationchange',fit);
   addEventListener('load',fit);
   fit();
+
+  var sec=document.getElementById('sec');
+  if(location.protocol==='https:'){
+    sec.className='sec ok';
+    sec.textContent='🔒 安全连接 · 语音消息、语音/视频通话可用';
+  }else{
+    sec.className='sec warn';
+    sec.innerHTML='⚠️ 当前为 HTTP 连接，麦克风/摄像头会被浏览器禁止<br>语音和通话请用 <a href="https://'+location.hostname+':3778/">https://'+location.hostname+':3778/</a> 打开（首次点“高级→继续前往”）';
+  }
 })();
 </script>
 </body>
