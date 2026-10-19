@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <link rel="icon" href="data:,">
 <title>映射 + AI 世界</title>
-<meta name="version" content="world-v8.3.0">
+<meta name="version" content="world-v8.4.0">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:"PingFang SC","Microsoft YaHei",sans-serif;color:#fff;touch-action:none;user-select:none;-webkit-user-select:none}
@@ -314,7 +314,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
       <button id="btnFront" type="button" title="正面 / 背面视角">↺</button>
     </div>
   </div>
-  <div id="hint">拖动画面看向四周 · 左下摇杆移动<br>对准方块点 <b>挖</b> / <b>放</b> · 点击物种名称看属性<br>点右上 <b>时序</b> 看昼夜节气 · <b>化学</b> 查元素与反应</div>
+  <div id="hint">拖动画面看向四周 · 左下摇杆移动<br>对准方块点 <b>挖</b> / <b>放</b> · 点击物种名称看属性<br>点右上 <b>时序</b> 看昼夜节气 · <b>化学</b> 查元素与反应<br>制造 → <b>实体</b>：取出零件 / 车模总装 / 驾驶汽车</div>
   <div id="cross"></div>
   <div id="hitmark">✕</div>
   <div id="petBar" class="hidden"></div>
@@ -1007,6 +1007,7 @@ function setFly(v,silent){
 }
 function toggleFly(){setFly(!flyMode,false);}
 function updatePlayer(dt){
+  if(vDriving){player.moving=false;return;}
   var fwd=(keys['w']?1:0)-(keys['s']?1:0);
   var str=(keys['d']?1:0)-(keys['a']?1:0);
   fwd+=-joy.y;str+=joy.x;
@@ -1027,8 +1028,8 @@ function updatePlayer(dt){
     player.y=Math.max(1,Math.min(WY-2,player.y+vv*6.2*dt));
     player.vy=0;player.onGround=false;
   }else{
-    if(!collides(nx,player.y,player.z))player.x=nx;
-    if(!collides(player.x,player.y,nz))player.z=nz;
+    if(!collides(nx,player.y,player.z)&&!vehicleBlocksPlayer(nx,player.y,player.z))player.x=nx;
+    if(!collides(player.x,player.y,nz)&&!vehicleBlocksPlayer(player.x,player.y,nz))player.z=nz;
     player.vy-=26*dt;
     var ny=player.y+player.vy*dt;
     if(!collides(player.x,ny,player.z))player.y=ny;
@@ -1331,6 +1332,7 @@ var last=0,frame=0,tick=0;
 function loop(ts){
   var dt=Math.min(0.05,(ts-last)/1000||0.016);last=ts;
   updatePlayer(dt);
+  updateVehicles(dt);
   updateEnv(dt);
   updateAgents(dt);
   if(atkCd>0)atkCd=Math.max(0,atkCd-dt);
@@ -1340,7 +1342,10 @@ function loop(ts){
   if(speed>0){saveAcc+=dt;if(saveAcc>=15){saveAcc=0;saveWorld(false);}}
   if(speed>0){phaseAcc+=dt;if(phaseAcc>=6){phaseAcc=0;phaseTick();}}
   var eye,lookYaw=player.yaw,pitch=player.pitch;
-  if(debugCam){
+  var vcam=vehicleCamera();
+  if(vcam){
+    eye=vcam.eye;lookYaw=vcam.yaw;pitch=vcam.pitch;
+  } else if(debugCam){
     eye=[debugCam.x,debugCam.y,debugCam.z];
     lookYaw=debugCam.yaw; pitch=debugCam.pitch;
   } else if(thirdPerson){
@@ -2825,6 +2830,7 @@ function rleDecode(str,len){
 function saveInfoText(s){var el=document.getElementById('saveInfo');if(el)el.textContent=s;}
 function saveWorld(manual){
   try{
+    saveVehicles();
     var data={v:1,ts:Date.now(),sim:sim,speed:speed,region:worldRegion,sel:sel,showFauna:showFauna,fly:flyMode,
       inv:{hot:hotbarSlots.map(function(x){return x?{id:x.id,n:x.n}:null;}),bag:bag.map(function(x){return {id:x.id,n:x.n};})},
       player:{x:player.x,y:player.y,z:player.z,yaw:player.yaw,pitch:player.pitch,vy:player.vy},
@@ -2892,6 +2898,7 @@ function loadWorld(auto){
 }
 function wipeWorld(){
   try{localStorage.removeItem(SAVE_KEY);}catch(e){}
+  resetVehicles();
   worldRegion=curRegion;
   RG=REGION_GEN[curRegion]||REGION_GEN.hb;
   genWorld();buildMesh();
@@ -5385,6 +5392,7 @@ function drawRigCharacters(dt, eyeVec, mvp) {
   var off = 0;
   off = bakeHumanRigs(rigArr, off, dt);
   off = bakePlayerRig(rigArr, off, dt);
+  off = bakeVehicleRigs(rigArr, off, dt);
   off = bakeAnimalRigs(rigArr, off, dt);
   off = bakePlantRigs(rigArr, off, dt);
   nRig = off / 9;
@@ -6407,6 +6415,1481 @@ function bindWorldUI(){
   addEventListener('keydown',function(e){if(e.key==='Escape')closeWorld();});
 }
 
+/* =====================================================================
+   实体零件 · 车模总装 · 汽车驾驶  (v8.4)
+   1 格 = 1 米。玩家高 1.78 m；整车 4.50 × 1.84 × 1.53 m。
+   ===================================================================== */
+var VEH_KEY = 'mapping-world-vehicles-v1';
+var VEH_MAX_PARTS = 48, VEH_MAX_CARS = 4;
+var BENCH_H = 0.60;
+var vParts = [], vCars = [], vBench = null, vDriving = null, vLastCar = null;
+var vSeq = 0, vAcc = 0, vNearCar = null, vNearBench = false, vBarAcc = 0, vPrepBusy = false, vSettleAcc = 0;
+var vLastColor = '#b23b3b';
+var VEH_COL = {}, VMC = {};
+var VEH_LM = new Float32Array(16), VEH_WM = new Float32Array(16), VEH_RT = new Float32Array(16);
+
+var VEH_CAR_COLORS = [
+  { n: '赤红', c: '#b23b3b' }, { n: '深蓝', c: '#2c5a9a' }, { n: '象牙白', c: '#d8dde2' },
+  { n: '曜黑', c: '#2b2f36' }, { n: '银灰', c: '#9aa6b2' }
+];
+var VSYS = [
+  { id: 'body_sys', key: 'body', n: '车身系统', d: '车架 + 覆盖件 + 车窗 + 灯' },
+  { id: 'power_sys', key: 'power', n: '动力系统', d: '发动机 + 电池 + 电机 + 变速箱 + 车轮' },
+  { id: 'control_sys', key: 'control', n: '控制系统', d: 'ECU + 整车线束' },
+  { id: 'safety_sys', key: 'safety', n: '安全系统', d: '气囊 + 安全带 + 防撞梁 + 制动盘' },
+  { id: 'interior_sys', key: 'interior', n: '内饰系统', d: '座椅 + 方向盘 + 内饰灯' }
+];
+var VEH_PART_IDS = ['hammer_head','hammer_handle','hammer','bed_frame','bed_board','bed','engine_block','piston','engine','gearbox','frame','panel','bumper','window','tire','wheel','battery_cell','battery_pack','motor','ecu','wiring','airbag','seatbelt','crash_beam','brake_disc','seat','seat_frame','dashboard','ac_unit','exhaust','light'];
+var VEH_MAT_IDS = ['steel','hs_steel','al_alloy','mg_alloy','ti_alloy','glass','tempered_glass','pp','abs','pc','rubber_v','carbon_fiber','composite_cf','ceramic','pcb','chip','ndfeb','cathode','electrolyte','separator','foam','nylon','polyester','paint','adhesive','coolant','lubricant','gasoline'];
+
+/* 实体尺寸（米，宽 w × 高 h × 深 d），按现实比例 1:1 缩放 */
+var VSPEC = {
+  steel: [0.56, 0.22, 0.30, '#8d99a8', 'ingot'], hs_steel: [0.56, 0.20, 0.30, '#77889c', 'ingot'],
+  al_alloy: [0.52, 0.20, 0.28, '#b9c3cc', 'ingot'], mg_alloy: [0.52, 0.20, 0.28, '#c3cbd0', 'ingot'],
+  ti_alloy: [0.48, 0.18, 0.26, '#9aa7b4', 'ingot'], glass: [1.00, 0.04, 0.60, '#9fd8e8', 'plate'],
+  tempered_glass: [1.00, 0.035, 0.60, '#b7e4ef', 'plate'], pp: [0.42, 0.30, 0.30, '#d9dde2', 'bag'],
+  abs: [0.42, 0.30, 0.30, '#e2e5e8', 'bag'], pc: [0.42, 0.30, 0.30, '#cfe4ec', 'bag'],
+  rubber_v: [0.36, 0.24, 0.30, '#2a2d31', 'block'], carbon_fiber: [0.48, 0.34, 0.30, '#2f3338', 'roll'],
+  composite_cf: [0.90, 0.06, 0.60, '#3b4046', 'plate'], ceramic: [0.28, 0.12, 0.28, '#e6e0d3', 'block'],
+  pcb: [0.30, 0.02, 0.22, '#2f7a4f', 'plate'], chip: [0.12, 0.03, 0.12, '#252b32', 'chip'],
+  ndfeb: [0.18, 0.10, 0.14, '#4a4f57', 'block'], cathode: [0.30, 0.34, 0.30, '#6b6f76', 'drum'],
+  electrolyte: [0.28, 0.36, 0.28, '#b6a55e', 'drum'], separator: [0.30, 0.26, 0.26, '#dfe6ea', 'roll'],
+  foam: [0.50, 0.30, 0.40, '#d9cfb8', 'block'], nylon: [0.32, 0.26, 0.26, '#e8e2d4', 'roll'],
+  polyester: [0.32, 0.26, 0.26, '#d9c8b0', 'roll'], paint: [0.28, 0.34, 0.28, '#a83a3a', 'drum'],
+  adhesive: [0.20, 0.28, 0.20, '#c9c3a8', 'drum'], coolant: [0.26, 0.34, 0.26, '#5aa8a0', 'drum'],
+  lubricant: [0.24, 0.32, 0.24, '#4b4130', 'drum'], gasoline: [0.30, 0.42, 0.30, '#b5452f', 'drum'],
+  hammer_head: [0.22, 0.12, 0.12, '#6d7784', 'part'], hammer_handle: [0.05, 0.38, 0.05, '#8a5f3c', 'part'],
+  hammer: [0.22, 0.40, 0.14, '#7b6650', 'part'], bed_frame: [2.00, 0.55, 1.45, '#8a6a48', 'part'],
+  bed_board: [1.90, 0.10, 1.35, '#c9a87a', 'part'], bed: [2.00, 0.92, 1.50, '#a07d55', 'part'],
+  engine_block: [0.62, 0.50, 0.55, '#5d6673', 'part'], piston: [0.14, 0.30, 0.14, '#aeb7c1', 'part'],
+  engine: [0.80, 0.62, 0.62, '#59626e', 'part'], gearbox: [0.50, 0.45, 0.50, '#6f7782', 'part'],
+  frame: [4.20, 0.32, 1.66, '#3d444d', 'part'], panel: [1.70, 0.55, 0.10, '#9aa7b4', 'part'],
+  window: [1.10, 0.60, 0.04, '#a9dcff', 'part'], tire: [0.28, 0.66, 0.66, '#17191d', 'part'],
+  wheel: [0.32, 0.70, 0.70, '#17191d', 'part'], battery_cell: [0.22, 0.13, 0.07, '#2d6f88', 'part'],
+  battery_pack: [1.35, 0.22, 0.90, '#2c6f88', 'part'], motor: [0.42, 0.38, 0.38, '#b87333', 'part'],
+  ecu: [0.22, 0.12, 0.16, '#2f6b4f', 'part'], wiring: [0.45, 0.30, 0.30, '#a9863e', 'part'],
+  airbag: [0.36, 0.30, 0.30, '#e7e3d8', 'part'], seatbelt: [0.28, 0.16, 0.14, '#333a42', 'part'],
+  crash_beam: [1.55, 0.18, 0.14, '#9aa3ad', 'part'], brake_disc: [0.07, 0.34, 0.34, '#c0c6ce', 'part'],
+  seat: [0.60, 0.95, 0.55, '#6b442f', 'part'], seat_frame: [0.58, 0.78, 0.52, '#9aa3ad', 'part'],
+  bumper: [1.72, 0.28, 0.18, '#3d444d', 'part'], dashboard: [1.30, 0.35, 0.26, '#2b3037', 'part'],
+  exhaust: [1.20, 0.18, 0.18, '#9aa3ad', 'part'], ac_unit: [0.55, 0.32, 0.38, '#c9d3de', 'part'],
+  light: [0.30, 0.20, 0.18, '#cfe4ec', 'part'],
+  body_sys: [1.84, 1.53, 4.50, '#b23b3b', 'sys'], power_sys: [1.86, 1.10, 4.26, '#3d444d', 'sys'],
+  control_sys: [1.60, 0.55, 3.20, '#2f6b4f', 'sys'], safety_sys: [1.72, 0.80, 4.40, '#9aa3ad', 'sys'],
+  interior_sys: [1.66, 1.20, 2.40, '#6b442f', 'sys'], car: [1.84, 1.53, 4.50, '#b23b3b', 'car']
+};
+
+function vHex(hex) { return VEH_COL[hex] || (VEH_COL[hex] = hexRGB(hex)); }
+function vB(x, y, z, w, h, d, c) { return [x, y, z, w, h, d, c]; }
+function vCyl(x, y, z, r, len, c, axis) { return { cyl: 1, x: x, y: y, z: z, r: r, len: len, col: c, axis: axis || 'x' }; }
+
+/* ---------- 整车：五个系统拼成一台 1:1 车模 ---------- */
+function vehicleSets(paint) {
+  var P = paint || '#b23b3b';
+  var dark = '#2b3037', dark2 = '#3c444e', glass = '#a9dcff', tire = '#17191d',
+    hub = '#c9d3de', chrome = '#aeb8c4', red = '#ff5447', warm = '#fff0bc', chrome2 = '#8b96a3';
+  if (P === '#2b2f36') { dark = '#20242a'; dark2 = '#333941'; }
+  var S = {};
+  S.body = [
+    vB(0, 0.42, 0.00, 1.74, 0.18, 4.30, dark2),
+    vB(0, 0.64, 0.02, 1.84, 0.44, 4.38, P),
+    vB(0, 1.03, 0.10, 1.78, 0.20, 4.04, P),
+    vB(0, 0.90, -1.55, 1.70, 0.14, 1.30, P),
+    vB(0, 0.90, 1.62, 1.70, 0.14, 1.10, P),
+    vB(0, 1.24, 0.44, 1.64, 0.34, 2.16, P),
+    vB(0, 1.44, 0.46, 1.58, 0.06, 1.96, P),
+    vB(0, 1.475, 0.52, 1.00, 0.015, 1.02, '#6f8f9e'),
+    vB(-0.825, 1.245, 0.44, 0.03, 0.30, 1.82, glass),
+    vB(0.825, 1.245, 0.44, 0.03, 0.30, 1.82, glass),
+    vB(-0.846, 1.405, 0.44, 0.018, 0.03, 1.90, '#1f2933'),
+    vB(0.846, 1.405, 0.44, 0.018, 0.03, 1.90, '#1f2933'),
+    vB(-0.846, 1.085, 0.44, 0.018, 0.03, 1.90, '#1f2933'),
+    vB(0.846, 1.085, 0.44, 0.018, 0.03, 1.90, '#1f2933'),
+    vB(-0.846, 1.245, 0.34, 0.02, 0.33, 0.10, '#1f2933'),
+    vB(0.846, 1.245, 0.34, 0.02, 0.33, 0.10, '#1f2933'),
+    vB(-0.846, 1.245, -0.50, 0.02, 0.33, 0.08, '#1f2933'),
+    vB(0.846, 1.245, -0.50, 0.02, 0.33, 0.08, '#1f2933'),
+    vB(-0.846, 1.245, 1.38, 0.02, 0.33, 0.08, '#1f2933'),
+    vB(0.846, 1.245, 1.38, 0.02, 0.33, 0.08, '#1f2933'),
+    vB(-0.846, 1.06, 0.44, 0.018, 0.025, 1.92, chrome),
+    vB(0.846, 1.06, 0.44, 0.018, 0.025, 1.92, chrome),
+    vB(-0.78, 1.478, 0.46, 0.035, 0.02, 1.92, dark2),
+    vB(0.78, 1.478, 0.46, 0.035, 0.02, 1.92, dark2),
+    vB(0, 1.25, -0.665, 1.56, 0.34, 0.045, glass),
+    vB(0, 1.26, 1.525, 1.58, 0.36, 0.045, glass),
+    vB(-0.60, 0.94, -2.205, 0.40, 0.16, 0.07, warm),
+    vB(0.60, 0.94, -2.205, 0.40, 0.16, 0.07, warm),
+    vB(-0.62, 1.00, 2.205, 0.42, 0.18, 0.07, red),
+    vB(0.62, 1.00, 2.205, 0.42, 0.18, 0.07, red),
+    vB(0, 0.58, -2.255, 1.80, 0.16, 0.12, dark),
+    vB(0, 0.58, 2.255, 1.80, 0.16, 0.12, dark),
+    vB(0, 0.72, -2.265, 0.92, 0.16, 0.05, '#2b3037'),
+    vB(0, 0.79, -2.245, 0.26, 0.07, 0.04, chrome),
+    vB(0, 0.715, 2.315, 0.48, 0.15, 0.015, '#1f2933'),
+    vB(0, 0.715, 2.325, 0.42, 0.11, 0.01, '#d8dde2'),
+    vB(-0.58, 0.35, 2.28, 0.10, 0.08, 0.10, '#4a4f57'),
+    vB(-1.005, 1.28, -0.52, 0.18, 0.08, 0.18, P),
+    vB(1.005, 1.28, -0.52, 0.18, 0.08, 0.18, P),
+    vB(-0.925, 0.78, -0.55, 0.012, 0.46, 0.02, '#1f2933'),
+    vB(0.925, 0.78, -0.55, 0.012, 0.46, 0.02, '#1f2933'),
+    vB(-0.925, 0.80, 0.05, 0.012, 0.46, 0.02, '#1f2933'),
+    vB(0.925, 0.80, 0.05, 0.012, 0.46, 0.02, '#1f2933'),
+    vB(-0.93, 0.90, -0.02, 0.025, 0.045, 0.18, chrome),
+    vB(0.93, 0.90, -0.02, 0.025, 0.045, 0.18, chrome),
+    vB(-0.93, 0.90, 0.72, 0.025, 0.045, 0.18, chrome),
+    vB(0.93, 0.90, 0.72, 0.025, 0.045, 0.18, chrome),
+    vB(-0.929, 0.88, 0.05, 0.014, 0.028, 3.92, '#1f2933'),
+    vB(0.929, 0.88, 0.05, 0.014, 0.028, 3.92, '#1f2933'),
+    vB(-0.93, 0.86, 1.15, 0.016, 0.14, 0.14, chrome),
+    vB(0, 1.135, -1.05, 1.62, 0.012, 0.02, '#1f2933'),
+    vB(0, 1.135, 1.50, 1.62, 0.012, 0.02, '#1f2933'),
+    vB(0, 1.065, 1.72, 1.50, 0.025, 0.02, '#1f2933')
+  ];
+  S.power = [
+    vCyl(-0.88, 0.34, -1.32, 0.33, 0.26, tire, 'x'),
+    vCyl(0.88, 0.34, -1.32, 0.33, 0.26, tire, 'x'),
+    vCyl(-0.88, 0.34, 1.32, 0.33, 0.26, tire, 'x'),
+    vCyl(0.88, 0.34, 1.32, 0.33, 0.26, tire, 'x'),
+    vCyl(-1.025, 0.34, -1.32, 0.17, 0.05, hub, 'x'),
+    vCyl(1.025, 0.34, -1.32, 0.17, 0.05, hub, 'x'),
+    vCyl(-1.025, 0.34, 1.32, 0.17, 0.05, hub, 'x'),
+    vCyl(1.025, 0.34, 1.32, 0.17, 0.05, hub, 'x'),
+    vB(0, 0.74, -1.42, 0.72, 0.38, 0.58, '#5d6673'),
+    vB(0, 0.72, -0.92, 0.46, 0.34, 0.44, '#7a828d'),
+    vB(0, 0.50, 0.18, 1.42, 0.20, 1.55, '#2c6f88'),
+    vB(0, 0.63, 1.12, 0.46, 0.40, 0.46, '#b87333'),
+    vB(0, 0.52, 0.18, 2.00, 0.05, 0.05, '#d6a23a'),
+    vCyl(0.55, 0.24, 0, 0.06, 3.70, '#9aa3ad', 'z'),
+    vB(0.55, 0.28, 1.45, 0.26, 0.18, 0.45, '#5d6673'),
+    vB(0.55, 0.30, 2.02, 0.10, 0.10, 0.12, '#7a828d')
+  ];
+  S.control = [
+    vB(0, 0.88, -1.62, 0.34, 0.10, 0.24, '#2f6b4f'),
+    vB(0, 0.53, -0.40, 1.52, 0.035, 0.045, '#d6a23a'),
+    vB(0.62, 0.53, 0.30, 0.035, 0.035, 1.30, '#d6a23a'),
+    vB(-0.62, 0.53, 0.30, 0.035, 0.035, 1.30, '#d6a23a'),
+    vB(0.50, 0.56, 1.00, 0.04, 0.30, 0.04, '#d6a23a')
+  ];
+  S.safety = [
+    vB(0, 0.66, -2.16, 1.66, 0.18, 0.10, '#9aa3ad'),
+    vB(0, 0.66, 2.16, 1.66, 0.18, 0.10, '#9aa3ad'),
+    vB(-0.88, 0.34, -1.32, 0.07, 0.30, 0.30, '#c0c6ce'),
+    vB(0.88, 0.34, -1.32, 0.07, 0.30, 0.30, '#c0c6ce'),
+    vB(-0.88, 0.34, 1.32, 0.07, 0.30, 0.30, '#c0c6ce'),
+    vB(0.88, 0.34, 1.32, 0.07, 0.30, 0.30, '#c0c6ce'),
+    vB(-0.44, 1.02, -0.92, 0.34, 0.26, 0.20, '#e7e3d8'),
+    vB(0.44, 1.02, -0.92, 0.34, 0.26, 0.20, '#e7e3d8'),
+    vB(-0.56, 1.16, 0.34, 0.07, 0.48, 0.07, '#333a42'),
+    vB(0.56, 1.16, 0.34, 0.07, 0.48, 0.07, '#333a42')
+  ];
+  S.interior = [
+    vB(-0.45, 1.00, -0.30, 0.52, 0.22, 0.50, '#6b442f'),
+    vB(0.45, 1.00, -0.30, 0.52, 0.22, 0.50, '#6b442f'),
+    vB(-0.45, 1.22, 0.02, 0.52, 0.40, 0.12, '#6b442f'),
+    vB(0.45, 1.22, 0.02, 0.52, 0.40, 0.12, '#6b442f'),
+    vB(-0.45, 1.00, 0.98, 0.52, 0.22, 0.44, '#5e3b29'),
+    vB(0.45, 1.00, 0.98, 0.52, 0.22, 0.44, '#5e3b29'),
+    vB(-0.45, 1.20, 1.22, 0.52, 0.38, 0.12, '#5e3b29'),
+    vB(0.45, 1.20, 1.22, 0.52, 0.38, 0.12, '#5e3b29'),
+    vB(-0.45, 1.13, -0.74, 0.34, 0.05, 0.34, '#232830'),
+    vB(0, 1.04, -0.96, 1.28, 0.24, 0.22, '#2b3037'),
+    vB(-0.30, 1.06, -1.08, 0.38, 0.14, 0.02, '#5aa8c0'),
+    vB(0.34, 0.84, -0.94, 0.48, 0.28, 0.30, '#c9d3de'),
+    vB(-0.50, 1.38, 0.42, 0.16, 0.04, 0.10, '#fff0bc'),
+    vB(0.50, 1.38, 0.42, 0.16, 0.04, 0.10, '#fff0bc')
+  ];
+  return S;
+}
+
+function vehicleBenchModel() {
+  var b = [], steel = '#39434f', top = '#4a5562', leg = '#2e3742', yellow = '#e6b94e';
+  b.push(vB(0, 0.55, 0, 5.60, 0.10, 3.00, steel));
+  b.push(vB(0, 0.605, 0, 5.50, 0.02, 2.90, top));
+  b.push(vB(0, 0.562, -1.47, 5.60, 0.035, 0.04, yellow));
+  b.push(vB(0, 0.562, 1.47, 5.60, 0.035, 0.04, yellow));
+  b.push(vB(-2.78, 0.562, 0, 0.04, 0.035, 3.00, yellow));
+  b.push(vB(2.78, 0.562, 0, 0.04, 0.035, 3.00, yellow));
+  b.push(vB(-2.62, 0.27, -1.35, 0.14, 0.54, 0.14, leg));
+  b.push(vB(2.62, 0.27, -1.35, 0.14, 0.54, 0.14, leg));
+  b.push(vB(-2.62, 0.27, 1.35, 0.14, 0.54, 0.14, leg));
+  b.push(vB(2.62, 0.27, 1.35, 0.14, 0.54, 0.14, leg));
+  b.push(vB(-2.26, 0.38, 1.06, 0.74, 0.60, 0.48, '#a83a3a'));
+  b.push(vB(-2.26, 0.46, 0.81, 0.64, 0.03, 0.02, '#d9dde2'));
+  b.push(vB(-2.26, 0.30, 0.81, 0.64, 0.03, 0.02, '#d9dde2'));
+  b.push(vB(-2.26, 0.74, 1.06, 0.78, 0.06, 0.52, '#8e2f2f'));
+  b.push(vB(2.32, 0.64, -1.12, 0.34, 0.12, 0.30, '#59626e'));
+  b.push(vB(2.32, 0.70, -1.12, 0.10, 0.10, 0.10, '#9aa3ad'));
+  return b;
+}
+
+/* ---------- 单个零件 / 材料的实体模型 ---------- */
+function vehiclePartModel(id) {
+  var s = VSPEC[id] || [0.4, 0.3, 0.3, '#8d99a8', 'part'];
+  var w = s[0], h = s[1], d = s[2], c = s[3], m = s[4];
+  var b = [];
+  if (m === 'ingot') {
+    b.push(vB(0, h * 0.36, 0, w, h * 0.72, d, c));
+    b.push(vB(0, h * 0.86, 0, w * 0.9, h * 0.44, d * 0.9, '#c3cbd3'));
+    return b;
+  }
+  if (m === 'plate') {
+    b.push(vB(0, Math.max(0.012, h * 0.5), 0, w, h, d, c));
+    b.push(vB(0, Math.max(0.012, h * 0.5) + 0.004, -d * 0.5 + 0.015, w, h + 0.008, 0.02, '#7f9aa4'));
+    return b;
+  }
+  if (m === 'bag') {
+    b.push(vB(0, h * 0.5, 0, w, h * 0.86, d, c));
+    b.push(vB(0, h * 0.93, 0, w * 0.45, h * 0.14, d * 0.3, '#8d99a8'));
+    b.push(vB(0, h * 0.55, 0, w + 0.015, h * 0.5, d * 0.25, '#ffffff'));
+    return b;
+  }
+  if (m === 'roll') {
+    b.push(vB(0, h * 0.5, 0, w, h, d, c));
+    b.push(vB(0, h * 0.5, 0, w * 0.45, h * 1.02, d * 0.45, '#5b626b'));
+    b.push(vB(0, h * 0.5, d * 0.5 + 0.01, w * 0.8, h * 0.8, 0.02, '#d9dde2'));
+    return b;
+  }
+  if (m === 'drum') {
+    b.push(vB(0, h * 0.48, 0, w, h * 0.9, d, c));
+    b.push(vB(0, h * 0.95, 0, w * 0.92, h * 0.08, d * 0.92, '#9aa3ad'));
+    b.push(vB(0, h * 0.62, 0, w + 0.012, h * 0.04, d + 0.012, '#333a42'));
+    b.push(vB(0, h * 0.28, 0, w + 0.012, h * 0.04, d + 0.012, '#333a42'));
+    return b;
+  }
+  if (m === 'chip') {
+    b.push(vB(0, 0.018, 0, 0.30, 0.03, 0.22, '#1f242a'));
+    b.push(vB(0, 0.04, 0, w, h, d, c));
+    return b;
+  }
+  if (m === 'block') {
+    b.push(vB(0, h * 0.5, 0, w, h, d, c));
+    return b;
+  }
+  /* 单个零件 */
+  var dark = '#2b3037', steel = '#8d99a8', tire = '#17191d';
+  if (id === 'hammer') {
+    b.push(vB(0, 0.32, 0, 0.05, 0.34, 0.05, '#8a5f3c'));
+    b.push(vB(0, 0.30, 0, 0.22, 0.11, 0.12, '#6d7784'));
+    return b;
+  }
+  if (id === 'hammer_head') { b.push(vB(0, 0.06, 0, 0.22, 0.12, 0.12, c)); return b; }
+  if (id === 'hammer_handle') { b.push(vB(0, 0.19, 0, 0.05, 0.38, 0.05, c)); return b; }
+  if (id === 'bed' || id === 'bed_frame' || id === 'bed_board') {
+    if (id === 'bed_board') { b.push(vB(0, 0.05, 0, 1.90, 0.10, 1.35, c)); return b; }
+    var legH = id === 'bed' ? 0.42 : 0.40;
+    b.push(vB(-0.92, legH, -0.66, 0.10, legH, 0.10, '#6d5238'));
+    b.push(vB(0.92, legH, -0.66, 0.10, legH, 0.10, '#6d5238'));
+    b.push(vB(-0.92, legH, 0.66, 0.10, legH, 0.10, '#6d5238'));
+    b.push(vB(0.92, legH, 0.66, 0.10, legH, 0.10, '#6d5238'));
+    b.push(vB(0, legH * 2, -0.72, 1.94, 0.10, 0.08, c));
+    b.push(vB(0, legH * 2, 0.72, 1.94, 0.10, 0.08, c));
+    b.push(vB(-0.97, legH * 2, 0, 0.08, 0.10, 1.44, c));
+    b.push(vB(0.97, legH * 2, 0, 0.08, 0.10, 1.44, c));
+    if (id === 'bed') {
+      b.push(vB(0, 0.50, 0, 1.88, 0.08, 1.34, '#c9a87a'));
+      b.push(vB(0, 0.78, -0.62, 1.86, 0.48, 0.09, '#8a6a48'));
+    }
+    return b;
+  }
+  if (id === 'engine_block' || id === 'engine') {
+    var ew = id === 'engine' ? 0.80 : 0.62, eh = id === 'engine' ? 0.55 : 0.50, ed = id === 'engine' ? 0.60 : 0.55;
+    b.push(vB(0, eh * 0.50, 0, ew, eh, ed, c));
+    b.push(vB(0, eh + 0.03, 0, ew * 0.72, 0.10, ed * 0.72, '#3c444e'));
+    for (var i = 0; i < 4; i++) b.push(vB(-ew * 0.32 + i * ew * 0.21, eh + 0.10, 0, 0.05, 0.12, ed * 0.5, '#aeb7c1'));
+    if (id === 'engine') {
+      b.push(vB(0, 0.16, ed * 0.36, ew * 0.9, 0.16, 0.20, dark));
+      b.push(vB(0, eh * 0.5, -ed * 0.58, 0.44, 0.34, 0.10, '#7a828d'));
+    }
+    return b;
+  }
+  if (id === 'piston') {
+    b.push(vB(0, 0.15, 0, 0.13, 0.24, 0.13, c));
+    b.push(vB(0, 0.30, 0, 0.14, 0.04, 0.14, '#6d7784'));
+    b.push(vB(0, 0.05, 0, 0.06, 0.14, 0.06, '#5d6673'));
+    return b;
+  }
+  if (id === 'gearbox') {
+    b.push(vB(0, 0.22, 0, 0.48, 0.44, 0.46, c));
+    b.push(vB(0, 0.48, 0, 0.30, 0.10, 0.30, '#8d99a8'));
+    b.push(vB(0.28, 0.22, 0, 0.08, 0.24, 0.24, '#aeb7c1'));
+    return b;
+  }
+  if (id === 'frame') {
+    b.push(vB(-0.70, 0.15, 0, 0.14, 0.30, 4.20, c));
+    b.push(vB(0.70, 0.15, 0, 0.14, 0.30, 4.20, c));
+    b.push(vB(0, 0.15, -1.55, 1.56, 0.16, 0.16, c));
+    b.push(vB(0, 0.15, 0, 1.56, 0.16, 0.16, c));
+    b.push(vB(0, 0.15, 1.55, 1.56, 0.16, 0.16, c));
+    return b;
+  }
+  if (id === 'panel') {
+    b.push(vB(0, 0.28, 0, 1.70, 0.52, 0.07, c));
+    b.push(vB(0, 0.28, 0.05, 1.60, 0.44, 0.03, '#d9dde2'));
+    return b;
+  }
+  if (id === 'window') {
+    b.push(vB(0, 0.30, 0, 1.10, 0.58, 0.035, c));
+    b.push(vB(0, 0.30, 0, 1.16, 0.64, 0.02, '#5d6673'));
+    return b;
+  }
+  if (id === 'tire') {
+    b.push(vCyl(0, 0.33, 0, 0.33, 0.28, tire, 'x'));
+    b.push(vCyl(-0.15, 0.33, 0, 0.18, 0.03, '#2a2d31', 'x'));
+    b.push(vCyl(0.15, 0.33, 0, 0.18, 0.03, '#2a2d31', 'x'));
+    return b;
+  }
+  if (id === 'wheel') {
+    b.push(vCyl(0, 0.35, 0, 0.35, 0.32, tire, 'x'));
+    b.push(vCyl(-0.17, 0.35, 0, 0.18, 0.04, '#c9d3de', 'x'));
+    b.push(vCyl(0.17, 0.35, 0, 0.18, 0.04, '#c9d3de', 'x'));
+    return b;
+  }
+  if (id === 'battery_cell') {
+    b.push(vB(0, 0.065, 0, 0.22, 0.13, 0.07, c));
+    b.push(vB(-0.06, 0.14, 0, 0.03, 0.02, 0.03, '#c9d3de'));
+    b.push(vB(0.06, 0.14, 0, 0.03, 0.02, 0.03, '#c9d3de'));
+    return b;
+  }
+  if (id === 'battery_pack') {
+    b.push(vB(0, 0.11, 0, 1.35, 0.22, 0.90, c));
+    b.push(vB(0, 0.235, 0, 1.30, 0.03, 0.84, '#9aa3ad'));
+    b.push(vB(0, 0.11, 0.46, 1.20, 0.10, 0.03, '#d6a23a'));
+    return b;
+  }
+  if (id === 'motor') {
+    b.push(vB(0, 0.19, 0, 0.38, 0.38, 0.38, c));
+    b.push(vB(0, 0.19, 0, 0.30, 0.42, 0.30, '#7a828d'));
+    b.push(vB(0.22, 0.19, 0, 0.10, 0.10, 0.10, '#c9d3de'));
+    return b;
+  }
+  if (id === 'ecu') {
+    b.push(vB(0, 0.06, 0, 0.22, 0.12, 0.16, c));
+    b.push(vB(0, 0.125, 0, 0.16, 0.012, 0.10, '#d9dde2'));
+    return b;
+  }
+  if (id === 'wiring') {
+    b.push(vB(0, 0.15, 0, 0.42, 0.30, 0.30, c));
+    b.push(vB(0, 0.15, 0, 0.18, 0.32, 0.18, '#d9dde2'));
+    return b;
+  }
+  if (id === 'airbag') {
+    b.push(vB(0, 0.15, 0, 0.36, 0.30, 0.30, c));
+    b.push(vB(0, 0.30, 0, 0.24, 0.03, 0.20, '#c9c3b0'));
+    return b;
+  }
+  if (id === 'seatbelt') {
+    b.push(vB(0, 0.08, 0, 0.24, 0.16, 0.12, c));
+    b.push(vB(0, 0.20, 0, 0.10, 0.10, 0.10, '#6d7784'));
+    return b;
+  }
+  if (id === 'crash_beam') {
+    b.push(vB(0, 0.09, 0, 1.55, 0.18, 0.14, c));
+    b.push(vB(-0.55, 0.09, 0.08, 0.10, 0.22, 0.06, '#5d6673'));
+    b.push(vB(0.55, 0.09, 0.08, 0.10, 0.22, 0.06, '#5d6673'));
+    return b;
+  }
+  if (id === 'brake_disc') {
+    b.push(vCyl(0, 0.17, 0, 0.17, 0.07, c, 'x'));
+    b.push(vCyl(0, 0.17, 0, 0.09, 0.08, '#6d7784', 'x'));
+    b.push(vB(0, 0.08, 0.17, 0.09, 0.12, 0.05, '#a83a3a'));
+    return b;
+  }
+  if (id === 'seat') {
+    b.push(vB(0, 0.18, 0.02, 0.58, 0.18, 0.52, '#5e3b29'));
+    b.push(vB(0, 0.48, -0.22, 0.58, 0.48, 0.12, c));
+    b.push(vB(0, 0.68, -0.22, 0.46, 0.12, 0.10, '#5e3b29'));
+    b.push(vB(-0.24, 0.30, 0, 0.06, 0.22, 0.06, '#333a42'));
+    b.push(vB(0.24, 0.30, 0, 0.06, 0.22, 0.06, '#333a42'));
+    return b;
+  }
+  if (id === 'seat_frame') {
+    b.push(vB(0, 0.14, 0.02, 0.58, 0.10, 0.52, c));
+    b.push(vB(0, 0.44, 0.24, 0.58, 0.56, 0.08, c));
+    b.push(vB(-0.25, 0.22, 0, 0.05, 0.24, 0.05, '#6d7784'));
+    b.push(vB(0.25, 0.22, 0, 0.05, 0.24, 0.05, '#6d7784'));
+    return b;
+  }
+  if (id === 'dashboard') {
+    b.push(vB(0, 0.17, 0, 1.30, 0.30, 0.22, c));
+    b.push(vB(0.15, 0.19, -0.12, 0.42, 0.16, 0.02, '#5aa8c0'));
+    b.push(vB(-0.40, 0.19, -0.12, 0.22, 0.10, 0.02, '#1f2933'));
+    b.push(vB(-0.10, 0.19, -0.12, 0.14, 0.10, 0.02, '#1f2933'));
+    return b;
+  }
+  if (id === 'bumper') {
+    b.push(vB(0, 0.14, 0, 1.72, 0.26, 0.16, c));
+    b.push(vB(-0.80, 0.16, 0.02, 0.14, 0.22, 0.14, '#2b3037'));
+    b.push(vB(0.80, 0.16, 0.02, 0.14, 0.22, 0.14, '#2b3037'));
+    b.push(vB(0, 0.05, 0, 1.30, 0.06, 0.12, '#9aa3ad'));
+    return b;
+  }
+  if (id === 'exhaust') {
+    b.push(vCyl(0, 0.10, 0, 0.08, 1.15, c, 'z'));
+    b.push(vB(0, 0.12, 0.25, 0.24, 0.16, 0.42, '#5d6673'));
+    b.push(vCyl(0.28, 0.10, 0.55, 0.06, 0.18, '#7a828d', 'z'));
+    return b;
+  }
+  if (id === 'ac_unit') {
+    b.push(vB(0, 0.16, 0, 0.55, 0.32, 0.38, c));
+    b.push(vB(0, 0.16, -0.20, 0.45, 0.24, 0.02, '#7a828d'));
+    b.push(vB(-0.12, 0.16, -0.21, 0.12, 0.18, 0.01, '#2b3037'));
+    b.push(vB(0.12, 0.16, -0.21, 0.12, 0.18, 0.01, '#2b3037'));
+    b.push(vB(0.24, 0.20, 0.10, 0.06, 0.06, 0.06, '#b87333'));
+    return b;
+  }
+  if (id === 'light') {
+    b.push(vB(0, 0.10, 0, 0.28, 0.18, 0.16, '#cfe4ec'));
+    b.push(vB(0, 0.10, -0.085, 0.22, 0.12, 0.02, '#fff0bc'));
+    b.push(vB(0, 0.02, 0.02, 0.10, 0.04, 0.08, '#2f6b4f'));
+    return b;
+  }
+  b.push(vB(0, h * 0.5, 0, w, h, d, c));
+  return b;
+}
+
+function vehicleModel(id, color) {
+  if (id === 'car') {
+    var S0 = vehicleSets(color);
+    return S0.body.concat(S0.power, S0.control, S0.safety, S0.interior);
+  }
+  for (var i = 0; i < VSYS.length; i++) if (VSYS[i].id === id) return vehicleSets(color)[VSYS[i].key];
+  if (id === 'bench') return vehicleBenchModel();
+  return vehiclePartModel(id);
+}
+function vModel(id, color) {
+  var k = id + '|' + (color || '');
+  if (!VMC[k]) VMC[k] = vehicleModel(id, color);
+  return VMC[k];
+}
+function vModelMinY(model) {
+  var m = 1e9;
+  for (var i = 0; i < model.length; i++) {
+    var b = model[i];
+    var lo = b.cyl ? (b.y - b.r) : (b[1] - b[4] / 2);
+    if (lo < m) m = lo;
+  }
+  return m === 1e9 ? 0 : m;
+}
+var VLIFT = {};
+function vLift(id) {
+  if (!(id in VLIFT)) VLIFT[id] = vModelMinY(vModel(id));
+  return VLIFT[id];
+}
+function vIsSystem(id) {
+  for (var i = 0; i < VSYS.length; i++) if (VSYS[i].id === id) return true;
+  return false;
+}
+function vSpec(id) {
+  var s = VSPEC[id];
+  if (s) return { w: s[0], h: s[1], d: s[2], c: s[3], m: s[4] };
+  return { w: 0.4, h: 0.3, d: 0.3, c: '#8d99a8', m: 'part' };
+}
+function vName(id) {
+  if (id === 'car') return '汽车';
+  if (id === 'bench') return '总装台';
+  try { if (window.__craft && __craft.materials && __craft.materials[id]) return __craft.materials[id].n; } catch (e) {}
+  return id;
+}
+function vIcon(id) {
+  if (id === 'car') return '🚗';
+  if (id === 'bench') return '🛠️';
+  if (id === 'hammer') return '🔨';
+  if (id === 'bed') return '🛏️';
+  if (id === 'body_sys') return '🚙';
+  if (id === 'power_sys') return '⚙️';
+  if (id === 'control_sys') return '🧠';
+  if (id === 'safety_sys') return '🛡️';
+  if (id === 'interior_sys') return '🪑';
+  if (id === 'tire' || id === 'wheel') return '🛞';
+  if (id === 'seat') return '🪑';
+  if (id === 'seat_frame') return '🪑';
+  if (id === 'dashboard') return '📟';
+  if (id === 'bumper') return '🚧';
+  if (id === 'exhaust') return '💨';
+  if (id === 'ac_unit') return '❄️';
+  if (id === 'light') return '💡';
+  if (id === 'window' || id === 'glass' || id === 'tempered_glass') return '🪟';
+  if (id === 'battery_pack' || id === 'battery_cell') return '🔋';
+  if (id === 'motor' || id === 'engine') return '⚙️';
+  if (id === 'ecu' || id === 'pcb' || id === 'chip') return '🧩';
+  if (id === 'gasoline' || id === 'paint' || id === 'coolant' || id === 'lubricant') return '🛢️';
+  if (id === 'frame' || id === 'crash_beam') return '🪝';
+  if (id === 'wiring') return '🧵';
+  if (id === 'airbag' || id === 'seatbelt') return '🛡️';
+  if (id === 'brake_disc') return '🛞';
+  if (id === 'steel' || id === 'al_alloy' || id === 'ti_alloy' || id === 'hs_steel') return '🔩';
+  return '📦';
+}
+
+/* ---------- 矩阵与烘焙 ---------- */
+function vMat(x, y, z, w, h, d, o) {
+  o[0] = w; o[1] = 0; o[2] = 0; o[3] = 0;
+  o[4] = 0; o[5] = h; o[6] = 0; o[7] = 0;
+  o[8] = 0; o[9] = 0; o[10] = d; o[11] = 0;
+  o[12] = x; o[13] = y; o[14] = z; o[15] = 1;
+  return o;
+}
+function bakeVModel(arr, off, root, model, baseY) {
+  for (var i = 0; i < model.length; i++) {
+    var b = model[i];
+    if (b.cyl) {
+      var m = VEH_LM;
+      m[0] = 1; m[1] = 0; m[2] = 0; m[3] = 0;
+      m[4] = 0; m[5] = 1; m[6] = 0; m[7] = 0;
+      m[8] = 0; m[9] = 0; m[10] = 1; m[11] = 0;
+      m[12] = b.x; m[13] = b.y + baseY; m[14] = b.z; m[15] = 1;
+      if (b.axis === 'x') {
+        m[0] = 0; m[1] = -1; m[2] = 0;
+        m[4] = 1; m[5] = 0; m[6] = 0;
+      } else if (b.axis === 'z') {
+        m[4] = 0; m[5] = 0; m[6] = 1;
+        m[8] = 0; m[9] = -1; m[10] = 0;
+      }
+      mMul(root, m, VEH_WM);
+      off = emitRigCylinder(arr, off, VEH_WM, vHex(b.col), b.r, b.r, b.len, 12);
+      continue;
+    }
+    vMat(b[0], b[1] + baseY, b[2], b[3], b[4], b[5], VEH_LM);
+    mMul(root, VEH_LM, VEH_WM);
+    off = emitRigBox(arr, off, VEH_WM, vHex(b[6]));
+  }
+  return off;
+}
+function bakeVehicleRigs(arr, off, dt) {
+  var i, j, root = VEH_RT;
+  var dirty = (vParts.length || vCars.length || vBench) ? 1 : 0;
+  if (!dirty) return off;
+  /* 总装台（含已装系统） */
+  if (vBench) {
+    rigRootMat(vBench.x, vBench.y, vBench.z, 0, 1, root);
+    off = bakeVModel(arr, off, root, vModel('bench'), 0);
+    for (i = 0; i < VSYS.length; i++) {
+      var sid = VSYS[i].id;
+      if (!vBench.slots[sid]) continue;
+      off = bakeVModel(arr, off, root, vModel(sid, vBench.color), BENCH_H);
+    }
+  }
+  /* 散落零件 */
+  for (i = 0; i < vParts.length; i++) {
+    var p = vParts[i];
+    if (!p) continue;
+    rigRootMat(p.x, p.y, p.z, p.yaw || 0, 1, root);
+    var pm = vModel(p.id);
+    var lift = vIsSystem(p.id) ? -vLift(p.id) : 0;
+    off = bakeVModel(arr, off, root, pm, lift);
+  }
+  /* 汽车 */
+  for (i = 0; i < vCars.length; i++) {
+    var c = vCars[i];
+    rigRootMat(c.x, c.y, c.z, c.yaw || 0, 1, root);
+    off = bakeVModel(arr, off, root, vModel('car', c.color), 0);
+  }
+  return off;
+}
+
+/* ---------- 地面 / 放置 ---------- */
+function vGround(x, z) { return surfaceY(Math.floor(x), Math.floor(z)); }
+function vAreaClear(x, z, hw, hl, height) {
+  var nx = Math.max(3, Math.ceil(hw * 2 / 0.75) + 1);
+  var nz = Math.max(3, Math.ceil(hl * 2 / 0.75) + 1);
+  var lo = 1e9, hi = -1e9;
+  for (var i = 0; i < nx; i++) {
+    for (var j = 0; j < nz; j++) {
+      var px = x - hw + (2 * hw) * i / (nx - 1);
+      var pz = z - hl + (2 * hl) * j / (nz - 1);
+      if (px < 2 || pz < 2 || px > WX - 3 || pz > WZ - 3) return null;
+      var g = vGround(px, pz);
+      if (g < lo) lo = g; if (g > hi) hi = g;
+      if (getB(Math.floor(px), Math.floor(g), Math.floor(pz)) === 5) return null;
+      var topB = getB(Math.floor(px), Math.floor(g) - 1, Math.floor(pz));
+      if (topB === 6 || topB === 7) return null;
+      for (var yy = 0; yy < height; yy++) {
+        var b = getB(Math.floor(px), Math.floor(g) + yy, Math.floor(pz));
+        if (b && b !== 5) return null;
+      }
+    }
+  }
+  if (hi - lo > 0.95) return null;
+  return { x: x, z: z, y: hi, lo: lo, hi: hi };
+}
+function vLineBlocked(x, z) {
+  for (var t = 0.12; t < 0.98; t += 0.1) {
+    var px = player.x + (x - player.x) * t;
+    var pz = player.z + (z - player.z) * t;
+    var g = vGround(px, pz);
+    if (solid(getB(Math.floor(px), Math.floor(g) + 1, Math.floor(pz)))) return true;
+    if (solid(getB(Math.floor(px), Math.floor(g) + 2, Math.floor(pz)))) return true;
+  }
+  return false;
+}
+function vFindSpot(cx, cz, hw, hl, height, dist, prefY) {
+  var baseY = prefY == null ? vGround(cx, cz) : prefY;
+  var best = null, bestScore = 1e9;
+  function consider(x, z, r) {
+    var s = vAreaClear(x, z, hw, hl, height);
+    if (!s) return;
+    var score = Math.abs(s.y - baseY) * 4 + r * 0.55 + (vLineBlocked(x, z) ? 9 : 0);
+    if (score < bestScore) { bestScore = score; best = s; }
+  }
+  consider(cx, cz, 0);
+  for (var r = 1; r <= 5; r++) {
+    for (var a = 0; a < 12; a++) {
+      var ang = a / 12 * Math.PI * 2;
+      consider(cx + Math.cos(ang) * r * 1.5, cz + Math.sin(ang) * r * 1.5, r);
+    }
+  }
+  return best;
+}
+function vFront(n) {
+  return { x: player.x - Math.sin(player.yaw) * n, z: player.z - Math.cos(player.yaw) * n };
+}
+function vClampXZ(x, z) {
+  return [Math.max(2.5, Math.min(WX - 3.5, x)), Math.max(2.5, Math.min(WZ - 3.5, z))];
+}
+function vPointSeg(px, pz, ax, az, bx, bz) {
+  var dx = bx - ax, dz = bz - az, l2 = dx * dx + dz * dz;
+  var t = l2 ? Math.max(0, Math.min(1, ((px - ax) * dx + (pz - az) * dz) / l2)) : 0;
+  return Math.hypot(px - (ax + dx * t), pz - (az + dz * t));
+}
+function vClearFlora(cx, cz, r) {
+  if (typeof flora === 'undefined') return;
+  for (var i = 0; i < flora.length; i++) {
+    var p = flora[i];
+    if (!p || !p.alive) continue;
+    var near = Math.hypot(p.x - cx, p.z - cz) < r;
+    var sight = vPointSeg(p.x, p.z, player.x, player.z, cx, cz) < 2.3;
+    if (!near && !sight) continue;
+    var ang = Math.atan2(p.z - player.z, p.x - player.x) + (i % 2 ? 1.45 : -1.45);
+    p.x = Math.max(3, Math.min(WX - 4, player.x + Math.cos(ang) * 7.5));
+    p.z = Math.max(3, Math.min(WZ - 4, player.z + Math.sin(ang) * 7.5));
+    p.t = 0;
+  }
+}
+function dropPartAt(id, x, z) {
+  if (vParts.length >= VEH_MAX_PARTS) {
+    var old = vParts.shift();
+    if (old) { craftGive(old.id, 1); toast('零件太多，已自动收回 ' + vName(old.id)); }
+  }
+  var p = { id: id, x: x, z: z, y: vGround(x, z) + 0.01, yaw: (Math.random() - 0.5) * 0.7, t: Date.now() };
+  vParts.push(p);
+  saveVehicles();
+  return p;
+}
+function dropPart(id) {
+  var f = vFront(2.2 + Math.random() * 0.7);
+  var xz = vClampXZ(f.x, f.z);
+  return dropPartAt(id, xz[0], xz[1]);
+}
+function craftGet(id) {
+  try { return window.__craft ? (+__craft.stock()[id] || 0) : 0; } catch (e) { return 0; }
+}
+function craftTake(id, n) {
+  try { return window.__craft && __craft.take ? __craft.take(id, n || 1) : false; } catch (e) { return false; }
+}
+function craftGive(id, n) {
+  try { return window.__craft && __craft.give ? __craft.give(id, n || 1) : false; } catch (e) { return false; }
+}
+function takePart(id) {
+  if (craftGet(id) < 1) { toast('制造物品栏里没有 ' + vName(id)); return false; }
+  if (!craftTake(id, 1)) return false;
+  var p = dropPart(id);
+  toast('已取出 ' + vName(id) + '：' + vSpec(id).w.toFixed(2) + ' × ' + vSpec(id).h.toFixed(2) + ' × ' + vSpec(id).d.toFixed(2) + ' m');
+  refreshSolid();
+  return p;
+}
+function pickupPart(p) {
+  var idx = vParts.indexOf(p);
+  if (idx < 0) return false;
+  vParts.splice(idx, 1);
+  craftGive(p.id, 1);
+  toast('已收回 ' + vName(p.id) + ' 到制造物品栏');
+  saveVehicles(); refreshSolid();
+  return true;
+}
+function nearPartAt(id, x, z, r) {
+  var best = null, bd = r;
+  for (var i = 0; i < vParts.length; i++) {
+    var p = vParts[i];
+    if (p.id !== id) continue;
+    var d = Math.hypot(p.x - x, p.z - z);
+    if (d < bd) { bd = d; best = p; }
+  }
+  return best;
+}
+
+/* ---------- 总装台 ---------- */
+function placeBench() {
+  if (vBench) { toast('总装台已经放置了'); return false; }
+  var f = vFront(4.2);
+  var pg = vGround(player.x, player.z);
+  var spot = vFindSpot(f.x, f.z, 2.85, 1.55, 2.0, 5, pg) || { x: f.x, z: f.z, y: pg };
+  for (var ci = 0; ci < vCars.length; ci++) {
+    if (Math.hypot(spot.x - vCars[ci].x, spot.z - vCars[ci].z) < 4.8) {
+      toast('前方有汽车，先开走或收回再放总装台');
+      return false;
+    }
+  }
+  var xz = vClampXZ(spot.x, spot.z);
+  vBench = { x: xz[0], z: xz[1], y: spot.y || vGround(xz[0], xz[1]), slots: {}, color: vLastColor || '#b23b3b' };
+  vClearFlora(vBench.x, vBench.z, 4.8);
+  player.yaw = Math.atan2(-(vBench.x - player.x), -(vBench.z - player.z));
+  saveVehicles(); refreshSolid();
+  toast('总装台已放置：5.6 × 3.0 m · 靠近点「总装」');
+  return true;
+}
+function removeBench() {
+  if (!vBench) return false;
+  for (var i = 0; i < VSYS.length; i++) {
+    var sid = VSYS[i].id;
+    if (vBench.slots[sid]) craftGive(sid, 1);
+  }
+  vBench = null; saveVehicles(); refreshSolid();
+  toast('总装台已拆除，已装系统退回制造物品栏');
+  return true;
+}
+function installSystem(sid) {
+  if (!vBench) { toast('请先放置总装台'); return false; }
+  if (vBench.slots[sid]) { toast('已经装上了'); return false; }
+  var p = nearPartAt(sid, vBench.x, vBench.z, 6.5);
+  if (p) { vParts.splice(vParts.indexOf(p), 1); }
+  else if (craftGet(sid) >= 1) { if (!craftTake(sid, 1)) { toast('扣除库存失败'); return false; } }
+  else { toast('制造物品栏和台旁都没有 ' + vName(sid)); return false; }
+  vBench.slots[sid] = 1;
+  saveVehicles(); refreshSolid();
+  toast('已安装 ' + vName(sid) + '：' + vSpec(sid).w.toFixed(2) + ' m 宽，1:1 放在车模上');
+  return true;
+}
+function removeSystem(sid) {
+  if (!vBench || !vBench.slots[sid]) return false;
+  delete vBench.slots[sid];
+  craftGive(sid, 1);
+  saveVehicles(); refreshSolid();
+  toast('已拆下 ' + vName(sid) + '，退回制造物品栏');
+  return true;
+}
+function assemblyReady() {
+  if (!vBench) return false;
+  for (var i = 0; i < VSYS.length; i++) if (!vBench.slots[VSYS[i].id]) return false;
+  return true;
+}
+function completeAssembly() {
+  if (!assemblyReady()) { toast('还差 ' + countMissingSystems() + ' 个系统'); return false; }
+  var color = vBench.color || '#b23b3b';
+  for (var i = 0; i < VSYS.length; i++) delete vBench.slots[VSYS[i].id];
+  vLastColor = color;
+  craftGive('car', 1);
+  saveVehicles(); refreshSolid();
+  toast('总装完成：1:1 汽车已放入制造物品栏（' + vName('car') + ' ×1）');
+  return true;
+}
+function countMissingSystems() {
+  var n = 0;
+  if (!vBench) return VSYS.length;
+  for (var i = 0; i < VSYS.length; i++) if (!vBench.slots[VSYS[i].id]) n++;
+  return n;
+}
+function vBenchStateText() {
+  var done = VSYS.length - countMissingSystems();
+  return done === 0 ? '空闲，可备料' : done + '/5 已装';
+}
+function prepAllSystems() {
+  if (vPrepBusy) { toast('正在备料，请稍候'); return false; }
+  if (!vBench) { toast('请先放置总装台'); return false; }
+  vPrepBusy = true;
+  toast('正在完成 84 道工序，请稍候…');
+  setTimeout(function () {
+    try { prepAllSystemsNow(); } finally { vPrepBusy = false; }
+  }, 80);
+  return true;
+}
+function prepAllSystemsNow() {
+  var all = true;
+  for (var i = 0; i < VSYS.length; i++) {
+    var sid = VSYS[i].id;
+    if (craftGet(sid) < 1) {
+      var ok = false;
+      try { ok = window.__craft && __craft.ensure ? __craft.ensure(sid) : false; } catch (e) {}
+      if (!ok) all = false;
+    }
+  }
+  if (!all) { toast('原料不足，无法完成全部 84 道工序'); refreshSolid(); return false; }
+  var owned = 0;
+  for (var j = 0; j < VSYS.length; j++) if (craftGet(VSYS[j].id) >= 1) owned++;
+  saveVehicles(); refreshSolid();
+  toast('84 道工序完成：' + owned + ' 个系统已放入制造物品栏，逐个安装即可');
+  return true;
+}
+function installAllNearby() {
+  if (!vBench) { toast('请先放置总装台'); return false; }
+  var n = 0;
+  for (var i = 0; i < VSYS.length; i++) if (!vBench.slots[VSYS[i].id] && installSystem(VSYS[i].id)) n++;
+  toast(n ? ('已安装 ' + n + ' 个系统') : '没有可安装的系统');
+  return n > 0;
+}
+
+/* ---------- 汽车 ---------- */
+function vFindCarSpot() {
+  var yaw0 = player.yaw, angles = [0, -0.65, 0.65, -1.25, 1.25];
+  for (var i = 0; i < angles.length; i++) {
+    var a = yaw0 + angles[i];
+    var px = player.x - Math.sin(a) * 7.0, pz = player.z - Math.cos(a) * 7.0;
+    var spot = vFindSpot(px, pz, 1.0, 2.35, 2.0, 5, vGround(player.x, player.z));
+    if (!spot) continue;
+    if (vBench && Math.hypot(spot.x - vBench.x, spot.z - vBench.z) < 5.6) continue;
+    var used = false;
+    for (var k = 0; k < vCars.length; k++) {
+      if (Math.hypot(spot.x - vCars[k].x, spot.z - vCars[k].z) < 5.2) { used = true; break; }
+    }
+    if (used) continue;
+    return spot;
+  }
+  return null;
+}
+function placeCar() {
+  if (craftGet('car') < 1) { toast('制造物品栏里没有汽车，先完成总装'); return false; }
+  if (vCars.length >= VEH_MAX_CARS) { toast('世界里最多同时放 ' + VEH_MAX_CARS + ' 辆车'); return false; }
+  var spot = vFindCarSpot();
+  if (!spot) { toast('前方没有足够平坦的空地，先清一下场地或挪开总装台'); return false; }
+  if (!craftTake('car', 1)) return false;
+  var c = {
+    id: 'car' + (++vSeq), x: spot.x, z: spot.z, y: spot.y,
+    yaw: player.yaw, speed: 0, fuel: 100, hp: 100, color: vLastColor || '#b23b3b', lit: false
+  };
+  vCars.push(c);
+  player.yaw = Math.atan2(-(c.x - player.x), -(c.z - player.z));
+  saveVehicles(); refreshSolid();
+  toast('汽车已放到世界：4.50 m 长，和 1.78 m 高的人对照放置');
+  return c;
+}
+function retractCar(c) {
+  if (!c || c === vDriving) { toast('请先下车'); return false; }
+  var i = vCars.indexOf(c); if (i < 0) return false;
+  vCars.splice(i, 1); craftGive('car', 1);
+  saveVehicles(); refreshSolid();
+  toast('汽车已收回制造物品栏');
+  return true;
+}
+function summonCar(c) {
+  if (!c) return false;
+  var spot = vFindCarSpot();
+  if (!spot) { toast('前方没有足够平坦的空地'); return false; }
+  c.x = spot.x; c.z = spot.z; c.y = spot.y; c.speed = 0;
+  saveVehicles(); refreshSolid();
+  toast('汽车已召到面前');
+  return true;
+}
+function driveCar(c) {
+  if (!c) return false;
+  if (vDriving) exitCar();
+  if (Math.hypot(c.x - player.x, c.z - player.z) > 5.5) { toast('离车太远，先靠近'); return false; }
+  vDriving = c; c.speed = 0;
+  thirdPerson = false;
+  var hud = document.getElementById('hud'); if (hud) hud.classList.add('driving');
+  player.x = c.x; player.y = c.y + 0.45; player.z = c.z; player.vy = 0;
+  player.yaw = c.yaw; player.pitch = -0.06;
+  toast('已上车：W/S 前进后退 · A/D 转向 · 点「下车」离开');
+  updateVehBar();
+  return true;
+}
+function exitCar() {
+  if (!vDriving) return false;
+  var c = vDriving;
+  c.speed = 0;
+  var cs = Math.cos(c.yaw), sn = Math.sin(c.yaw);
+  /* 局部 x=-1.45（车门左侧） */
+  var px = c.x - 1.45 * cs, pz = c.z + 1.45 * sn;
+  if (collides(px, vGround(px, pz) + 0.1, pz)) {
+    px = c.x + sn * 2.5; pz = c.z + cs * 2.5;
+  }
+  if (collides(px, vGround(px, pz) + 0.1, pz)) {
+    px = c.x; pz = c.z;
+  }
+  player.x = px; player.z = pz;
+  player.y = vGround(px, pz) + 0.05; player.vy = 0;
+  vDriving = null;
+  var hud = document.getElementById('hud'); if (hud) hud.classList.remove('driving');
+  toast('已下车');
+  updateVehBar();
+  return true;
+}
+function refuelCar(c) {
+  if (!c) return false;
+  if (c.fuel >= 99.95) { toast('油箱已满'); return false; }
+  var p = nearPartAt('gasoline', c.x, c.z, 5.0);
+  if (p) vParts.splice(vParts.indexOf(p), 1);
+  else if (craftGet('gasoline') >= 1) { if (!craftTake('gasoline', 1)) return false; }
+  else { toast('没有汽油，先在制造工坊做一桶汽油'); return false; }
+  c.fuel = Math.min(100, c.fuel + 30);
+  saveVehicles(); refreshSolid();
+  toast('已加 30% 汽油 · 当前 ' + Math.round(c.fuel) + '%');
+  return true;
+}
+
+/* ---------- 车辆物理 ---------- */
+function carGround(c, x, z) {
+  var cs = Math.cos(c.yaw), sn = Math.sin(c.yaw);
+  var pts = [[-0.88, -1.32], [0.88, -1.32], [-0.88, 1.32], [0.88, 1.32], [0, 0]];
+  var hi = -1e9, lo = 1e9;
+  for (var i = 0; i < pts.length; i++) {
+    var wx = x + cs * pts[i][0] + sn * pts[i][1];
+    var wz = z - sn * pts[i][0] + cs * pts[i][1];
+    var g = vGround(wx, wz);
+    if (g > hi) hi = g; if (g < lo) lo = g;
+  }
+  return { hi: hi, lo: lo };
+}
+function carBlocked(c, nx, nz) {
+  var cs = Math.cos(c.yaw), sn = Math.sin(c.yaw);
+  var pts = [[-0.92, -2.2], [0.92, -2.2], [-0.92, 2.2], [0.92, 2.2], [0, 0], [-0.92, 0], [0.92, 0]];
+  for (var i = 0; i < pts.length; i++) {
+    var wx = nx + cs * pts[i][0] + sn * pts[i][1];
+    var wz = nz - sn * pts[i][0] + cs * pts[i][1];
+    if (wx < 2 || wz < 2 || wx > WX - 3 || wz > WZ - 3) return true;
+    var g = vGround(wx, wz);
+    if (getB(Math.floor(wx), Math.floor(g), Math.floor(wz)) === 5) return true;
+    if (solid(getB(Math.floor(wx), Math.floor(g) + 1, Math.floor(wz)))) return true;
+    if (solid(getB(Math.floor(wx), Math.floor(g) + 2, Math.floor(wz)))) return true;
+    if (solid(getB(Math.floor(wx), Math.floor(c.y) + 1, Math.floor(wz)))) return true;
+  }
+  var gr = carGround(c, nx, nz);
+  if (gr.hi - gr.lo > 1.28) return true;
+  if (gr.hi - c.y > 1.30) return true;
+  if (vBench && Math.abs(nx - vBench.x) < 3.9 && Math.abs(nz - vBench.z) < 2.5) return true;
+  for (var k = 0; k < vCars.length; k++) {
+    var oc = vCars[k];
+    if (oc === c) continue;
+    if (Math.hypot(oc.x - nx, oc.z - nz) < 4.7) return true;
+  }
+  return false;
+}
+function vPushAgent(a, cx, cz, yaw, hw, hl) {
+  var dx = a.x - cx, dz = a.z - cz;
+  var cs = Math.cos(yaw), sn = Math.sin(yaw);
+  var lx = cs * dx - sn * dz, lz = sn * dx + cs * dz;
+  if (Math.abs(lx) >= hw || Math.abs(lz) >= hl) return;
+  if (Math.abs(lx) / hw < Math.abs(lz) / hl) lx = lx >= 0 ? hw : -hw;
+  else lz = lz >= 0 ? hl : -hl;
+  a.x = Math.max(2.2, Math.min(WX - 3.2, cx + cs * lx + sn * lz));
+  a.z = Math.max(2.2, Math.min(WZ - 3.2, cz - sn * lx + cs * lz));
+}
+function vClearAgents() {
+  var i, j, a;
+  for (i = 0; i < vCars.length; i++) {
+    var c = vCars[i];
+    for (j = 0; j < fauna.length; j++) {
+      a = fauna[j];
+      if (!a || !a.alive || !a.active) continue;
+      if (a.def && a.def.kind === 'bird') continue;
+      vPushAgent(a, c.x, c.z, c.yaw, 1.15, 2.45);
+    }
+    for (j = 0; j < humans.length; j++) {
+      a = humans[j];
+      if (!a || !a.alive) continue;
+      vPushAgent(a, c.x, c.z, c.yaw, 1.15, 2.45);
+    }
+  }
+  if (vBench) {
+    for (j = 0; j < fauna.length; j++) {
+      a = fauna[j];
+      if (!a || !a.alive || !a.active) continue;
+      if (a.def && a.def.kind === 'bird') continue;
+      vPushAgent(a, vBench.x, vBench.z, 0, 3.0, 1.72);
+    }
+    for (j = 0; j < humans.length; j++) {
+      a = humans[j];
+      if (!a || !a.alive) continue;
+      vPushAgent(a, vBench.x, vBench.z, 0, 3.0, 1.72);
+    }
+  }
+}
+function updateVehicles(dt) {
+  var i, c;
+  if (vDriving) {
+    c = vDriving;
+    var th = (keys['w'] ? 1 : 0) - (keys['s'] ? 0.6 : 0) - joy.y;
+    var st = (keys['a'] ? 1 : 0) - (keys['d'] ? 1 : 0) - joy.x;
+    th = Math.max(-0.7, Math.min(1, th));
+    st = Math.max(-1, Math.min(1, st));
+    if (keys[' ']) th = 0;
+    if (c.fuel <= 0) th = 0;
+    c.speed += th * 6.4 * dt;
+    c.speed -= c.speed * Math.min(0.9, 0.32 * dt);
+    if (Math.abs(c.speed) < 0.03) c.speed = 0;
+    var maxF = 8.4;
+    c.speed = Math.max(-2.8, Math.min(maxF, c.speed));
+    if (c.fuel > 0 && Math.abs(c.speed) > 0.05) {
+      c.fuel = Math.max(0, c.fuel - (0.06 + Math.abs(c.speed) * 0.022) * dt);
+    }
+    var spd = Math.abs(c.speed);
+    if (spd > 0.04) {
+      c.yaw += st * 1.55 * dt * (c.speed >= 0 ? 1 : -1) * (0.4 + Math.min(1, spd / 3.5));
+    }
+    var fx = -Math.sin(c.yaw), fz = -Math.cos(c.yaw);
+    var nx = c.x + fx * c.speed * dt, nz = c.z + fz * c.speed * dt;
+    if (carBlocked(c, nx, nz)) {
+      c.speed *= -0.12;
+      nx = c.x; nz = c.z;
+    }
+    c.x = nx; c.z = nz;
+    var gr = carGround(c, c.x, c.z);
+    var targetY = gr.hi;
+    c.y += (targetY - c.y) * Math.min(1, dt * 9);
+    player.x = c.x; player.y = c.y + 0.45; player.z = c.z;
+    player.yaw = c.yaw; player.vy = 0; player.moving = spd > 0.2;
+    if (!c.fuelDing && c.fuel < 12) { c.fuelDing = 1; toast('油量不足，找汽油桶加油'); }
+  } else {
+    for (i = 0; i < vCars.length; i++) {
+      c = vCars[i];
+      var g = carGround(c, c.x, c.z);
+      if (Math.abs(g.hi - c.y) > 0.05) c.y += (g.hi - c.y) * Math.min(1, dt * 4);
+    }
+    if (vBench) {
+      var bg = vGround(vBench.x, vBench.z);
+      if (Math.abs(bg - vBench.y) > 0.6) vBench.y = bg;
+    }
+  }
+  vClearAgents();
+  vSettleAcc += dt;
+  if (vSettleAcc > 1.0) {
+    vSettleAcc = 0;
+    for (i = 0; i < vParts.length; i++) {
+      var pp = vParts[i];
+      pp.y = vGround(pp.x, pp.z) + 0.01;
+    }
+  }
+  vAcc += dt;
+  if (vAcc > 0.18) {
+    vAcc = 0;
+    updateVehLabels();
+    vBarAcc += 0.18;
+    if (vBarAcc > 0.2) { vBarAcc = 0; updateVehBar(); }
+  }
+}
+function vehicleCamera() {
+  if (!vDriving) return null;
+  var c = vDriving;
+  var sx = Math.sin(c.yaw), cz = Math.cos(c.yaw);
+  var ex = c.x + sx * 8.8, ez = c.z + cz * 8.8;
+  var ey = c.y + 3.9;
+  var gy = vGround(ex, ez) + 1.4;
+  if (ey < gy) ey = gy;
+  return { eye: [ex, ey, ez], yaw: c.yaw, pitch: -0.27 };
+}
+function isDriving() { return !!vDriving; }
+function vPlayerHitsCar(px, py, pz, c) {
+  if (py + 1.78 <= c.y || py >= c.y + 1.53) return false;
+  var dx = px - c.x, dz = pz - c.z;
+  var cs = Math.cos(c.yaw), sn = Math.sin(c.yaw);
+  var lx = cs * dx - sn * dz, lz = sn * dx + cs * dz;
+  return Math.abs(lx) < 1.22 && Math.abs(lz) < 2.55;
+}
+function vPlayerHitsBench(px, py, pz) {
+  if (!vBench) return false;
+  if (py + 1.78 <= vBench.y || py >= vBench.y + 0.6) return false;
+  return Math.abs(px - vBench.x) < 3.10 && Math.abs(pz - vBench.z) < 1.80;
+}
+function vPlayerInsideVehicle() {
+  var i;
+  for (i = 0; i < vCars.length; i++) if (vPlayerHitsCar(player.x, player.y, player.z, vCars[i])) return true;
+  if (vPlayerHitsBench(player.x, player.y, player.z)) return true;
+  return false;
+}
+function vehicleBlocksPlayer(px, py, pz) {
+  if (vPlayerInsideVehicle()) return false;
+  var i;
+  for (i = 0; i < vCars.length; i++) if (vPlayerHitsCar(px, py, pz, vCars[i])) return true;
+  if (vPlayerHitsBench(px, py, pz)) return true;
+  return false;
+}
+
+/* ---------- 输入 / 世界内标签 ---------- */
+function ensureVehUI() {
+  if (document.getElementById('vehBar')) return;
+  var style = document.createElement('style');
+  style.textContent = [
+    '#vehLabels{position:absolute;inset:0;pointer-events:none;z-index:5}',
+    '#vehLabels .vl{position:absolute;transform:translate(-50%,-100%);font-size:10px;line-height:1;color:#fff;background:rgba(8,14,22,.72);border:1px solid rgba(143,226,179,.45);padding:4px 7px;border-radius:999px;white-space:nowrap;pointer-events:auto;backdrop-filter:blur(4px);box-shadow:0 2px 8px rgba(0,0,0,.35)}',
+    '#vehLabels .vl.car{border-color:rgba(255,209,102,.65);background:rgba(40,30,8,.82);color:#ffe2a0}',
+    '#vehLabels .vl.bench{border-color:rgba(120,180,255,.65);background:rgba(10,24,44,.85);color:#bcd8ff}',
+    '#hud.driving #info,#hud.driving #hint{display:none}',
+    '#hud.driving #faunaLabels{opacity:.28}',
+    '#hud.vehNear #info{display:none}',
+    '#hud.vehNear #faunaLabels{opacity:.3}',
+    '#hud.driving #petBar{display:none}',
+    '#hud.vehNear #petBar{top:calc(178px + env(safe-area-inset-top))}',
+    '#hud.vehNear #hint{display:none}',
+    '#vehBar{position:absolute;left:50%;top:calc(102px + env(safe-area-inset-top));transform:translateX(-50%);z-index:8;display:flex;align-items:center;gap:6px;max-width:94vw;padding:6px 8px;border-radius:12px;background:rgba(8,14,22,.86);border:1px solid rgba(255,255,255,.18);backdrop-filter:blur(8px);pointer-events:auto;box-shadow:0 6px 22px rgba(0,0,0,.4)}',
+    '#vehBar .vbn{font-size:10px;line-height:1.5;color:#dce7f7;white-space:nowrap;max-width:34vw;overflow:hidden;text-overflow:ellipsis}',
+    '#vehBar .vbn b{color:#ffd166;font-size:11px}',
+    '#vehBar button{background:rgba(143,226,179,.16);border:1px solid rgba(143,226,179,.45);color:#8fe2b3;border-radius:8px;padding:7px 10px;font-size:11px;white-space:nowrap;touch-action:none}',
+    '#vehBar button.warn{background:rgba(255,209,102,.14);border-color:rgba(255,209,102,.5);color:#ffd166}',
+    '#vehBar button.blue{background:rgba(120,180,255,.16);border-color:rgba(120,180,255,.5);color:#9cc6ff}',
+    '#vehBar button:active{opacity:.7}',
+    '#cfSolid .vhCard{display:flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.12);border-radius:11px;background:rgba(255,255,255,.04);padding:8px 9px;margin:6px 0}',
+    '#cfSolid .vhCard.on{border-color:rgba(143,226,179,.5);background:rgba(143,226,179,.09)}',
+    '#cfSolid .vhIc{width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;font-size:16px;flex:0 0 30px}',
+    '#cfSolid .vhMain{flex:1;min-width:0}',
+    '#cfSolid .vhMain b{font-size:12px}',
+    '#cfSolid .vhMeta{font-size:10px;line-height:1.55;color:#8fa6c4}',
+    '#cfSolid .vhBtn{background:rgba(120,180,255,.14);border:1px solid rgba(120,180,255,.38);color:#9cc6ff;border-radius:8px;padding:6px 9px;font-size:11px;touch-action:none;white-space:nowrap}',
+    '#cfSolid .vhBtn.main{background:#e9f2ff;color:#0b1420;border-color:#e9f2ff;font-weight:700}',
+    '#cfSolid .vhBtn.ok{background:rgba(143,226,179,.16);border-color:rgba(143,226,179,.45);color:#8fe2b3}',
+    '#cfSolid .vhBtn.warn{background:rgba(255,209,102,.13);border-color:rgba(255,209,102,.42);color:#ffd166}',
+    '#cfSolid .vhLine{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:8px 0}',
+    '#cfSolid .vhSw{width:28px;height:28px;border-radius:8px;border:2px solid transparent;touch-action:none}',
+    '#cfSolid .vhSw.on{border-color:#fff;box-shadow:0 0 0 2px rgba(143,226,179,.6)}',
+    '#cfSolid .vhScale{display:flex;align-items:flex-end;gap:10px;padding:10px;border:1px dashed rgba(255,255,255,.16);border-radius:10px;margin:6px 0 10px;background:rgba(255,255,255,.02)}',
+    '#cfSolid .vhHuman{width:22px;height:44px;border-radius:4px;background:linear-gradient(180deg,#dce7f7,#8fa6c4);position:relative}',
+    '#cfSolid .vhHuman:before{content:"";position:absolute;left:6px;top:-9px;width:10px;height:10px;border-radius:50%;background:#dce7f7}',
+    '#cfSolid .vhCarShape{width:92px;height:30px;border-radius:9px 14px 5px 5px;background:linear-gradient(180deg,#c04a4a,#7d2828);position:relative}',
+    '#cfSolid .vhCarShape:before{content:"";position:absolute;left:24px;top:-11px;width:44px;height:14px;border-radius:7px 9px 0 0;background:#a83a3a}',
+    '#cfSolid .vhCarShape:after{content:"";position:absolute;left:10px;bottom:-5px;width:18px;height:18px;border-radius:50%;background:#17191d;box-shadow:54px 0 0 #17191d;border:2px solid #6d7784}',
+    '#cfSolid .vhNote{font-size:10px;line-height:1.65;color:#8fa6c4}',
+    '#cfSolid details.vhGroup{border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:6px 9px;margin:8px 0;background:rgba(255,255,255,.02)}',
+    '#cfSolid details.vhGroup>summary{font-size:12px;color:#dce7f7;padding:3px 0;cursor:pointer}',
+    '#cfSolid .vhGrid2{display:grid;grid-template-columns:1fr 1fr;gap:6px}',
+    '@media(max-width:520px){#cfSolid .vhGrid2{grid-template-columns:1fr}}'
+  ].join('');
+  document.head.appendChild(style);
+  var lb = document.createElement('div');
+  lb.id = 'vehLabels';
+  document.getElementById('hud').appendChild(lb);
+  var bar = document.createElement('div');
+  bar.id = 'vehBar'; bar.className = 'hidden';
+  bar.innerHTML = '<div class="vbn" id="vbName"></div><div id="vbBtns" style="display:flex;gap:6px"></div>';
+  document.getElementById('hud').appendChild(bar);
+  lb.addEventListener('click', function (e) {
+    var t = e.target.closest('[data-vpart]');
+    if (t) {
+      var p = vParts[+t.getAttribute('data-vpart')];
+      if (p) pickupPart(p);
+      return;
+    }
+    t = e.target.closest('[data-vcar]');
+    if (t) {
+      var c = vCars[+t.getAttribute('data-vcar')];
+      if (c) { if (Math.hypot(c.x - player.x, c.z - player.z) <= 5.5) driveCar(c); else toast('离车太远'); }
+      return;
+    }
+    t = e.target.closest('[data-vbench]');
+    if (t) openSolidTab();
+  });
+  bar.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-vb]');
+    if (!b) return;
+    var act = b.getAttribute('data-vb');
+    if (act === 'exit') exitCar();
+    else if (act === 'drive' && vNearCar) driveCar(vNearCar);
+    else if (act === 'fuel' && vNearCar) refuelCar(vNearCar);
+    else if (act === 'retract' && vNearCar) retractCar(vNearCar);
+    else if (act === 'bench') openSolidTab();
+    else if (act === 'assemble') openSolidTab();
+  });
+}
+function updateVehLabels() {
+  var box = document.getElementById('vehLabels');
+  if (!box) return;
+  var html = '', i;
+  function add(x, y, z, cls, attr, txt) {
+    var cw = MVP[3] * x + MVP[7] * y + MVP[11] * z + MVP[15];
+    if (cw <= 0.01) return;
+    var cx = MVP[0] * x + MVP[4] * y + MVP[8] * z + MVP[12];
+    var cy = MVP[1] * x + MVP[5] * y + MVP[9] * z + MVP[13];
+    var sx = (cx / cw * 0.5 + 0.5) * innerWidth, sy = (1 - (cy / cw * 0.5 + 0.5)) * innerHeight;
+    if (sx < 8 || sx > innerWidth - 8 || sy < 8 || sy > innerHeight - 8) return;
+    html += '<div class="vl ' + cls + '" ' + attr + ' style="left:' + sx.toFixed(0) + 'px;top:' + sy.toFixed(0) + 'px">' + txt + '</div>';
+  }
+  for (i = 0; i < vCars.length; i++) {
+    var c = vCars[i];
+    if (c === vDriving) continue;
+    var d = Math.hypot(c.x - player.x, c.z - player.z);
+    if (d > 26) continue;
+    add(c.x, c.y + 1.95, c.z, 'car', 'data-vcar="' + i + '"', '🚗 汽车 · ' + d.toFixed(0) + ' m' + (c === vDriving ? ' · 驾驶中' : ''));
+  }
+  if (vBench) {
+    var bd = Math.hypot(vBench.x - player.x, vBench.z - player.z);
+    if (bd < 26) add(vBench.x, vBench.y + 2.25, vBench.z, 'bench', 'data-vbench="1"', '🛠️ 总装台 · ' + vBenchStateText());
+  }
+  for (i = 0; i < vParts.length; i++) {
+    var p = vParts[i];
+    var pd = Math.hypot(p.x - player.x, p.z - player.z);
+    if (pd > 9) continue;
+    var ph = vIsSystem(p.id) ? 1.95 : 0.85;
+    add(p.x, p.y + ph, p.z, '', 'data-vpart="' + i + '"', vIcon(p.id) + ' ' + vName(p.id) + ' · 点收回');
+  }
+  box.innerHTML = html;
+}
+function findNearCar() {
+  var best = null, bd = 5.0;
+  for (var i = 0; i < vCars.length; i++) {
+    var c = vCars[i];
+    if (c === vDriving) continue;
+    var d = Math.hypot(c.x - player.x, c.z - player.z);
+    if (d < bd) { bd = d; best = c; }
+  }
+  return best;
+}
+var vBarMode = '', vBarCar = '';
+function updateVehBar() {
+  var bar = document.getElementById('vehBar');
+  if (!bar) return;
+  var name = document.getElementById('vbName'), btns = document.getElementById('vbBtns');
+  if (!name || !btns) return;
+  var mode = 'none', cid = '', title = '';
+  if (vDriving) {
+    vNearCar = vDriving; mode = 'drive'; cid = vDriving.id;
+    title = '<b>🚗 驾驶中</b> · ' + Math.round(Math.abs(vDriving.speed) * 3.6) + ' km/h<br>油量 ' + Math.round(vDriving.fuel) + '%';
+  } else {
+    vNearCar = findNearCar();
+    if (vNearCar) {
+      var c = vNearCar; mode = 'car'; cid = c.id;
+      title = '<b>🚗 汽车</b> · ' + Math.hypot(c.x - player.x, c.z - player.z).toFixed(1) + ' m<br>油量 ' + Math.round(c.fuel) + '% · 4.50 m 长';
+    } else if (vBench && Math.hypot(vBench.x - player.x, vBench.z - player.z) < 7.5) {
+      mode = 'bench';
+      title = '<b>🛠️ 总装台</b> · ' + vBenchStateText() + '<br>按车模顺序逐件安装';
+    }
+  }
+  var hud = document.getElementById('hud');
+  if (hud) hud.classList.toggle('vehNear', mode !== 'none' && mode !== 'drive');
+  if (mode === 'none') { bar.classList.add('hidden'); vBarMode = ''; vBarCar = ''; return; }
+  bar.classList.remove('hidden');
+  if (title) name.innerHTML = title;
+  if (mode !== vBarMode || cid !== vBarCar) {
+    vBarMode = mode; vBarCar = cid;
+    if (mode === 'drive') btns.innerHTML = '<button data-vb="exit" class="warn" type="button">下车</button><button data-vb="fuel" type="button">加油</button>';
+    else if (mode === 'car') btns.innerHTML = '<button data-vb="drive" class="ok" type="button">驾驶</button><button data-vb="fuel" type="button">加油</button><button data-vb="retract" class="warn" type="button">收回</button>';
+    else btns.innerHTML = '<button data-vb="assemble" class="blue" type="button">打开总装</button>';
+  }
+}
+
+/* ---------- 存档 ---------- */
+function saveVehicles() {
+  try {
+    var d = {
+      v: 1, color: vLastColor,
+      bench: vBench ? { x: vBench.x, z: vBench.z, y: vBench.y, slots: vBench.slots, color: vBench.color } : null,
+      cars: vCars.map(function (c) { return { id: c.id, x: c.x, z: c.z, y: c.y, yaw: c.yaw, fuel: c.fuel, hp: c.hp, color: c.color }; }),
+      parts: vParts.map(function (p) { return { id: p.id, x: p.x, z: p.z, yaw: p.yaw }; })
+    };
+    localStorage.setItem(VEH_KEY, JSON.stringify(d));
+  } catch (e) {}
+}
+function restoreVehicles() {
+  try {
+    var raw = localStorage.getItem(VEH_KEY);
+    if (!raw) return false;
+    var s = JSON.parse(raw);
+    if (!s || s.v !== 1) return false;
+    if (s.color) vLastColor = s.color;
+    vCars = []; vParts = []; vBench = null; vDriving = null;
+    (s.cars || []).slice(0, VEH_MAX_CARS).forEach(function (c) {
+      if (!(c.x >= 2 && c.x <= WX - 2 && c.z >= 2 && c.z <= WZ - 2)) return;
+      vCars.push({ id: c.id || ('car' + (++vSeq)), x: c.x, z: c.z, y: vGround(c.x, c.z), yaw: +c.yaw || 0, speed: 0, fuel: Math.max(0, Math.min(100, +c.fuel || 0)), hp: +c.hp || 100, color: c.color || '#b23b3b', lit: false });
+    });
+    if (s.bench && s.bench.x >= 2 && s.bench.x <= WX - 2) {
+      vBench = { x: s.bench.x, z: s.bench.z, y: vGround(s.bench.x, s.bench.z), slots: s.bench.slots || {}, color: s.bench.color || '#b23b3b' };
+    }
+    (s.parts || []).slice(0, VEH_MAX_PARTS).forEach(function (p) {
+      if (!p || !p.id) return;
+      if (!(p.x >= 2 && p.x <= WX - 2 && p.z >= 2 && p.z <= WZ - 2)) return;
+      vParts.push({ id: p.id, x: p.x, z: p.z, y: vGround(p.x, p.z) + 0.01, yaw: +p.yaw || 0, t: Date.now() });
+    });
+    return true;
+  } catch (e) { return false; }
+}
+function resetVehicles() {
+  vCars = []; vParts = []; vBench = null; vDriving = null; vNearCar = null;
+  var hud = document.getElementById('hud'); if (hud) hud.classList.remove('driving');
+  try { localStorage.removeItem(VEH_KEY); } catch (e) {}
+  refreshSolid(); updateVehBar();
+}
+
+/* ---------- 实体装配面板（制造工坊「实体」页） ---------- */
+function vSizeText(id) {
+  var s = vSpec(id);
+  if (id === 'car' || s.m === 'sys') {
+    return '长 ' + s.d.toFixed(2) + ' × 宽 ' + s.w.toFixed(2) + ' × 高 ' + s.h.toFixed(2) + ' m';
+  }
+  return s.w.toFixed(2) + ' × ' + s.h.toFixed(2) + ' × ' + s.d.toFixed(2) + ' m（宽×高×深）';
+}
+function vPriceLine(id, S) {
+  var n = S[id] || 0;
+  var sys = false;
+  for (var i = 0; i < VSYS.length; i++) if (VSYS[i].id === id) sys = true;
+  var mine = (window.__craft && window.__craft.products && window.__craft.products.indexOf(id) >= 0);
+  if (mine) return '产品 · 制造物品栏 ' + n + ' 件';
+  if (sys) return '系统 · 制造物品栏 ' + n + ' 件';
+  return '可制造物 · 制造物品栏 ' + n + ' 件';
+}
+function vPartCard(id, S, action) {
+  var n = S[id] || 0;
+  return '<div class="vhCard' + (n > 0 ? ' on' : '') + '">' +
+    '<div class="vhIc">' + vIcon(id) + '</div>' +
+    '<div class="vhMain"><b>' + vName(id) + '</b><div class="vhMeta">' + vSizeText(id) + ' · 库存 ' + n + '</div></div>' +
+    '<button class="vhBtn' + (n > 0 ? ' ok' : '') + '" data-vh="' + (action || 'take') + '" data-id="' + id + '" type="button">' + (n > 0 ? '取出' : '无库存') + '</button>' +
+    '</div>';
+}
+function renderSolid(el) {
+  if (!el) return;
+  var S = {};
+  try { S = window.__craft ? window.__craft.stock() : {}; } catch (e) { S = {}; }
+  try { if (window.__craft && window.__craft.stockLine) window.__craft.stockLine(); } catch (e) {}
+  var h = [];
+  h.push('<div class="cfintro">把每一道工序产物做成 1:1 实体放进世界，再用五个系统按车模顺序总装成汽车。人的碰撞高 1.78 m，整车 4.50 × 1.84 × 1.53 m，约 2.5 个成年人长；1 格 = 1 米。</div>');
+  h.push('<div class="vhScale"><div class="vhHuman"></div><div><b style="font-size:11px">人 1.78 m</b><div class="vhNote">玩家 / 村民同一尺度</div></div>' +
+    '<div class="vhCarShape"></div><div><b style="font-size:11px">车 4.50 m</b><div class="vhNote">轮径 0.66 m · 高 1.53 m<br>与人身高直接对比</div></div></div>');
+
+  /* 总装台 */
+  if (!vBench) {
+    h.push('<div class="vhCard"><div class="vhIc">🛠️</div><div class="vhMain"><b>总装台</b><div class="vhMeta">5.60 × 3.00 m 修车台 · 放在人物前方</div></div><button class="vhBtn main" data-vh="bench" type="button">放置总装台</button></div>');
+  } else {
+    var bd = Math.hypot(vBench.x - player.x, vBench.z - player.z);
+    h.push('<div class="vhCard on"><div class="vhIc">🛠️</div><div class="vhMain"><b>总装台已放置</b><div class="vhMeta">距你 ' + bd.toFixed(1) + ' m · 已装 ' + (5 - countMissingSystems()) + '/5 系统 · 台面高 0.60 m</div></div><button class="vhBtn warn" data-vh="rmbench" type="button">拆除</button></div>');
+  }
+  h.push('<div class="vhLine"><button class="vhBtn main" data-vh="prep" type="button">一键备料（84 道工序）</button><button class="vhBtn" data-vh="installall" type="button">一键安装五个系统</button></div>');
+  h.push('<div class="vhNote">一键备料会递归完成 84 道工序，把五个系统放入制造物品栏；点「安装」逐个装到车模上。也可在下方零件库把任意工序产物取出成实体。</div>');
+
+  /* 五个系统安装位 */
+  h.push('<div class="catline" id="vhAssy">车模总装 · 五个系统</div>');
+  if (!vBench) {
+    h.push('<div class="vhNote">先放置总装台，才能把系统装到车模上。</div>');
+  } else {
+    for (var i = 0; i < VSYS.length; i++) {
+      var s = VSYS[i], on = !!vBench.slots[s.id];
+      var near = nearPartAt(s.id, vBench.x, vBench.z, 6.5);
+      var meta = on ? ('已装到车模 · ' + vSizeText(s.id)) : (s.d + '<br>' + vSizeText(s.id) + ' · 物品栏 ' + (S[s.id] || 0) + ' · 台旁 ' + (near ? 1 : 0));
+      h.push('<div class="vhCard' + (on ? ' on' : '') + '"><div class="vhIc">' + (on ? '✅' : vIcon(s.id)) + '</div><div class="vhMain"><b>' + (i + 1) + '. ' + s.n + '</b><div class="vhMeta">' + meta + '</div></div>' +
+        (on ? '<button class="vhBtn warn" data-vh="uninstall" data-id="' + s.id + '" type="button">拆下</button>' :
+          '<button class="vhBtn main" data-vh="install" data-id="' + s.id + '" type="button">安装</button>') + '</div>');
+    }
+    /* 颜色 */
+    h.push('<div class="vhLine"><span class="vhNote" style="flex:0 0 auto">车漆</span>');
+    for (var ci = 0; ci < VEH_CAR_COLORS.length; ci++) {
+      var cc = VEH_CAR_COLORS[ci];
+      h.push('<button class="vhSw' + ((vBench.color || vLastColor) === cc.c ? ' on' : '') + '" data-vh="color" data-c="' + cc.c + '" type="button" style="background:' + cc.c + '" title="' + cc.n + '"></button>');
+    }
+    h.push('<span class="vhNote">' + (assemblyReady() ? '五个系统齐了，可以完工' : '还差 ' + countMissingSystems() + ' 个系统') + '</span></div>');
+    h.push('<div class="vhLine"><button class="vhBtn ' + (assemblyReady() ? 'main' : 'warn') + '" data-vh="complete" type="button" style="flex:1">' + (assemblyReady() ? '完成总装 → 汽车放入制造物品栏' : '五个系统装齐后可完工') + '</button></div>');
+  }
+
+  /* 汽车库存 / 世界车辆 */
+  h.push('<div class="catline">汽车 · 制造物品栏</div>');
+  h.push('<div class="vhCard' + ((S.car || 0) > 0 ? ' on' : '') + '"><div class="vhIc">🚗</div><div class="vhMain"><b>汽车</b><div class="vhMeta">' + vSizeText('car') + ' · 库存 ' + (S.car || 0) + ' 辆</div></div>' +
+    '<button class="vhBtn ' + ((S.car || 0) > 0 ? 'main' : '') + '" data-vh="dropcar" type="button">放到世界</button></div>');
+  if (vCars.length) {
+    h.push('<div class="vhNote">世界中的汽车（' + vCars.length + '/' + VEH_MAX_CARS + '）</div>');
+    for (var k = 0; k < vCars.length; k++) {
+      var c = vCars[k], cd = Math.hypot(c.x - player.x, c.z - player.z);
+      h.push('<div class="vhCard"><div class="vhIc">🚙</div><div class="vhMain"><b>汽车 ' + (k + 1) + '</b><div class="vhMeta">距你 ' + cd.toFixed(1) + ' m · 油量 ' + Math.round(c.fuel) + '%</div></div>' +
+        '<button class="vhBtn" data-vh="summon" data-i="' + k + '" type="button">召到面前</button>' +
+        '<button class="vhBtn ok" data-vh="drive" data-i="' + k + '" type="button">驾驶</button>' +
+        '<button class="vhBtn warn" data-vh="retract" data-i="' + k + '" type="button">收回</button></div>');
+    }
+  }
+
+  /* 实体库 */
+  h.push('<div class="catline">零件实体库 · 按工序产物 1:1 做出</div>');
+  var prods = ['car', 'hammer', 'bed'];
+  h.push('<details class="vhGroup" open><summary>产品（' + prods.length + '）</summary><div class="vhGrid2">' + prods.map(function (id) { return vPartCard(id, S); }).join('') + '</div></details>');
+  h.push('<details class="vhGroup" open><summary>系统（' + VSYS.length + '）</summary><div class="vhGrid2">' + VSYS.map(function (s) { return vPartCard(s.id, S); }).join('') + '</div></details>');
+  h.push('<details class="vhGroup" open><summary>零件（' + VEH_PART_IDS.length + '）</summary><div class="vhGrid2">' + VEH_PART_IDS.map(function (id) { return vPartCard(id, S); }).join('') + '</div></details>');
+  h.push('<details class="vhGroup"><summary>材料（' + VEH_MAT_IDS.length + '）</summary><div class="vhGrid2">' + VEH_MAT_IDS.map(function (id) { return vPartCard(id, S); }).join('') + '</div></details>');
+
+  /* 世界零件 */
+  h.push('<div class="catline">世界中的零件 · 点标签也可收回</div>');
+  if (!vParts.length) h.push('<div class="vhNote">地面上还没有零件。用上面的「取出」把工序产物实体化。</div>');
+  else {
+    for (var pi = 0; pi < Math.min(vParts.length, 12); pi++) {
+      var p = vParts[pi];
+      h.push('<div class="vhCard"><div class="vhIc">' + vIcon(p.id) + '</div><div class="vhMain"><b>' + vName(p.id) + '</b><div class="vhMeta">' + vSizeText(p.id) + ' · 距你 ' + Math.hypot(p.x - player.x, p.z - player.z).toFixed(1) + ' m</div></div>' +
+        '<button class="vhBtn ok" data-vh="pick" data-i="' + pi + '" type="button">收回</button></div>');
+    }
+    if (vParts.length > 12) h.push('<div class="vhNote">还有 ' + (vParts.length - 12) + ' 个零件，靠近后点世界标签收回。</div>');
+  }
+  h.push('<div class="vhNote" style="margin-top:10px">总装台和汽车会自动写入本机存档；换手机不同步。汽车最多同时放 ' + VEH_MAX_CARS + ' 辆，地面零件最多 ' + VEH_MAX_PARTS + ' 个。</div>');
+  el.innerHTML = h.join('');
+}
+function refreshSolid() {
+  var el = document.getElementById('cfSolid');
+  if (el && !el.classList.contains('hidden')) renderSolid(el);
+}
+function openSolidTab() {
+  try {
+    if (window.__craft && __craft.open) __craft.open('solid');
+    else toast('制造工坊还在加载');
+  } catch (e) {}
+  setTimeout(function () {
+    var a = document.getElementById('vhAssy');
+    if (a && a.scrollIntoView) a.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }, 80);
+}
+function bindVehActions() {
+  if (window.__vhBound) return;
+  window.__vhBound = 1;
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('[data-vh]') : null;
+    if (!b) return;
+    var act = b.getAttribute('data-vh');
+    var id = b.getAttribute('data-id');
+    var idx = +b.getAttribute('data-i');
+    if (act === 'take') { e.preventDefault(); takePart(id); }
+    else if (act === 'pick') { e.preventDefault(); var p = vParts[idx]; if (p) pickupPart(p); }
+    else if (act === 'bench') { e.preventDefault(); placeBench(); }
+    else if (act === 'rmbench') { e.preventDefault(); removeBench(); }
+    else if (act === 'install') { e.preventDefault(); installSystem(id); }
+    else if (act === 'uninstall') { e.preventDefault(); removeSystem(id); }
+    else if (act === 'prep') { e.preventDefault(); prepAllSystems(); }
+    else if (act === 'installall') { e.preventDefault(); installAllNearby(); }
+    else if (act === 'complete') { e.preventDefault(); completeAssembly(); }
+    else if (act === 'color') {
+      e.preventDefault();
+      vLastColor = b.getAttribute('data-c');
+      if (vBench) { vBench.color = vLastColor; }
+      saveVehicles(); refreshSolid();
+    }
+    else if (act === 'dropcar') { e.preventDefault(); placeCar(); }
+    else if (act === 'summon') { e.preventDefault(); summonCar(vCars[idx]); }
+    else if (act === 'drive') { e.preventDefault(); if (vCars[idx]) driveCar(vCars[idx]); }
+    else if (act === 'retract') { e.preventDefault(); retractCar(vCars[idx]); }
+  });
+}
+window.__vehicle = {
+  open: openSolidTab,
+  renderSolid: renderSolid,
+  refresh: refreshSolid,
+  take: takePart,
+  pickup: function (i) { var p = vParts[i]; return p ? pickupPart(p) : false; },
+  putBench: placeBench,
+  removeBench: removeBench,
+  install: installSystem,
+  uninstall: removeSystem,
+  installAll: installAllNearby,
+  prep: prepAllSystems,
+  complete: completeAssembly,
+  dropCar: placeCar,
+  summon: function (i) { return summonCar(vCars[i]); },
+  retract: function (i) { return retractCar(vCars[i]); },
+  drive: function (i) { return driveCar(i == null ? vNearCar : vCars[i]); },
+  exit: exitCar,
+  refuel: function (i) { return refuelCar(i == null ? (vDriving || vNearCar) : vCars[i]); },
+  state: function () {
+    return {
+      bench: vBench ? { x: vBench.x, z: vBench.z, y: vBench.y, color: vBench.color, slots: Object.keys(vBench.slots) } : null,
+      cars: vCars.map(function (c) { return { id: c.id, x: c.x, z: c.z, y: c.y, yaw: c.yaw, fuel: c.fuel, speed: c.speed, color: c.color }; }),
+      parts: vParts.map(function (p) { return { id: p.id, x: p.x, z: p.z }; }),
+      driving: vDriving ? vDriving.id : null,
+      lastColor: vLastColor,
+      benchHeight: BENCH_H
+    };
+  },
+  partSize: function (id) { var s = vSpec(id); return { w: s.w, h: s.h, d: s.d, name: vName(id) }; },
+  blocked: function (x, y, z) { return vehicleBlocksPlayer(x, y, z); },
+  inside: function () { return vPlayerInsideVehicle(); },
+  reset: resetVehicles,
+  save: saveVehicles,
+  colors: VEH_CAR_COLORS.slice()
+};
+
 /* ---------- 启动 ---------- */
 
 resize();
@@ -6423,6 +7906,9 @@ bindWorldUI();
 updateHUD();
 var restored=loadWorld(true);
 if(!restored)initAgents();
+restoreVehicles();
+ensureVehUI();
+bindVehActions();
 if(restored){
   setTimeout(function(){toast('已恢复上次存档：'+fmtDate(env.D)+' '+fmtClock(env.D));},1200);
 }else{
@@ -6812,8 +8298,8 @@ setTimeout(function(){document.getElementById('hint').style.opacity='0';document
   wrap.id = 'craft';
   wrap.className = 'hidden';
   wrap.innerHTML = `<div class="cfhead"><button class="cfback" id="cfBack" type="button">‹</button><div><div class="cftitle">制造工坊</div><div class="cfsub">材料 · 物理/化学变化 · 多级装配</div></div><div class="cfstock" id="cfStock"></div></div>
-  <div class="cftabs"><button data-cftab="prod" class="on" type="button">产品</button><button data-cftab="mat" type="button">材料</button><button data-cftab="proc" type="button">工艺</button></div>
-  <div class="cfbody"><div id="cfProd"></div><div id="cfMat" class="hidden"></div><div id="cfProc" class="hidden"></div></div>
+  <div class="cftabs"><button data-cftab="prod" class="on" type="button">产品</button><button data-cftab="mat" type="button">材料</button><button data-cftab="proc" type="button">工艺</button><button data-cftab="solid" type="button">实体</button></div>
+  <div class="cfbody"><div id="cfProd"></div><div id="cfMat" class="hidden"></div><div id="cfProc" class="hidden"></div><div id="cfSolid" class="hidden"></div></div>
   <div id="cfToast"></div>`;
   document.body.appendChild(wrap);
 
@@ -6922,6 +8408,7 @@ setTimeout(function(){document.getElementById('hint').style.opacity='0';document
     stockLine();
     if (tab === 'prod') { if (curProduct) renderProductDetail(curProduct); else renderProductList(); }
     else if (tab === 'mat') { if (curMat) renderMatDetail(curMat); else renderMatList(); }
+    else if (tab === 'solid') { if (window.__vehicle) window.__vehicle.renderSolid(document.getElementById('cfSolid')); }
     else renderProcList();
   }
   function renderProductList() {
@@ -6997,8 +8484,10 @@ setTimeout(function(){document.getElementById('hint').style.opacity='0';document
     document.getElementById('cfProd').classList.toggle('hidden', t !== 'prod');
     document.getElementById('cfMat').classList.toggle('hidden', t !== 'mat');
     document.getElementById('cfProc').classList.toggle('hidden', t !== 'proc');
+    document.getElementById('cfSolid').classList.toggle('hidden', t !== 'solid');
     if (t === 'prod') { curProduct ? renderProductDetail(curProduct) : renderProductList(); }
     else if (t === 'mat') { curMat ? renderMatDetail(curMat) : renderMatList(); }
+    else if (t === 'solid') { if (window.__vehicle) window.__vehicle.renderSolid(document.getElementById('cfSolid')); }
     else renderProcList();
     stockLine();
   }
@@ -7036,6 +8525,12 @@ setTimeout(function(){document.getElementById('hint').style.opacity='0';document
     stock: function () { var o = {}; Object.keys(stock).forEach(function (k) { o[k] = stock[k]; }); return o; },
     craft: craftOne, make: oneClick, reset: resetStock, refill: refillRaw,
     canCraft: function (id) { return !!R[id] && canCraft(R[id]); },
+    get: function (id) { return stock[id] || 0; },
+    take: function (id, n) { n = n || 1; if ((stock[id] || 0) < n) return false; stock[id] -= n; saveStock(); return true; },
+    give: function (id, n) { n = n || 1; if (!(id in stock)) return false; stock[id] = (stock[id] || 0) + n; saveStock(); return true; },
+    ensure: function (id) { if (!R[id]) return false; lastLog = []; lastLogProduct = id; var ok = ensure(id, 1, lastLog, {}); saveStock(); return ok; },
+    refresh: refresh,
+    stockLine: stockLine,
     tab: setTab
   };
 })();
