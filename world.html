@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <link rel="icon" href="data:,">
 <title>映射 + AI 世界</title>
-<meta name="version" content="world-v5.0.0">
+<meta name="version" content="world-v7.1.0">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:"PingFang SC","Microsoft YaHei",sans-serif;color:#fff;touch-action:none;user-select:none;-webkit-user-select:none}
@@ -25,16 +25,19 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
 #faunaLabels{position:absolute;inset:0;pointer-events:none;z-index:4}
 #faunaLabels .fl{position:absolute;transform:translate(-50%,-100%);font-size:10px;line-height:1;color:#fff;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.18);padding:3px 6px;border-radius:999px;white-space:nowrap;backdrop-filter:blur(4px);text-shadow:0 1px 3px rgba(0,0,0,.8);pointer-events:auto;cursor:pointer}
 #faunaLabels .fl.sel{background:#8fe2b3;color:#08120c;border-color:#8fe2b3;font-weight:600}
+#faunaLabels .fl.tamed{background:rgba(255,209,102,.94);color:#3a2a00;border-color:#ffd166;font-weight:700}
+.tamebar{margin-top:8px}
+.tamebar button.on{background:#ffd166;color:#3a2a00;border-color:#ffd166;font-weight:700}
 #species{position:fixed;inset:0;z-index:80;background:rgba(7,11,17,.97);backdrop-filter:blur(16px);display:flex;flex-direction:column;color:#dce7f7}
-#joy{position:absolute;left:calc(14px + env(safe-area-inset-left));bottom:calc(18px + env(safe-area-inset-bottom));width:118px;height:118px;border-radius:50%;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.25);pointer-events:auto;touch-action:none}
+#joy{position:absolute;left:calc(14px + env(safe-area-inset-left));bottom:calc(76px + env(safe-area-inset-bottom));width:118px;height:118px;border-radius:50%;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.25);pointer-events:auto;touch-action:none}
 #knob{position:absolute;left:50%;top:50%;width:50px;height:50px;margin:-25px 0 0 -25px;border-radius:50%;background:rgba(255,255,255,.35);border:1px solid rgba(255,255,255,.5)}
-#acts{position:absolute;right:calc(14px + env(safe-area-inset-right));bottom:calc(18px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(3,54px);gap:8px;pointer-events:auto}
+#acts{position:absolute;right:calc(14px + env(safe-area-inset-right));bottom:calc(76px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(3,54px);gap:8px;pointer-events:auto}
 #acts button{width:54px;height:54px;border-radius:50%;border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.14);color:#fff;font-size:14px;font-weight:600;backdrop-filter:blur(6px);touch-action:none}
 #acts button:active{background:rgba(255,255,255,.35)}
 #acts button.dig{background:rgba(226,86,66,.55)}
 #acts button.put{background:rgba(7,193,96,.5)}
 #acts button.jump{background:rgba(90,141,239,.55)}
-#hotbar{position:absolute;left:50%;bottom:calc(152px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;gap:5px;padding:5px;background:rgba(0,0,0,.38);border-radius:12px;pointer-events:auto;backdrop-filter:blur(6px);max-width:94vw;overflow-x:auto}
+#hotbar{position:absolute;left:50%;bottom:calc(8px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;gap:5px;padding:5px;background:rgba(0,0,0,.38);border-radius:12px;pointer-events:auto;backdrop-filter:blur(6px);max-width:94vw;overflow-x:auto}
 #hotbar .slot{width:40px;height:40px;border-radius:8px;border:2px solid rgba(255,255,255,.18);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:9px;color:#fff;flex-shrink:0}
 #hotbar .slot.on{border-color:#fff;box-shadow:0 0 0 2px rgba(7,193,96,.7)}
 #hotbar .sw{width:19px;height:19px;border-radius:4px;margin-bottom:2px}
@@ -121,6 +124,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
 #clockChip .ck1 .sp{color:#8fa6c4;font-weight:400;margin-left:6px;font-size:10px}
 #clockChip .ck2{display:flex;gap:8px;color:#a9bad2;white-space:nowrap;font-size:10px}
 #clockChip .ck2 b{color:#8fe2b3;font-weight:600}
+#clockChip #btnFront{display:none;width:26px;height:26px;border-radius:8px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.12);color:#dce7f7;font-size:15px;line-height:1;padding:0;pointer-events:auto;flex:none}
+#clockChip #btnFront.show{display:block}
 #world{position:fixed;inset:0;z-index:70;background:rgba(7,11,17,.965);backdrop-filter:blur(16px);display:flex;flex-direction:column;color:#dce7f7}
 .whead{display:flex;align-items:center;gap:8px;padding:calc(10px + env(safe-area-inset-top)) 10px 8px;border-bottom:1px solid rgba(255,255,255,.08)}
 .whead .wback{background:none;border:none;color:#dce7f7;font-size:26px;width:34px;line-height:1;padding:0}
@@ -236,7 +241,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
   #acts{grid-template-columns:repeat(3,50px);gap:6px}
   #acts button{width:50px;height:50px;font-size:12px}
   #joy{width:104px;height:104px}
-  #hotbar{bottom:calc(148px + env(safe-area-inset-bottom))}
+  #hotbar{bottom:calc(8px + env(safe-area-inset-bottom))}
   #hotbar .slot{width:37px;height:37px}
 }
 </style>
@@ -254,6 +259,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
     <div id="clockChip" role="button" title="打开时序面板">
       <div class="ck1"><span id="ckDate">公元0年1月1日 01:00:01</span><span class="sp" id="ckSpeed">60×</span></div>
       <div class="ck2"><span id="ckTerm">冬 · 小寒</span><b id="ckTemp">—</b><span id="ckLight">光 —</span></div>
+      <button id="btnFront" type="button" title="正面 / 背面视角">↺</button>
     </div>
   </div>
   <div id="hint">拖动画面看向四周 · 左下摇杆移动<br>对准方块点 <b>挖</b> / <b>放</b> · 点击物种名称看属性<br>点右上 <b>时序</b> 看昼夜节气 · <b>化学</b> 查元素与反应</div>
@@ -368,10 +374,10 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
       <div class="legend"><span><i style="background:#8fe2b3"></i>春</span><span><i style="background:#ff9c8a"></i>夏</span><span><i style="background:#ffc98a"></i>秋</span><span><i style="background:#8fd6ff"></i>冬</span><span style="color:#6f8199">竖线为二十四节气，白线为当前时刻</span></div>
       <div class="wsec">切换地域</div>
       <div class="regionChips" id="timeRegionChips"></div>
-      <div class="wrow"><span class="lab">3D 世界</span><button id="btnFauna" class="on" type="button">动物显示</button><button id="btnVox" class="on" type="button">精细微方块</button><button id="btnEcoFast" type="button">生态 +30 天</button></div>
+      <div class="wrow"><span class="lab">3D 世界</span><button id="btnFauna" class="on" type="button">动物显示</button><button id="btnEcoFast" type="button">生态 +30 天</button></div>
       <div class="wsec">世界存档 · 自动保存</div>
       <div class="wrow"><button id="btnSave" type="button">保存</button><button id="btnLoad" type="button">读取</button><button id="btnWipe" type="button">重置世界</button><span class="lab" id="saveInfo">尚无存档</span></div>
-      <div class="note">存档保存在本机浏览器 localStorage：方块改动、玩家位置、地域、时间与速度、动物显隐、精细轮廓。时间流动时每 15 秒自动保存一次；暂停或退出页面时也会保存。换手机或清缓存不会同步。</div>
+      <div class="note">存档保存在本机浏览器 localStorage：方块改动、玩家位置、地域、时间与速度、动物显隐、方盒模型。时间流动时每 15 秒自动保存一次；暂停或退出页面时也会保存。换手机或清缓存不会同步。</div>
       <div class="note">时间从公元 0 年 1 月 1 日 01:00:01 起算，按天文纪年（有 0 年，0 年为闰年）。太阳位置用低精度天文公式；温度、辐照、光照为教学近似模型，不是气象预报。夜间光照由月光与星光组成。</div>
     </div>
     <div id="wpanel-terms" class="wpanel">
@@ -617,18 +623,10 @@ var P_PT=prog(
 'void main(){vC=aCol;gl_PointSize=uSize;gl_Position=uMVP*vec4(aPos,1.0);}',
 'precision mediump float;varying vec3 vC;void main(){vec2 d=gl_PointCoord-vec2(0.5);float r=length(d);if(r>0.46)discard;float a=smoothstep(0.46,0.30,r);gl_FragColor=vec4(vC,0.85*a+0.15);}');
 
-/* 微方块轮廓：方形点，每点代表 1/100 个粗方块 */
-var P_VOX=prog(
-'attribute vec3 aPos;attribute vec3 aCol;uniform mat4 uMVP;uniform float uSize;varying vec3 vC;'+
-'void main(){vC=aCol;gl_PointSize=uSize;gl_Position=uMVP*vec4(aPos,1.0);}',
-'precision mediump float;varying vec3 vC;uniform float uDim;void main(){gl_FragColor=vec4(vC*uDim,1.0);}');
-
 var UB={mvp:gl.getUniformLocation(P_BLOCK,'uMVP'),eye:gl.getUniformLocation(P_BLOCK,'uEye'),sky:gl.getUniformLocation(P_BLOCK,'uSky'),dim:gl.getUniformLocation(P_BLOCK,'uDim'),alpha:gl.getUniformLocation(P_BLOCK,'uAlpha')};
 var UP={mvp:gl.getUniformLocation(P_PT,'uMVP'),size:gl.getUniformLocation(P_PT,'uSize')};
-var UVX={mvp:gl.getUniformLocation(P_VOX,'uMVP'),size:gl.getUniformLocation(P_VOX,'uSize'),dim:gl.getUniformLocation(P_VOX,'uDim')};
 var BLpos=gl.getAttribLocation(P_BLOCK,'aPos'),BLcol=gl.getAttribLocation(P_BLOCK,'aCol');
 var PTpos=gl.getAttribLocation(P_PT,'aPos'),PTcol=gl.getAttribLocation(P_PT,'aCol');
-var VXpos=gl.getAttribLocation(P_VOX,'aPos'),VXcol=gl.getAttribLocation(P_VOX,'aCol');
 
 /* ---------- 网格 ---------- */
 var FACES=[
@@ -689,44 +687,10 @@ var cubeVerts=(function(){
   });
   return new Float32Array(v);
 })();
-var charBuf=gl.createBuffer();
-var charArr=new Float32Array(36*9*160);
-var voxBuf=gl.createBuffer(),voxArr=new Float32Array(6*16000),nVox=0;
-
-/* 将一个立方体部件（世界坐标）烘进角色缓冲 */
-function bakePart(arr,off,px,py,pz,ry,rx,rz,sx,sy,sz,col){
-  var m=mTRS(px,py,pz,ry||0,rx||0,rz||0,sx,sy,sz);
-  for(var i=0;i<36;i++){
-    var x=cubeVerts[i*6],y=cubeVerts[i*6+1],z=cubeVerts[i*6+2];
-    var nx=cubeVerts[i*6+3],ny=cubeVerts[i*6+4],nz=cubeVerts[i*6+5];
-    var wx=m[0]*x+m[4]*y+m[8]*z+m[12];
-    var wy=m[1]*x+m[5]*y+m[9]*z+m[13];
-    var wz=m[2]*x+m[6]*y+m[10]*z+m[14];
-    var sh=0.62+0.38*Math.max(0,ny*0.8+nx*0.25-nz*0.2);
-    arr[off++]=wx;arr[off++]=wy;arr[off++]=wz;
-    arr[off++]=nx;arr[off++]=ny;arr[off++]=nz;
-    arr[off++]=col[0]*sh;arr[off++]=col[1]*sh;arr[off++]=col[2]*sh;
-  }
-  return off;
-}
-function bakeChar(off,x,y,z,yaw,walk,wave){
-  var skin=[0.85,0.64,0.42],shirt=[0.20,0.42,0.78],pants=[0.16,0.18,0.24],hair=[0.16,0.12,0.10];
-  var legA=walk*0.55,armA=-walk*0.55;
-  off=bakePart(charArr,off,x-0.15,y+0.375,z,yaw,0,legA*0.9,0.26,0.75,0.26,pants);
-  off=bakePart(charArr,off,x+0.15,y+0.375,z,yaw,0,-legA*0.9,0.26,0.75,0.26,pants);
-  off=bakePart(charArr,off,x,y+1.075,z,yaw,0,0,0.52,0.66,0.30,shirt);
-  off=bakePart(charArr,off,x-0.36,y+1.05,z,yaw,0,armA-0.06,0.20,0.70,0.22,shirt);
-  off=bakePart(charArr,off,x+0.36,y+1.05,z,yaw,0,-armA+0.06+(wave||0),0.20,0.70,0.22,shirt);
-  off=bakePart(charArr,off,x-0.36,y+0.65,z,yaw,0,armA-0.06,0.19,0.12,0.21,skin);
-  off=bakePart(charArr,off,x+0.36,y+0.65,z,yaw,0,-armA+0.06+(wave||0),0.19,0.12,0.21,skin);
-  off=bakePart(charArr,off,x,y+1.62,z,yaw,0,0,0.42,0.42,0.42,skin);
-  off=bakePart(charArr,off,x,y+1.80,z,yaw,0,0,0.44,0.12,0.44,hair);
-  return off;
-}
 
 /* ---------- 玩家 ---------- */
-var player={x:WX/2+0.5,y:SEA+3,z:WZ/2+0.5,vy:0,yaw:0.6,pitch:-0.12,onGround:false};
-var thirdPerson=false,atomMode=false;
+var player={x:WX/2+0.5,y:SEA+3,z:WZ/2+0.5,vy:0,yaw:0.6,pitch:-0.12,onGround:false,moving:false,running:false,animOverride:null};
+var thirdPerson=false,atomMode=false,camOrbit=0,debugCam=null;
 var spawn={x:player.x,y:player.y,z:player.z};
 var npc={x:0,z:0};
 var sel=1;
@@ -799,7 +763,7 @@ function updatePlayer(dt){
   fwd+=-joy.y;str+=joy.x;
   var len=Math.hypot(fwd,str);
   if(len>1){fwd/=len;str/=len;}
-  var sp=4.8;
+  var sp=(keys['shift']?7.4:4.8);
   var sy=Math.sin(player.yaw),cy=Math.cos(player.yaw);
   var mx=(-sy*fwd+cy*str)*sp*dt;
   var mz=(-cy*fwd-sy*str)*sp*dt;
@@ -816,6 +780,8 @@ function updatePlayer(dt){
   }
   if(player.y<-6){player.x=spawn.x;player.z=spawn.z;player.y=spawn.y;player.vy=0;}
   if(Math.abs(mx)+Math.abs(mz)>0.0005)player.walk=(player.walk||0)+dt*8;
+  player.moving=len>0.01;
+  player.running=!!keys['shift'];
 }
 
 /* ---------- 拾取/编辑 ---------- */
@@ -1045,11 +1011,16 @@ function loop(ts){
   if(speed>0){saveAcc+=dt;if(saveAcc>=15){saveAcc=0;saveWorld(false);}}
   if(speed>0){phaseAcc+=dt;if(phaseAcc>=6){phaseAcc=0;phaseTick();}}
   var eye,lookYaw=player.yaw,pitch=player.pitch;
-  if(thirdPerson){
-    var sy=Math.sin(player.yaw),cy=Math.cos(player.yaw);
+  if(debugCam){
+    eye=[debugCam.x,debugCam.y,debugCam.z];
+    lookYaw=debugCam.yaw; pitch=debugCam.pitch;
+  } else if(thirdPerson){
+    var camYaw=player.yaw+camOrbit;
+    var sy=Math.sin(camYaw),cy=Math.cos(camYaw);
     var camX=player.x+sy*5.6,camZ=player.z+cy*5.6;
     var camY=Math.max(player.y+2.2,surfaceY(Math.floor(camX),Math.floor(camZ))+0.6);
     eye=[camX,camY,camZ];
+    lookYaw=camYaw;
     var ddy=(player.y+1.05)-camY, dh=Math.hypot(player.x-camX,player.z-camZ);
     pitch=Math.atan2(ddy,Math.max(0.1,dh));
   }else{
@@ -1080,33 +1051,11 @@ function loop(ts){
     gl.drawArrays(gl.TRIANGLES,0,mesh.nOpaque);
   }
 
-  // 角色（方块拼装；精细微方块开启时动物/人改走点云轮廓）
-  var off=0;
-  if(thirdPerson)off=bakeChar(off,player.x,player.y,player.z,player.yaw,Math.sin((player.walk||0))*0.55,0);
-  for(var hi=0;hi<humans.length;hi++){
-    var hh2=humans[hi];
-    if(hh2.alive)off=bakeChar(off,hh2.x,surfaceY(Math.floor(hh2.x),Math.floor(hh2.z)),hh2.z,hh2.dir,0,0);
-  }
-  if(showFauna)for(var fi=0;fi<fauna.length;fi++)if(fauna[fi].active&&fauna[fi].alive)off=bakeAnimal(off,fauna[fi]);
-  if(off>0){
-    var calpha=fineVoxel?0.28:1;
-    if(calpha<1){gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);gl.depthMask(false);}
-    gl.useProgram(P_BLOCK);
-    gl.bindBuffer(gl.ARRAY_BUFFER,charBuf);
-    gl.bufferData(gl.ARRAY_BUFFER,charArr.subarray(0,off),gl.DYNAMIC_DRAW);
-    gl.vertexAttribPointer(BLpos,3,gl.FLOAT,false,36,0);
-    gl.vertexAttribPointer(BLcol,3,gl.FLOAT,false,36,24);
-    gl.enableVertexAttribArray(BLpos);gl.enableVertexAttribArray(BLcol);
-    gl.uniformMatrix4fv(UB.mvp,false,MVP);
-    gl.uniform3f(UB.eye,eye[0],eye[1],eye[2]);
-    gl.uniform3f(UB.sky,sky[0],sky[1],sky[2]);
-    gl.uniform1f(UB.dim,dim);
-    gl.uniform1f(UB.alpha,calpha);
-    gl.drawArrays(gl.TRIANGLES,0,off/9);
-    if(calpha<1){gl.depthMask(true);gl.disable(gl.BLEND);}
-  }
-  drawVoxels();
-  window.__dbg={p:[player.x,player.y,player.z],eye:eye,tp:thirdPerson,off:off,vox:nVox,sim:sim,date:env.D,env:{alt:env.alt,temp:env.temp,light:env.light,solar:env.solar,weather:env.w.n,term:env.term.now?env.term.now.n:null,season:env.season.n,region:curRegion},fauna:{total:fauna.length,active:fauna.filter(function(a){return a.active;}).length,names:fauna.map(function(a){return a.def.n;}),show:showFauna},agents:{animals:fauna.length,plants:flora.length,humans:humans.length}};
+  // 角色软阴影
+  drawShadows(eye, MVP);
+  drawRigCharacters(dt, eye, MVP);
+
+  window.__dbg={p:[player.x,player.y,player.z],eye:eye,tp:thirdPerson,off:nRig*9,sim:sim,date:env.D,env:{alt:env.alt,temp:env.temp,light:env.light,solar:env.solar,weather:env.w.n,term:env.term.now?env.term.now.n:null,season:env.season.n,region:curRegion},fauna:{total:fauna.length,active:fauna.filter(function(a){return a.active;}).length,names:fauna.map(function(a){return a.def.n;}),show:showFauna},agents:{animals:fauna.length,plants:flora.length,humans:humans.length}};
 
   // 水
   if(mesh.water&&mesh.nWater){
@@ -1941,8 +1890,38 @@ Array.prototype.forEach.call(document.querySelectorAll('#acts button'),function(
 document.getElementById('btnAtom').addEventListener('click',toggleAtom);
 document.getElementById('btnView').addEventListener('click',function(){
   thirdPerson=!thirdPerson;
+  camOrbit=0;
   this.classList.toggle('on',thirdPerson);
-  toast(thirdPerson?'第三人称：能看到自己与路人':'第一人称');
+  var fb=document.getElementById('btnFront');
+  if(fb)fb.classList.toggle('show',thirdPerson);
+  toast(thirdPerson?'第三人称：能看到自己与路人 · Z 动作 · V 或 ↺ 看正脸':'第一人称');
+});
+function toggleFrontView(){
+  if(!thirdPerson){toast('先切到第三人称');return;}
+  camOrbit=camOrbit?0:Math.PI;
+  toast(camOrbit?'正面视角：看忍者正脸':'背面视角');
+}
+var _btnFront=document.getElementById('btnFront');
+if(_btnFront)_btnFront.addEventListener('click',function(e){e.stopPropagation();toggleFrontView();});
+addEventListener('keydown',function(e){
+  var tag=(e.target&&e.target.tagName)||'';
+  if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT')return;
+  if(e.key==='z'||e.key==='Z'){
+    if(!thirdPerson){toast('先切到第三人称');return;}
+    var cur=player.animOverride?player.animOverride.name:'idle';
+    var idx=NINJA_ORDER.indexOf(cur);
+    var next=NINJA_ORDER[(idx+1)%NINJA_ORDER.length];
+    player.animOverride={name:next,t:0};
+    toast('忍者动作：'+(NINJA3D.ANIMS[next].name||next)+' · X 恢复自动');
+  }else if(e.key==='x'||e.key==='X'){
+    player.animOverride=null;toast('忍者动作：自动');
+  }else if(e.key==='v'||e.key==='V'){
+    toggleFrontView();
+  }else if(e.key==='t'||e.key==='T'){
+    var tr=__world.tameNearest();
+    if(tr&&tr.ok)toast(tr.tamed?'已驯服：'+tr.type:'已放归：'+tr.type);
+    else toast(tr&&tr.msg?tr.msg:'附近没有动物');
+  }
 });
 document.getElementById('btnAI').addEventListener('click',function(){
   document.getElementById('aiPanel').classList.toggle('hidden');
@@ -2204,6 +2183,91 @@ function hueColor(i,shade){
   var c=HUE24[((i%24)+24)%24];shade=shade==null?1:shade;
   return [Math.min(1,c[0]*shade),Math.min(1,c[1]*shade),Math.min(1,c[2]*shade)];
 }
+var ATLAS_ETHNIC = [
+  ['汉族', '中原 · 江南', '#33507d', '#22364f', '#d8c58a', '#a83b32', 'robe', 'bun', 'sash'],
+  ['蒙古族', '内蒙古草原', '#2b6fb5', '#1d4f85', '#e2b64b', '#c9483c', 'robe', 'furhat', 'sash'],
+  ['回族', '宁夏 · 西北', '#f0f3f6', '#cfd8e0', '#2f7d5a', '#2b3a4a', 'vest', 'cap', 'none'],
+  ['藏族', '青藏高原', '#7c2f2b', '#5c221f', '#e0b04a', '#2f6d8f', 'robe', 'widehat', 'beads'],
+  ['维吾尔族', '新疆', '#2f8f6a', '#1f6a4d', '#e6b84a', '#c93f4a', 'robe', 'doppa', 'sash'],
+  ['苗族', '贵州 · 湖南', '#2b3f6b', '#1d2c4d', '#c9d2db', '#b8412f', 'jacket', 'silver', 'necklace'],
+  ['彝族', '四川 · 云南', '#22242b', '#15161b', '#c8432f', '#e0b04a', 'vest', 'band', 'fur'],
+  ['壮族', '广西', '#26486f', '#1a3350', '#c8d2dc', '#8f2f2f', 'jacket', 'scarf', 'none'],
+  ['布依族', '贵州', '#2f5b7a', '#1f3f57', '#dfe6ec', '#c0392b', 'jacket', 'scarf', 'none'],
+  ['朝鲜族', '吉林 · 黑龙江', '#f2f5f8', '#dfe6ee', '#c85a6e', '#2f4b6e', 'dress', 'bun', 'sash'],
+  ['满族', '辽宁 · 北京', '#3a4f7a', '#26365a', '#d8c58a', '#b03a45', 'robe', 'qitou', 'sash'],
+  ['侗族', '贵州 · 广西', '#22384f', '#16263a', '#c9d2db', '#9b2f3a', 'jacket', 'silver', 'none'],
+  ['瑶族', '广西 · 湖南', '#2b3752', '#1b2437', '#c9424a', '#e0c46a', 'jacket', 'turban', 'none'],
+  ['白族', '云南大理', '#eff3f7', '#d5dfe8', '#2f5f9b', '#b03a45', 'dress', 'bun', 'sash'],
+  ['土家族', '湖南 · 湖北', '#2f3f57', '#1e2a3c', '#c8d2dc', '#a83b32', 'jacket', 'scarf', 'none'],
+  ['哈尼族', '云南', '#1f2430', '#141821', '#c9d2db', '#b03a45', 'jacket', 'silver', 'necklace'],
+  ['哈萨克族', '新疆北部', '#8f2f3a', '#6b212a', '#e2c06a', '#2f6d8f', 'robe', 'doppa', 'sash'],
+  ['傣族', '云南西双版纳', '#f3c9d2', '#e5a9b8', '#e0b04a', '#c85a6e', 'dress', 'bun', 'sash'],
+  ['黎族', '海南', '#22262d', '#15181d', '#c0392b', '#e0c46a', 'jacket', 'turban', 'none'],
+  ['傈僳族', '云南怒江', '#24272e', '#16181d', '#c8432f', '#e0c46a', 'jacket', 'turban', 'none'],
+  ['佤族', '云南', '#1f2229', '#141619', '#b03a45', '#c9d2db', 'jacket', 'turban', 'none'],
+  ['畲族', '福建 · 浙江', '#254a7a', '#18314f', '#c9d2db', '#b03a45', 'jacket', 'bun', 'sash'],
+  ['高山族', '台湾', '#8f2f3a', '#6b212a', '#e0c46a', '#2f3f57', 'vest', 'band', 'none'],
+  ['拉祜族', '云南', '#22252c', '#15171c', '#c8432f', '#c9d2db', 'jacket', 'turban', 'none'],
+  ['水族', '贵州', '#2b4f72', '#1c3550', '#dfe6ec', '#b03a45', 'jacket', 'scarf', 'none'],
+  ['东乡族', '甘肃', '#2f4358', '#1e2c3c', '#dfe6ec', '#2f7d5a', 'vest', 'cap', 'none'],
+  ['纳西族', '云南丽江', '#eff3f7', '#d5dfe8', '#2f5f9b', '#8f2f2f', 'dress', 'bun', 'sash'],
+  ['景颇族', '云南德宏', '#1f2430', '#13161c', '#c0392b', '#c9d2db', 'vest', 'turban', 'none'],
+  ['柯尔克孜族', '新疆西部', '#8f2f3a', '#6b212a', '#e2c06a', '#eff3f7', 'robe', 'furhat', 'sash'],
+  ['土族', '青海', '#2f4f6b', '#1e3548', '#c9d2db', '#c0392b', 'jacket', 'scarf', 'none'],
+  ['达斡尔族', '内蒙古 · 黑龙江', '#2b527d', '#1c3a5a', '#e0c46a', '#8f2f3a', 'robe', 'furhat', 'sash'],
+  ['仫佬族', '广西', '#254a6b', '#183247', '#c9d2db', '#b03a45', 'jacket', 'scarf', 'none'],
+  ['羌族', '四川阿坝', '#2f5f9b', '#1e3f6b', '#eff3f7', '#c0392b', 'jacket', 'scarf', 'none'],
+  ['布朗族', '云南', '#22252c', '#141619', '#c8432f', '#c9d2db', 'jacket', 'turban', 'none'],
+  ['撒拉族', '青海', '#f0f3f6', '#cfd8e0', '#2f4358', '#2f7d5a', 'vest', 'cap', 'none'],
+  ['毛南族', '广西', '#254a7a', '#18314f', '#c9d2db', '#b03a45', 'jacket', 'scarf', 'none'],
+  ['仡佬族', '贵州', '#2b4f72', '#1c3550', '#c9d2db', '#c0392b', 'jacket', 'scarf', 'none'],
+  ['锡伯族', '新疆 · 辽宁', '#2f5f9b', '#1e3f6b', '#dfe6ec', '#b03a45', 'robe', 'cap', 'sash'],
+  ['阿昌族', '云南', '#1f2430', '#13161c', '#c9d2db', '#b03a45', 'jacket', 'turban', 'none'],
+  ['普米族', '云南 · 四川', '#22252c', '#15171c', '#c0392b', '#eff3f7', 'jacket', 'scarf', 'none'],
+  ['塔吉克族', '新疆帕米尔', '#8f2f3a', '#6b212a', '#e2c06a', '#2f6d8f', 'robe', 'doppa', 'sash'],
+  ['怒族', '云南', '#1f2229', '#141619', '#b03a45', '#c9d2db', 'jacket', 'turban', 'none'],
+  ['乌孜别克族', '新疆', '#2f6d7a', '#1f4c57', '#e2c06a', '#8f2f3a', 'robe', 'doppa', 'sash'],
+  ['俄罗斯族', '新疆 · 内蒙古', '#eff3f7', '#cfd8e0', '#2f5f9b', '#b03a45', 'dress', 'scarf', 'sash'],
+  ['鄂温克族', '内蒙古 · 黑龙江', '#6b4a30', '#4d3421', '#c9d2db', '#8f2f3a', 'robe', 'furhat', 'fur'],
+  ['德昂族', '云南', '#1f2430', '#13161c', '#c0392b', '#c9d2db', 'jacket', 'turban', 'none'],
+  ['保安族', '甘肃', '#2b4257', '#1c2c3a', '#dfe6ec', '#2f7d5a', 'vest', 'cap', 'none'],
+  ['裕固族', '甘肃', '#8f2f3a', '#6b212a', '#e2c06a', '#2f4f6b', 'robe', 'cap', 'sash'],
+  ['京族', '广西', '#eff3f7', '#d5dfe8', '#2f5f9b', '#c0392b', 'dress', 'bun', 'sash'],
+  ['塔塔尔族', '新疆', '#2f527d', '#1e3a5a', '#dfe6ec', '#c0392b', 'robe', 'doppa', 'sash'],
+  ['独龙族', '云南怒江', '#7a6042', '#57442d', '#c8432f', '#e0c46a', 'vest', 'band', 'fur'],
+  ['鄂伦春族', '内蒙古 · 黑龙江', '#6b4a30', '#4d3421', '#c9d2db', '#8f2f3a', 'robe', 'furhat', 'fur'],
+  ['赫哲族', '黑龙江', '#2b527d', '#1c3a5a', '#c9d2db', '#c0392b', 'robe', 'furhat', 'fur'],
+  ['门巴族', '西藏', '#7c2f2b', '#5c221f', '#e0b04a', '#2f4f6b', 'robe', 'cap', 'beads'],
+  ['珞巴族', '西藏', '#22252c', '#141619', '#c0392b', '#e0c46a', 'vest', 'band', 'necklace'],
+  ['基诺族', '云南', '#1f2430', '#13161c', '#c8432f', '#c9d2db', 'vest', 'band', 'none']
+];
+var ATLAS_OCC = [
+  ['厨师', '餐饮 · 后厨', '#f2f4f6', '#2b3138', '#d9dee3', '#c0392b', 'jacket', 'chef', 'apron', 'tray'],
+  ['医生', '医疗', '#f7f9fb', '#2f3a4a', '#3fa3d8', '#7ac6e8', 'coat', 'none', 'none', 'stethoscope'],
+  ['教师', '教育', '#3c5a78', '#2a3542', '#e8eef5', '#c0392b', 'jacket', 'none', 'none', 'book'],
+  ['军人', '国防', '#4a5c3a', '#3d4c31', '#2f3a26', '#8f6b2f', 'uniform', 'kepi', 'none', 'rifle'],
+  ['IT 工作者', '互联网 · 软件', '#2f3b4c', '#24303e', '#59c2a8', '#8fa3b8', 'hoodie', 'phones', 'none', 'laptop'],
+  ['建筑工人', '建筑 · 施工', '#f07a1f', '#2f3a48', '#ffd34d', '#e8eef5', 'safety', 'hardhat', 'none', 'wrench'],
+  ['伐木工人', '林业 · 木材', '#b03a2e', '#2f3a45', '#1f2933', '#e0c46a', 'plaid', 'beanie', 'none', 'saw'],
+  ['物流工人', '仓储 · 运输', '#2f6fb5', '#2b3440', '#e8b23a', '#e8eef5', 'jacket', 'cap', 'none', 'box'],
+  ['生产工人', '制造业 · 车间', '#2f5fa0', '#28518a', '#8fa8c8', '#ffd34d', 'overall', 'cap', 'none', 'wrench'],
+  ['管理工人', '车间管理', '#eef2f6', '#2c3644', '#7a8a9a', '#c0392b', 'suit', 'hardhat', 'none', 'clipboard'],
+  ['地区管理者', '公共管理', '#2b3a4d', '#24303e', '#b0332a', '#e8eef5', 'suit', 'none', 'none', 'folder']
+];
+var ATLAS_BODY={
+  m:{head:0.98,headW:1.00,torsoW:0.92,torsoH:0.90,torsoD:0.50,hipW:0.85,hipH:0.22,legL:1.08,legW:0.36,armL:0.94,armW:0.30,shoulderK:0.56},
+  f:{head:0.94,headW:0.94,torsoW:0.78,torsoH:0.90,torsoD:0.45,hipW:0.84,hipH:0.22,legL:1.02,legW:0.31,armL:0.88,armW:0.26,shoulderK:0.56}
+};
+var ATLAS_AGES={
+  child:{name:'儿童',h:1.20,w:0.86,t:0.70,l:0.74,a:0.72,hunch:0,spd:1.18},
+  teen:{name:'少年',h:1.06,w:0.95,t:0.90,l:0.94,a:0.92,hunch:0.03,spd:1.06},
+  adult:{name:'成年',h:1.00,w:1.00,t:1.00,l:1.00,a:1.00,hunch:0.04,spd:1.00},
+  elder:{name:'长者',h:0.98,w:0.98,t:0.97,l:0.93,a:0.95,hunch:0.17,spd:0.80}
+};
+
+var ATLAS_TOP_CN={robe:'长袍',jacket:'短衫',vest:'马甲',dress:'长裙',coat:'长外套',uniform:'制服',suit:'西装',overall:'工装',hoodie:'连帽衫',plaid:'格子衫',safety:'安全背心'};
+var ATLAS_HEAD_CN={bun:'发髻',short:'短发',braid:'长辫',turban:'头巾',doppa:'花帽',furhat:'皮帽',straw:'斗笠',veil:'盖头',silver:'银冠',scarf:'头帕',cap:'小帽',widehat:'宽檐帽',band:'头布带',qitou:'旗头',chef:'厨帽',kepi:'军帽',hardhat:'安全帽',beanie:'针织帽',phones:'耳机',none:'无'};
+var ATLAS_EX_CN={sash:'腰带',beads:'念珠',necklace:'项圈',fur:'毛边',apron:'围裙',none:'无'};
 var ETHNIC56=['汉族','蒙古族','回族','藏族','维吾尔族','苗族','彝族','壮族','布依族','朝鲜族','满族','侗族','瑶族','白族','土家族','哈尼族','哈萨克族','傣族','黎族','傈僳族','佤族','畲族','高山族','拉祜族','水族','东乡族','纳西族','景颇族','柯尔克孜族','土族','达斡尔族','仫佬族','羌族','布朗族','撒拉族','毛南族','仡佬族','锡伯族','阿昌族','普米族','塔吉克族','怒族','乌孜别克族','俄罗斯族','鄂温克族','德昂族','保安族','裕固族','京族','塔塔尔族','独龙族','鄂伦春族','赫哲族','门巴族','珞巴族','基诺族'];
 var ETHNIC_DIST={
  ne:[['汉族',85],['满族',7],['蒙古族',3],['朝鲜族',2],['达斡尔族',1],['鄂温克族',1],['鄂伦春族',0.5],['赫哲族',0.5]],
@@ -2234,7 +2298,7 @@ var AGENT_TRAITS={
  herb:{hp:110,atk:5,def:5,rec:2.8,life:1800,gest:6,speed:0.65,hue:[3,4,5,22,23]},
  bird:{hp:60,atk:7,def:3,rec:3.5,life:1200,gest:4,speed:1.0,hue:[7,18,21]}
 };
-var agentSeq=0,flora=[],humans=[],selectedAgent=null,fineVoxel=true,speciesAcc=0,voxAcc=0;
+var agentSeq=0,flora=[],humans=[],selectedAgent=null,speciesAcc=0;
 function stageOfAnimal(age,life){
   var f=age/life;
   if(f<0.15)return '幼年';if(f<0.30)return '少年';if(f<0.60)return '青年';if(f<0.85)return '中年';return '老年';
@@ -2440,11 +2504,8 @@ function loadWorld(auto){
     if(typeof s.sim==='number'&&s.sim>=0)sim=s.sim;
     speed=(typeof s.speed==='number'&&s.speed>=0)?s.speed:60;
     if(typeof s.showFauna==='boolean')showFauna=s.showFauna;
-    if(typeof s.fineVoxel==='boolean')fineVoxel=s.fineVoxel;
     var bf=document.getElementById('btnFauna');
     if(bf)bf.classList.toggle('on',showFauna);
-    var bv=document.getElementById('btnVox');
-    if(bv)bv.classList.toggle('on',fineVoxel);
     if(s.sel&&B[s.sel])sel=s.sel;
     if(s.player){
       player.x=+s.player.x||player.x;player.y=+s.player.y||player.y;player.z=+s.player.z||player.z;
@@ -2707,64 +2768,2286 @@ function renderEco(){
 }
 
 /* ---------- 动物迁徙 / 3D 可视化 ---------- */
-/* ---------- 微方块轮廓：每个粗方块约 100 个微方块 ---------- */
-var VOX_PER_BLOCK=100;
-function vrnd(seed,i){return hash2(Math.floor(seed*99991)+i*37,i*131+17);}
-function pushBoxVox(arr,cx,cy,cz,w,h,d,n,hue,shade,seed){
-  for(var i=0;i<n;i++){
-    var f=i%6,u=vrnd(seed,i*3+1),v=vrnd(seed,i*3+2);
-    var px=cx,py=cy,pz=cz;
-    if(f===0){px=cx+w/2;py=cy+(u-0.5)*h;pz=cz+(v-0.5)*d;}
-    else if(f===1){px=cx-w/2;py=cy+(u-0.5)*h;pz=cz+(v-0.5)*d;}
-    else if(f===2){py=cy+h/2;px=cx+(u-0.5)*w;pz=cz+(v-0.5)*d;}
-    else if(f===3){py=cy-h/2;px=cx+(u-0.5)*w;pz=cz+(v-0.5)*d;}
-    else if(f===4){pz=cz+d/2;px=cx+(u-0.5)*w;py=cy+(v-0.5)*h;}
-    else{pz=cz-d/2;px=cx+(u-0.5)*w;py=cy+(v-0.5)*h;}
-    var c=hueColor(hue,shade*(0.88+0.24*vrnd(seed,i*3+3)));
-    arr.push(px,py,pz,c[0],c[1],c[2]);
-  }
+/* ---------- 图鉴角色：56 民族 / 11 职业 / 暗影忍者 ---------- */
+var ATLAS_SKINS=['#f6d3ae','#f0c49a','#e6b183','#dda478','#f8dcbe'];
+var ATLAS_HAIRS=['#1b1b20','#221a17','#2a1f1a','#171719'];
+var ATLAS_MAP=null;
+function atlasRow(name){
+  if(!ATLAS_MAP){ATLAS_MAP={};for(var i=0;i<ATLAS_ETHNIC.length;i++)ATLAS_MAP[ATLAS_ETHNIC[i][0]]=ATLAS_ETHNIC[i];}
+  return ATLAS_MAP[name]||ATLAS_ETHNIC[0];
 }
-function makeAnimalVox(def,size,hue){
-  var v=[],s=size||0.7,seed=def.n.length*97+def.kind.length*13;
-  if(def.kind==='bird'){
-    pushBoxVox(v,0,0.55*s,0,0.50*s,0.38*s,0.70*s,100,hue,1,seed);
-    pushBoxVox(v,0,0.78*s,0.50*s,0.26*s,0.26*s,0.26*s,80,hue+2,1.08,seed+1);
-    pushBoxVox(v,-0.35*s,0.55*s,0,0.16*s,0.10*s,0.50*s,60,hue+1,0.8,seed+2);
-    pushBoxVox(v,0.35*s,0.55*s,0,0.16*s,0.10*s,0.50*s,60,hue+1,0.8,seed+3);
-    pushBoxVox(v,0,0.55*s,-0.55*s,0.18*s,0.10*s,0.35*s,50,hue+1,0.72,seed+4);
-  }else{
-    pushBoxVox(v,0,0.55*s,0,0.55*s,0.42*s,0.35*s,100,hue,1,seed);
-    pushBoxVox(v,0,0.82*s,0.55*s,0.30*s,0.30*s,0.30*s,100,hue+2,1.1,seed+1);
-    pushBoxVox(v,0,0.58*s,-0.55*s,0.12*s,0.12*s,0.38*s,60,hue+1,0.75,seed+2);
-    var lx=0.20*s,lz=0.14*s;
-    [[-lx,-lz],[lx,-lz],[-lx,lz],[lx,lz]].forEach(function(p,k){
-      pushBoxVox(v,p[0],0.22*s,p[1],0.12*s,0.42*s,0.12*s,45,hue+1,0.68,seed+3+k);
+function hexRGB(h){
+  h=(h||'#888888').replace('#','');
+  if(h.length===3)h=h.charAt(0)+h.charAt(0)+h.charAt(1)+h.charAt(1)+h.charAt(2)+h.charAt(2);
+  return [parseInt(h.substr(0,2),16)/255,parseInt(h.substr(2,2),16)/255,parseInt(h.substr(4,2),16)/255];
+}
+function atlasAgeKey(stage){
+  if(stage==='幼年')return 'child';
+  if(stage==='少年')return 'teen';
+  if(stage==='老年')return 'elder';
+  return 'adult';
+}
+/* =========================================================
+   图鉴方盒角色 v7.1.0
+   参考：中华人物图鉴 v2（56 民族 / 11 职业 / 4 年龄 / 18 动作）
+         暗影忍者 3D 角色（9 动作 / 5 配色）
+         自然生态图鉴 v3（22 动物 + 22 植物 / 14 种形态）
+   说明：把参考包的方盒骨架原样移植进世界单 WebGL 渲染器，
+         人类、玩家、动物、植物统一使用方盒骨架，不再使用点云。
+   ========================================================= */
+var RIG_SCALE = 0.56;
+var RIG_LIGHT = (function () {
+  var x = 0.40, y = 0.80, z = 0.46, n = Math.sqrt(x * x + y * y + z * z);
+  return [x / n, y / n, z / n];
+})();
+
+function RigVec3(x, y, z) {
+  this.x = x || 0; this.y = y || 0; this.z = z || 0;
+}
+RigVec3.prototype.set = function (x, y, z) { this.x = x; this.y = y; this.z = z; return this; };
+
+function RigNode(kind) {
+  this.kind = kind;
+  this.children = [];
+  this.parent = null;
+  this.position = new RigVec3();
+  this.rotation = new RigVec3();
+  this.scale = new RigVec3(1, 1, 1);
+  this.visible = true;
+  this.name = '';
+  this.castShadow = false;
+  this.receiveShadow = false;
+  this.userData = {};
+}
+RigNode.prototype.add = function (o) {
+  if (!o) return this;
+  if (o.parent) o.parent.remove(o);
+  o.parent = this;
+  this.children.push(o);
+  return this;
+};
+RigNode.prototype.remove = function (o) {
+  var i = this.children.indexOf(o);
+  if (i >= 0) { this.children.splice(i, 1); o.parent = null; }
+  return this;
+};
+RigNode.prototype.traverse = function (fn) {
+  fn(this);
+  for (var i = 0; i < this.children.length; i++) this.children[i].traverse(fn);
+};
+
+function RigMesh(geometry, material) {
+  RigNode.call(this, 'mesh');
+  this.geometry = geometry || { type: 'box', w: 1, h: 1, d: 1 };
+  this.material = material || { color: '#888888' };
+  this.isMesh = true;
+}
+RigMesh.prototype = Object.create(RigNode.prototype);
+RigMesh.prototype.constructor = RigMesh;
+
+function RigGroup() { RigNode.call(this, 'group'); }
+RigGroup.prototype = Object.create(RigNode.prototype);
+RigGroup.prototype.constructor = RigGroup;
+
+/* 只实现参考包用到的 three.js 子集 */
+function RigThree() {
+  function BoxGeometry(w, h, d) { this.type = 'box'; this.w = w == null ? 1 : w; this.h = h == null ? 1 : h; this.d = d == null ? 1 : d; }
+  function ConeGeometry(r, h, seg) { this.type = 'cone'; this.radius = r == null ? 0.5 : r; this.height = h == null ? 1 : h; this.segments = seg || 4; }
+  function CylinderGeometry(rt, rb, h, seg) { this.type = 'cylinder'; this.radiusTop = rt == null ? 0.5 : rt; this.radiusBottom = rb == null ? 0.5 : rb; this.height = h == null ? 1 : h; this.segments = seg || 12; }
+  function Mesh(geo, mat) { return new RigMesh(geo, mat); }
+  function Group() { return new RigGroup(); }
+  function MeshStandardMaterial(o) {
+    o = o || {};
+    this.color = o.color || '#888888';
+    this.roughness = o.roughness == null ? 0.88 : o.roughness;
+    this.metalness = o.metalness || 0.03;
+  }
+  return {
+    BoxGeometry: BoxGeometry, ConeGeometry: ConeGeometry, CylinderGeometry: CylinderGeometry,
+    Mesh: Mesh, Group: Group, MeshStandardMaterial: MeshStandardMaterial
+  };
+}
+
+/* ================= 中华人物图鉴 v2 ================= */
+var HUMAN3D = (function () {
+  var THREE = RigThree();
+  var BOX = new THREE.BoxGeometry(1, 1, 1);
+  var CONE4 = new THREE.ConeGeometry(0.72, 1, 4, 1);
+  var CYL12 = new THREE.CylinderGeometry(0.5, 0.5, 1, 12);
+
+  var matCache = {};
+  function M(hex, r, m) {
+    var k = hex + '|' + (r || 0) + '|' + (m || 0);
+    if (!matCache[k]) {
+      matCache[k] = new THREE.MeshStandardMaterial({
+        color: hex, roughness: r == null ? 0.88 : r, metalness: m || 0.03
+      });
+    }
+    return matCache[k];
+  }
+  function B(parent, w, h, d, color, x, y, z, opt) {
+    opt = opt || {};
+    var mesh = new THREE.Mesh(opt.geo || BOX, M(color, opt.r, opt.m));
+    mesh.scale.set(w, h, d);
+    mesh.position.set(x || 0, y || 0, z || 0);
+    if (opt.rot) mesh.rotation.set(opt.rot[0] || 0, opt.rot[1] || 0, opt.rot[2] || 0);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    parent.add(mesh);
+    return mesh;
+  }
+  function G(parent, x, y, z, name) {
+    var g = new THREE.Group();
+    g.position.set(x || 0, y || 0, z || 0);
+    if (name) g.name = name;
+    parent.add(g);
+    return g;
+  }
+
+  var SKINS = ['#f6d3ae', '#f0c49a', '#e6b183', '#dda478', '#f8dcbe'];
+  var HAIRS = ['#1b1b20', '#221a17', '#2a1f1a', '#171719'];
+
+  var BODY = {
+    m: { head: 0.98, headW: 1.00, torsoW: 0.92, torsoH: 0.90, torsoD: 0.50, hipW: 0.85, hipH: 0.22,
+         legL: 1.08, legW: 0.36, armL: 0.94, armW: 0.30, shoulderK: 0.56 },
+    f: { head: 0.94, headW: 0.94, torsoW: 0.78, torsoH: 0.90, torsoD: 0.45, hipW: 0.84, hipH: 0.22,
+         legL: 1.02, legW: 0.31, armL: 0.88, armW: 0.26, shoulderK: 0.56 }
+  };
+  var AGES = {
+    child: { name: '儿童', sub: '7 岁', h: 1.20, w: 0.86, t: 0.70, l: 0.74, a: 0.72, hunch: 0, spd: 1.18 },
+    teen:  { name: '少年', sub: '14 岁', h: 1.06, w: 0.95, t: 0.90, l: 0.94, a: 0.92, hunch: 0.03, spd: 1.06 },
+    adult: { name: '成年', sub: '26 岁', h: 1.00, w: 1.00, t: 1.00, l: 1.00, a: 1.00, hunch: 0.04, spd: 1.00 },
+    elder: { name: '长者', sub: '63 岁', h: 0.98, w: 0.98, t: 0.97, l: 0.93, a: 0.95, hunch: 0.17, spd: 0.80 }
+  };
+  function propsFor(gender, age) {
+    var P = BODY[gender === 'f' ? 'f' : 'm'];
+    var A = AGES[age] || AGES.adult;
+    return {
+      head: P.head * A.h, headW: P.headW * (1 + (A.h - 1) * 0.45),
+      torsoW: P.torsoW * A.w, torsoH: P.torsoH * A.t, torsoD: P.torsoD * A.w,
+      hipW: P.hipW * A.w, hipH: P.hipH,
+      legL: P.legL * A.l, legW: P.legW * (0.86 + A.w * 0.14),
+      armL: P.armL * A.a, armW: P.armW * (0.88 + A.w * 0.12),
+      shoulderK: P.shoulderK, hunch: A.hunch, spd: A.spd
+    };
+  }
+
+  function buildChar(spec) {
+    var g = spec.gender === 'f' ? 'f' : 'm';
+    var P = propsFor(g, spec.age);
+    var skin = spec.skin, hair = spec.hair;
+    var c1 = spec.c1, c2 = spec.c2, c3 = spec.c3, c4 = spec.c4;
+
+    var headH = P.head, headW = P.headW, headD = P.headW * 0.98;
+    var torsoW = P.torsoW, torsoH = P.torsoH, torsoD = P.torsoD;
+    var hipW = P.hipW, hipH = P.hipH;
+    var legL = P.legL, legW = P.legW;
+    var armL = P.armL, armW = P.armW;
+
+    var root = new THREE.Group();
+    var rig = new THREE.Group();
+    root.add(rig);
+    var j = {};
+
+    var waistY = legL + hipH;
+    var hipX = legW * 0.54;
+
+    var isSkirt = spec.legs === 'skirt';
+    ['R', 'L'].forEach(function (side) {
+      var sgn = side === 'R' ? -1 : 1;
+      var hip = G(rig, sgn * hipX, legL, 0, 'hip' + side);
+      B(hip, legW, legL * 0.5, legW, isSkirt ? skin : c2, 0, -legL * 0.25, 0);
+      var kn = G(hip, 0, -legL * 0.5, 0, 'kn' + side);
+      B(kn, legW * 0.92, legL * 0.36, legW * 0.92, isSkirt ? skin : c2, 0, -legL * 0.18, 0);
+      var sh = legL * 0.16;
+      B(kn, legW * 1.14, sh, legW * 1.5, spec.shoe || '#26272c', 0, -legL * 0.5 + sh * 0.5, legW * 0.12);
+      B(kn, legW * 1.2, sh * 0.35, legW * 1.55, '#101114', 0, -legL * 0.5 + sh * 0.18, legW * 0.12);
+      j['hip' + side] = hip; j['kn' + side] = kn;
     });
+
+    B(rig, hipW, hipH, torsoD * 1.04, c2, 0, waistY - hipH * 0.5, 0);
+
+    var spine = G(rig, 0, waistY, 0, 'spine');
+    j.spine = spine;
+
+    B(spine, torsoW, torsoH, torsoD, spec.topColor || c1, 0, torsoH * 0.5, 0);
+
+    var shX = torsoW * 0.5 + armW * P.shoulderK;
+    var shY = torsoH - armW * 0.55;
+    ['R', 'L'].forEach(function (side) {
+      var sgn = side === 'R' ? -1 : 1;
+      var sh = G(spine, sgn * shX, shY, 0, 'sh' + side);
+      var sleeveC = spec.sleeveColor || c1;
+      B(sh, armW, armL * 0.5, armW, sleeveC, 0, -armL * 0.25, 0);
+      var el = G(sh, 0, -armL * 0.5, 0, 'el' + side);
+      B(el, armW * 0.95, armL * 0.36, armW * 0.95, spec.forearmColor || sleeveC, 0, -armL * 0.18, 0);
+      if (spec.cuff) B(el, armW * 1.05, 0.05, armW * 1.05, c3, 0, -armL * 0.34, 0);
+      B(el, armW * 1.02, armL * 0.13, armW * 1.02, skin, 0, -armL * 0.43, 0);
+      j['sh' + side] = sh; j['el' + side] = el;
+    });
+
+    var neck = G(spine, 0, torsoH, 0, 'neck');
+    j.neck = neck;
+    var head = G(neck, 0, 0, 0, 'head');
+    B(head, headW * 0.42, 0.1, headD * 0.42, skin, 0, -0.03, 0);
+    buildHead(spec, head, headW, headH, headD, skin, hair);
+    var wear = head.children[head.children.length - 1];
+    buildTop(spec, spine, torsoW, torsoH, torsoD, hipW, hipH, c1, c2, c3, c4, skin);
+    var extra = buildExtras(spec, spine, head, torsoW, torsoH, torsoD, hipW, hipH, headW, headH, headD, c1, c2, c3, c4, skin);
+
+    root.traverse(function (o) { if (o.kind === 'mesh') { o.castShadow = true; o.receiveShadow = true; } });
+    return { root: root, rig: rig, j: j, height: waistY + torsoH + headH, headTop: headH,
+      wear: wear, ex: extra.ex, prop: extra.prop, hunch: P.hunch, spd: P.spd };
   }
-  return v;
+
+  function buildHead(spec, head, hw, hh, hd, skin, hair) {
+    B(head, hw, hh, hd, skin, 0, hh * 0.5, 0);
+
+    var seed = spec.seed || 0;
+    var ew = hw * (0.15 + (seed % 3) * 0.012), eh = hh * (0.12 + (seed % 2) * 0.012);
+    [-1, 1].forEach(function (s) {
+      B(head, ew, eh, 0.02, '#ffffff', s * hw * 0.17, hh * 0.56, hd * 0.5 + 0.012);
+      B(head, ew * 0.44, eh * 0.62, 0.02, '#22232a', s * hw * 0.165, hh * 0.552, hd * 0.5 + 0.026);
+      var brow = B(head, hw * 0.17, hh * 0.032, 0.022, hair, s * hw * 0.165, hh * 0.665, hd * 0.5 + 0.012);
+      brow.rotation.z = s * (0.08 + (seed % 4) * 0.04);
+    });
+    B(head, hw * 0.15, hh * 0.028, 0.02, '#a3544a', 0, hh * 0.36, hd * 0.5 + 0.012);
+    [-1, 1].forEach(function (s) {
+      B(head, 0.05, hh * 0.14, hd * 0.16, skin, s * (hw * 0.5 + 0.02), hh * 0.5, 0);
+    });
+
+    var style = spec.head || (spec.gender === 'f' ? 'long' : 'short');
+    var hc = hair;
+
+    if (style !== 'bald') {
+      B(head, hw * 1.02, hh * 0.22, hd * 1.02, hc, 0, hh * 0.93, 0);
+      B(head, hw * 1.04, hh * 0.5, hd * 0.2, hc, 0, hh * 0.66, -hd * 0.46);
+      B(head, hw * 0.1, hh * 0.34, hd * 0.9, hc, -(hw * 0.52), hh * 0.7, 0);
+      B(head, hw * 0.1, hh * 0.34, hd * 0.9, hc, (hw * 0.52), hh * 0.7, 0);
+      if (spec.gender === 'f') {
+        B(head, hw * 0.98, hh * 0.55, hd * 0.22, hc, 0, -hh * 0.02, -hd * 0.46);
+        B(head, hw * 0.86, hh * 0.5, hd * 0.18, hc, 0, -hh * 0.55, -hd * 0.48);
+      }
+    }
+
+    var wearFrom = head.children.length;
+    switch (style) {
+      case 'long':
+        B(head, hw * 0.9, hh * 0.62, hd * 0.26, hc, 0, hh * 0.18, -hd * 0.46);
+        break;
+      case 'bun':
+        B(head, hw * 0.9, hh * 0.7, hd * 0.26, hc, 0, hh * 0.2, -hd * 0.46);
+        B(head, hw * 0.34, hh * 0.3, hd * 0.32, hc, 0, hh * 1.04, -hd * 0.22);
+        B(head, hw * 0.06, 0.04, hw * 0.5, spec.c3, 0, hh * 1.06, -hd * 0.22);
+        break;
+      case 'braid':
+        B(head, hw * 0.16, hh * 1.2, hd * 0.16, hc, -hw * 0.3, -hh * 0.15, -hd * 0.55);
+        B(head, hw * 0.16, hh * 1.2, hd * 0.16, hc, hw * 0.3, -hh * 0.15, -hd * 0.55);
+        B(head, hw * 0.14, 0.06, hd * 0.14, spec.c3, -hw * 0.3, -hh * 0.62, -hd * 0.55);
+        B(head, hw * 0.14, 0.06, hd * 0.14, spec.c3, hw * 0.3, -hh * 0.62, -hd * 0.55);
+        break;
+      case 'turban':
+        B(head, hw * 1.08, hh * 0.26, hd * 1.08, spec.c1, 0, hh * 0.84, 0);
+        B(head, hw * 1.02, hh * 0.12, hd * 1.02, spec.c3, 0, hh * 0.7, 0);
+        B(head, hw * 0.94, hh * 0.24, hd * 0.94, spec.c1, 0, hh * 0.99, 0);
+        break;
+      case 'doppa':
+        B(head, hw * 0.86, hh * 0.2, hd * 0.86, spec.c4, 0, hh * 1.02, 0);
+        B(head, hw * 0.9, hh * 0.06, hd * 0.9, spec.c3, 0, hh * 0.9, 0);
+        B(head, hw * 0.2, hh * 0.2, hd * 0.2, '#f2f4f6', 0, hh * 1.16, 0);
+        break;
+      case 'furhat':
+        B(head, hw * 1.06, hh * 0.22, hd * 1.06, '#6b4a30', 0, hh * 0.78, 0);
+        B(head, hw * 0.98, hh * 0.24, hd * 0.98, '#7a5636', 0, hh * 1.0, 0);
+        B(head, hw * 1.1, hh * 0.08, hd * 1.1, '#3f2c1c', 0, hh * 0.68, 0);
+        break;
+      case 'straw':
+        B(head, hw * 2.0, 0.06, hd * 2.0, '#c8a86a', 0, hh * 0.94, 0, { geo: BOX });
+        B(head, hw * 1.5, hh * 0.55, hd * 1.5, '#d8bc80', 0, hh * 1.12, 0, { geo: CONE4 });
+        B(head, hw * 1.1, 0.05, hd * 1.1, '#a88a52', 0, hh * 0.95, 0);
+        break;
+      case 'veil':
+        B(head, hw * 1.1, hh * 0.9, hd * 1.1, spec.c1, 0, hh * 0.55, -hd * 0.06);
+        B(head, hw * 0.86, hh * 0.5, 0.08, spec.c1, 0, hh * 0.28, hd * 0.5);
+        B(head, hw * 1.14, hh * 1.5, hd * 1.14, spec.c1, 0, -hh * 0.1, -hd * 0.02);
+        break;
+      case 'silver':
+        B(head, hw * 1.06, hh * 0.14, hd * 1.06, '#cfd6de', 0, hh * 0.78, 0, { r: 0.3, m: 0.75 });
+        B(head, hw * 0.9, hh * 0.22, hd * 0.9, '#cfd6de', 0, hh * 0.96, 0, { r: 0.3, m: 0.75 });
+        [-2, -1, 0, 1, 2].forEach(function (k) {
+          B(head, 0.04, hh * 0.18, 0.04, '#dfe6ee', k * hw * 0.19, hh * 1.12, 0, { r: 0.25, m: 0.8 });
+        });
+        B(head, hw * 0.34, 0.04, hd * 0.24, '#e8eef4', 0, hh * 0.84, hd * 0.48, { r: 0.3, m: 0.7 });
+        break;
+      case 'scarf':
+        B(head, hw * 1.12, hh * 0.42, hd * 1.12, spec.c1, 0, hh * 0.8, 0);
+        B(head, hw * 0.26, hh * 0.3, hd * 0.3, spec.c1, hw * 0.42, hh * 0.6, -hd * 0.3);
+        B(head, hw * 1.06, 0.05, hd * 1.06, spec.c3, 0, hh * 0.62, 0);
+        break;
+      case 'cap':
+        B(head, hw * 0.94, hh * 0.24, hd * 0.94, spec.c1, 0, hh * 1.0, 0);
+        B(head, hw * 0.98, hh * 0.06, hd * 0.98, spec.c3, 0, hh * 0.88, 0);
+        break;
+      case 'widehat':
+        B(head, hw * 1.04, hh * 0.18, hd * 1.04, '#4a3a2c', 0, hh * 0.9, 0);
+        B(head, hw * 1.28, 0.05, hd * 1.28, '#3f3125', 0, hh * 0.82, 0);
+        B(head, hw * 0.62, hh * 0.14, hd * 0.62, spec.c3, 0, hh * 1.02, 0);
+        break;
+      case 'band':
+        B(head, hw * 1.06, hh * 0.14, hd * 1.06, spec.c4, 0, hh * 0.76, 0);
+        B(head, hw * 0.2, hh * 0.24, 0.06, spec.c4, -hw * 0.3, hh * 0.62, -hd * 0.52);
+        break;
+      case 'qitou':
+        B(head, hw * 1.5, 0.09, hd * 0.5, '#22232a', 0, hh * 1.06, 0);
+        B(head, hw * 1.2, 0.06, hd * 0.34, spec.c3, 0, hh * 1.12, 0);
+        B(head, hw * 0.16, hh * 0.3, hd * 0.16, spec.c4, -hw * 0.62, hh * 0.82, -hd * 0.3);
+        B(head, hw * 0.16, hh * 0.3, hd * 0.16, spec.c4, hw * 0.62, hh * 0.82, -hd * 0.3);
+        break;
+      case 'chef':
+        B(head, hw * 0.84, hh * 0.2, hd * 0.84, '#f4f7fa', 0, hh * 1.0, 0);
+        B(head, hw * 0.86, hh * 0.32, hd * 0.86, '#f8fbfd', 0, hh * 1.22, 0);
+        B(head, hw * 0.92, hh * 0.07, hd * 0.92, '#e2e8ee', 0, hh * 1.4, 0);
+        break;
+      case 'kepi':
+        B(head, hw * 0.98, hh * 0.26, hd * 0.98, spec.c1, 0, hh * 1.0, 0);
+        B(head, hw * 0.6, hh * 0.08, hd * 0.42, '#1f2a20', 0, hh * 0.9, hd * 0.42);
+        B(head, hw * 0.9, 0.04, hd * 0.9, spec.c4, 0, hh * 0.88, 0);
+        break;
+      case 'hardhat':
+        B(head, hw * 1.06, hh * 0.26, hd * 1.06, spec.c3 || '#ffcf3f', 0, hh * 0.98, 0, { r: 0.55 });
+        B(head, hw * 1.5, 0.05, hd * 1.5, spec.c3 || '#ffcf3f', 0, hh * 0.9, 0, { r: 0.55 });
+        B(head, hw * 1.1, 0.06, 0.1, '#e0b02f', 0, hh * 1.1, 0);
+        break;
+      case 'beanie':
+        B(head, hw * 1.04, hh * 0.34, hd * 1.04, spec.c3, 0, hh * 1.02, 0);
+        B(head, hw * 1.08, hh * 0.12, hd * 1.08, spec.c2, 0, hh * 0.84, 0);
+        break;
+      case 'phones':
+        B(head, hw * 1.12, 0.06, hd * 0.3, '#2a2f38', 0, hh * 1.0, 0);
+        B(head, 0.08, hh * 0.24, hd * 0.24, '#2a2f38', -hw * 0.54, hh * 0.86, 0);
+        B(head, 0.08, hh * 0.24, hd * 0.24, '#2a2f38', hw * 0.54, hh * 0.86, 0);
+        break;
+    }
+
+    var wear = new THREE.Group();
+    head.children.slice(wearFrom).forEach(function (m) { head.remove(m); wear.add(m); });
+    head.add(wear);
+    return wear;
+  }
+
+  function buildTop(spec, spine, tw, th, td, hipW, hipH, c1, c2, c3, c4, skin) {
+    var top = spec.top;
+
+    if (top === 'robe' || top === 'dress' || top === 'coat') {
+      var lh = top === 'coat' ? 0.52 : 0.62;
+      B(spine, hipW * 1.02, lh, td * 1.06, c1, 0, -lh * 0.5 + 0.02, 0);
+      B(spine, hipW * 1.18, 0.30, td * 1.16, c1, 0, -lh - 0.13, 0);
+      B(spine, hipW * 1.22, 0.06, td * 1.2, c3, 0, -lh - 0.28, 0);
+    }
+    if (spec.legs === 'skirt') {
+      B(spine, hipW * 1.04, 0.24, td * 1.08, c2, 0, -0.12, 0);
+      B(spine, hipW * 1.18, 0.30, td * 1.18, c2, 0, -0.39, 0);
+      B(spine, hipW * 1.22, 0.055, td * 1.22, c3, 0, -0.55, 0);
+      B(spine, hipW * 1.06, 0.08, td * 1.1, c3, 0, 0.02, 0);
+    }
+
+    if (top === 'robe') {
+      var l1 = B(spine, 0.1, th * 0.62, 0.05, c3, -tw * 0.16, th * 0.66, td * 0.5 + 0.02);
+      l1.rotation.z = 0.5;
+      var l2 = B(spine, 0.1, th * 0.62, 0.05, c3, tw * 0.16, th * 0.66, td * 0.5 + 0.03);
+      l2.rotation.z = -0.5;
+      B(spine, tw * 1.08, 0.13, td * 1.1, spec.c4, 0, 0.02, 0);
+      B(spine, 0.2, 0.13, 0.06, c3, 0, 0.02, td * 0.56);
+      B(spine, 0.1, 0.06, 0.1, c3, 0, 0, 0).visible = false;
+    } else if (top === 'dress') {
+      B(spine, tw * 1.06, 0.1, td * 1.08, c3, 0, 0.02, 0);
+      B(spine, 0.24, 0.1, 0.05, c4, 0, 0.02, td * 0.55);
+      B(spine, tw * 0.5, 0.16, td * 0.6, c3, 0, th * 0.92, td * 0.2);
+    } else if (top === 'coat') {
+      B(spine, 0.09, th * 0.8, 0.05, c3, -tw * 0.18, th * 0.5, td * 0.52);
+      B(spine, 0.09, th * 0.8, 0.05, c3, tw * 0.18, th * 0.5, td * 0.52);
+      [-1, 1].forEach(function (s) {
+        B(spine, 0.05, 0.05, 0.04, '#9aa6b2', s * 0.12, th * 0.34, td * 0.53);
+        B(spine, 0.05, 0.05, 0.04, '#9aa6b2', s * 0.12, th * 0.16, td * 0.53);
+      });
+      B(spine, tw * 0.36, 0.1, 0.05, c3, 0, th * 0.86, td * 0.52);
+    } else if (top === 'jacket') {
+      B(spine, 0.06, th * 0.86, 0.05, c3, 0, th * 0.5, td * 0.5 + 0.02);
+      B(spine, tw * 1.03, 0.09, td * 1.02, c3, 0, th * 0.06, 0);
+      B(spine, tw * 0.46, 0.14, td * 0.5, c3, 0, th * 0.94, td * 0.28);
+      [-1, 1].forEach(function (s) {
+        B(spine, 0.05, 0.05, 0.04, c4, s * 0.1, th * 0.7, td * 0.53);
+      });
+      if (spec.gender === 'f') {
+        B(spine, tw * 1.1, 0.11, td * 1.12, c4, 0, 0.04, 0);
+        B(spine, 0.16, 0.1, 0.05, c3, 0, 0.04, td * 0.56);
+      }
+    } else if (top === 'vest') {
+      B(spine, tw * 0.98, th, td * 0.99, c2, 0, th * 0.5, 0);
+      B(spine, 0.18, th * 0.95, 0.06, c1, -tw * 0.3, th * 0.5, td * 0.5);
+      B(spine, 0.18, th * 0.95, 0.06, c1, tw * 0.3, th * 0.5, td * 0.5);
+      B(spine, tw * 1.04, th * 0.95, 0.06, c1, 0, th * 0.5, -td * 0.5);
+      B(spine, tw * 1.02, 0.06, td * 1.02, c3, 0, th * 0.06, 0);
+    } else if (top === 'uniform') {
+      B(spine, tw * 1.02, 0.12, td * 1.02, '#22262b', 0, 0.02, 0);
+      B(spine, 0.16, 0.11, 0.05, '#c9a44a', 0, 0.02, td * 0.52, { m: 0.7, r: 0.4 });
+      [-1, 1].forEach(function (s) {
+        B(spine, tw * 0.3, 0.1, 0.05, c3, s * tw * 0.28, th * 0.9, 0);
+        B(spine, 0.11, 0.12, 0.04, c3, s * tw * 0.22, th * 0.62, td * 0.5);
+        B(spine, 0.05, 0.05, 0.04, '#c9a44a', s * 0.08, th * 0.42, td * 0.52, { m: 0.7, r: 0.4 });
+      });
+      B(spine, tw * 0.34, 0.12, td * 0.5, c3, 0, th * 0.96, td * 0.22);
+    } else if (top === 'suit') {
+      B(spine, tw * 0.46, th * 0.62, 0.05, spec.shirt || '#eef2f6', 0, th * 0.62, td * 0.5 + 0.01);
+      B(spine, 0.09, th * 0.42, 0.04, c4, 0, th * 0.58, td * 0.52);
+      B(spine, 0.06, th * 0.5, 0.05, c2, -tw * 0.2, th * 0.66, td * 0.5);
+      B(spine, 0.06, th * 0.5, 0.05, c2, tw * 0.2, th * 0.66, td * 0.5);
+      [-1, 1].forEach(function (s) {
+        B(spine, 0.05, 0.05, 0.04, '#c9a44a', s * 0.08, th * 0.32, td * 0.52, { m: 0.6, r: 0.4 });
+      });
+    } else if (top === 'overall') {
+      B(spine, tw * 0.98, th, td * 0.99, spec.shirt || '#dfe6ee', 0, th * 0.5, 0);
+      B(spine, tw * 0.9, th * 0.62, 0.06, c1, 0, th * 0.36, td * 0.5);
+      B(spine, 0.1, th * 0.5, 0.06, c1, -tw * 0.26, th * 0.7, td * 0.5);
+      B(spine, 0.1, th * 0.5, 0.06, c1, tw * 0.26, th * 0.7, td * 0.5);
+      B(spine, 0.12, 0.1, 0.05, c3, 0, th * 0.6, td * 0.54);
+    } else if (top === 'hoodie') {
+      B(spine, tw * 0.9, th * 0.3, td * 0.5, c2, 0, th * 0.99, -td * 0.42);
+      B(spine, tw * 0.5, th * 0.3, 0.06, c2, 0, th * 0.28, td * 0.5);
+      B(spine, 0.04, 0.24, 0.04, c3, -0.08, th * 0.78, td * 0.52);
+      B(spine, 0.04, 0.24, 0.04, c3, 0.08, th * 0.78, td * 0.52);
+    } else if (top === 'plaid') {
+      [-1, 1].forEach(function (s) {
+        B(spine, 0.07, th * 0.92, 0.03, c3, s * tw * 0.22, th * 0.5, td * 0.5 + 0.02);
+      });
+      [0.28, 0.58, 0.84].forEach(function (h) {
+        B(spine, tw * 1.02, 0.06, 0.03, c3, 0, th * h, td * 0.5 + 0.02);
+      });
+    } else if (top === 'safety') {
+      B(spine, tw * 0.96, th, td * 0.96, c2, 0, th * 0.5, 0);
+      B(spine, tw * 1.06, th * 0.94, td * 1.02, c1, 0, th * 0.5, 0);
+      B(spine, tw * 1.08, 0.07, td * 1.04, c3, 0, th * 0.66, 0);
+      B(spine, tw * 1.08, 0.07, td * 1.04, c3, 0, th * 0.3, 0);
+    }
+  }
+
+  function buildExtras(spec, spine, head, tw, th, td, hipW, hipH, headW, headH, headD, c1, c2, c3, c4, skin) {
+    var ex = spec.extra;
+    var spineBefore = spine.children.length;
+
+    if (ex === 'apron' || spec.apron) {
+      B(spine, tw * 0.66, th * 0.72, 0.05, spec.apronColor || '#f2f4f6', 0, -th * 0.1, td * 0.53);
+      B(spine, tw * 0.2, 0.06, 0.05, spec.apronColor || '#f2f4f6', 0, th * 0.28, td * 0.53);
+    }
+    if (ex === 'beads') {
+      [0, 1, 2, 3, 4].forEach(function (i) {
+        var a = (i / 5) * Math.PI * 2;
+        B(spine, 0.07, 0.07, 0.07, '#a8342f', Math.sin(a) * 0.22, th * 0.72 - Math.cos(a) * 0.1, td * 0.5, { r: 0.5 });
+      });
+    }
+    if (ex === 'necklace') {
+      B(spine, tw * 0.62, 0.06, td * 0.62, c3, 0, th * 0.9, 0, { r: 0.4, m: 0.6 });
+      B(spine, 0.1, 0.1, 0.06, c3, 0, th * 0.8, td * 0.46, { r: 0.4, m: 0.6 });
+    }
+    if (ex === 'fur') {
+      B(spine, tw * 1.14, 0.14, td * 1.14, spec.brown || '#6b4a30', 0, th * 0.96, 0);
+      B(spine, tw * 1.06, 0.1, td * 1.06, spec.brown || '#6b4a30', 0, -0.02, 0);
+    }
+
+    var exG = new THREE.Group();
+    spine.children.slice(spineBefore).forEach(function (m) { spine.remove(m); exG.add(m); });
+    spine.add(exG);
+
+    var hand = null;
+    spine.traverse(function (o) { if (o.name === 'elR') hand = o; });
+    if (!hand) return { ex: exG, prop: null };
+    var handBefore = hand.children.length;
+    var px = 0, py = -0.42, pz = 0.17;
+    var prop = spec.prop;
+
+    function P(w, h, d, col, x, y, z, opt) {
+      return B(hand, w, h, d, col, px + x, py + y + 0.16, pz + z, opt);
+    }
+    if (prop === 'tray') {
+      B(hand, 0.62, 0.04, 0.5, '#c9ced4', px, py - 0.02, pz + 0.12, { r: 0.4, m: 0.5 });
+      B(hand, 0.22, 0.06, 0.22, '#f4f7fa', px - 0.12, py + 0.05, pz + 0.12, { r: 0.3 });
+      B(hand, 0.18, 0.05, 0.18, '#e0b04a', px + 0.14, py + 0.04, pz + 0.1);
+    } else if (prop === 'stethoscope') {
+      B(spine, 0.05, th * 0.5, 0.05, '#2f3a44', -tw * 0.18, th * 0.66, td * 0.52);
+      B(spine, 0.05, th * 0.5, 0.05, '#2f3a44', tw * 0.18, th * 0.66, td * 0.52);
+      B(spine, 0.22, 0.045, 0.05, '#2f3a44', 0, th * 0.42, td * 0.53);
+      B(spine, 0.11, 0.11, 0.05, '#b9c2cb', 0, th * 0.36, td * 0.56, { r: 0.35, m: 0.6 });
+    } else if (prop === 'book') {
+      B(hand, 0.32, 0.42, 0.09, '#c0392b', px + 0.02, py + 0.2, pz + 0.12, { r: 0.7 });
+      B(hand, 0.3, 0.38, 0.03, '#f4f1e8', px + 0.02, py + 0.2, pz + 0.18, { r: 0.8 });
+    } else if (prop === 'rifle') {
+      B(hand, 0.09, 1.15, 0.09, '#3a3a3a', px + 0.02, py + 0.34, pz + 0.02, { r: 0.6 });
+      B(hand, 0.12, 0.34, 0.16, '#5a4330', px + 0.02, py - 0.18, pz + 0.02, { r: 0.75 });
+      B(hand, 0.07, 0.22, 0.07, '#2b2b2b', px + 0.02, py + 0.78, pz + 0.02, { r: 0.5, m: 0.5 });
+    } else if (prop === 'laptop') {
+      B(hand, 0.5, 0.05, 0.36, '#3a4250', px + 0.02, py + 0.16, pz + 0.18, { r: 0.5, m: 0.3 });
+      B(hand, 0.5, 0.34, 0.04, '#2f3742', px + 0.02, py + 0.34, pz + 0.02, { r: 0.5, m: 0.3 });
+      B(hand, 0.44, 0.26, 0.02, '#9ad6ff', px + 0.02, py + 0.34, pz + 0.05, { r: 0.3 });
+    } else if (prop === 'wrench') {
+      B(hand, 0.07, 0.5, 0.07, '#b9c2cb', px + 0.02, py + 0.36, pz + 0.1, { r: 0.35, m: 0.7 });
+      B(hand, 0.2, 0.1, 0.09, '#b9c2cb', px + 0.02, py + 0.62, pz + 0.1, { r: 0.35, m: 0.7 });
+    } else if (prop === 'saw') {
+      B(hand, 0.06, 0.86, 0.34, '#c9ced4', px + 0.02, py + 0.46, pz + 0.1, { r: 0.3, m: 0.6 });
+      B(hand, 0.1, 0.26, 0.12, '#8f5a34', px + 0.02, py + 0.06, pz + 0.1, { r: 0.8 });
+    } else if (prop === 'box') {
+      B(hand, 0.62, 0.5, 0.5, '#c99a5b', px + 0.05, py + 0.28, pz + 0.24, { r: 0.85 });
+      B(hand, 0.64, 0.06, 0.1, '#b5854a', px + 0.05, py + 0.5, pz + 0.24);
+    } else if (prop === 'clipboard') {
+      B(hand, 0.34, 0.46, 0.04, '#8f6b3a', px + 0.02, py + 0.3, pz + 0.14, { r: 0.8 });
+      B(hand, 0.3, 0.4, 0.02, '#fbfcfd', px + 0.02, py + 0.3, pz + 0.17, { r: 0.85 });
+      B(hand, 0.12, 0.05, 0.04, '#5b6169', px + 0.02, py + 0.52, pz + 0.16);
+    } else if (prop === 'folder') {
+      B(hand, 0.36, 0.46, 0.05, '#2f4357', px + 0.02, py + 0.28, pz + 0.12, { r: 0.7 });
+      B(hand, 0.3, 0.38, 0.02, '#e8eef5', px + 0.02, py + 0.28, pz + 0.16, { r: 0.85 });
+    }
+
+    var propG = new THREE.Group();
+    hand.children.slice(handBefore).forEach(function (m) { hand.remove(m); propG.add(m); });
+    hand.add(propG);
+    return { ex: exG, prop: propG };
+  }
+
+  function specFromEthnic(row, gender) {
+    var name = row[0], region = row[1], c1 = row[2], c2 = row[3], c3 = row[4], c4 = row[5];
+    var top = row[6], head = row[7], ex = row[8];
+    var f = gender === 'f';
+    var spec = {
+      name: name, category: 'ethnic', region: region, gender: gender,
+      c1: c1, c2: c2, c3: c3, c4: c4,
+      skin: SKINS[(row[0].length + (f ? 2 : 0)) % SKINS.length],
+      hair: HAIRS[(row[1].length + (f ? 1 : 0)) % HAIRS.length],
+      top: top, head: head, extra: ex,
+      legs: f && (top === 'jacket' || top === 'vest') ? 'skirt' : (top === 'robe' || top === 'dress' ? 'robe' : 'trousers'),
+      sleeveColor: top === 'vest' ? c2 : c1,
+      forearmColor: top === 'vest' ? c2 : c1,
+      cuff: top !== 'vest'
+    };
+    if (f) {
+      if (head === 'cap') spec.head = 'scarf';
+      if (head === 'widehat') spec.head = 'turban';
+      if (head === 'band') spec.head = 'silver';
+      if (head === 'short') spec.head = 'bun';
+      if (head === 'qitou') spec.head = 'qitou';
+      if (head === 'none') spec.head = 'bun';
+      if (head === 'furhat' && row[0] !== '鄂温克族' && row[0] !== '鄂伦春族' && row[0] !== '赫哲族') spec.head = 'scarf';
+    } else {
+      if (head === 'bun' || head === 'braid' || head === 'silver' || head === 'qitou' || head === 'veil') {
+        spec.head = row[0] === '满族' ? 'cap' : 'short';
+      }
+    }
+    if (top === 'robe' && f) { spec.top = 'dress'; spec.cuff = true; }
+    if (spec.legs === 'robe') spec.legs = 'trousers';
+    return spec;
+  }
+
+  function specFromOcc(row, gender) {
+    var f = gender === 'f';
+    var spec = {
+      name: row[0], category: 'occ', region: row[1], gender: gender,
+      c1: row[2], c2: row[3], c3: row[4], c4: row[5],
+      top: row[6], head: row[7], extra: row[8] === 'none' ? null : row[8], prop: row[9],
+      skin: SKINS[f ? 3 : 0], hair: HAIRS[0],
+      legs: 'trousers', sleeveColor: row[2], forearmColor: row[2], cuff: true,
+      shirt: '#eef2f6', brown: '#6b4a30', shoe: '#26272c'
+    };
+    if (row[6] === 'coat') spec.lowerH = 0.55;
+    if (row[6] === 'overall') { spec.shirt = '#dfe6ee'; spec.legs = 'trousers'; }
+    if (row[0] === '厨师') { spec.apron = true; spec.apronColor = '#fafcfd'; spec.lowerH = 0.3; }
+    if (row[0] === 'IT 工作者') { spec.sleeveColor = row[2]; spec.cuff = false; }
+    if (f && row[7] === 'none') spec.head = 'long';
+    if (f) { spec.hipW = 0.86; }
+    return spec;
+  }
+
+  var OCC_ACT = {
+    '厨师': ['idle', 'cook', 'walk', 'wave'],
+    '医生': ['idle', 'check', 'walk', 'wave'],
+    '教师': ['idle', 'teach', 'walk', 'wave'],
+    '军人': ['idle', 'salute', 'walk', 'jump'],
+    'IT 工作者': ['idle', 'typing', 'walk', 'wave'],
+    '建筑工人': ['idle', 'hammer', 'walk', 'wave'],
+    '伐木工人': ['idle', 'saw', 'walk', 'wave'],
+    '物流工人': ['idle', 'carry', 'walk', 'wave'],
+    '生产工人': ['idle', 'operate', 'walk', 'wave'],
+    '管理工人': ['idle', 'inspect', 'walk', 'wave'],
+    '地区管理者': ['idle', 'speak', 'walk', 'wave']
+  };
+  function actionsFor(name, isOcc, index) {
+    if (isOcc) {
+      var a = OCC_ACT[name] || ['idle', 'walk', 'wave', 'jump'];
+      return { list: a, sig: a[1] || 'wave' };
+    }
+    var sig = ['gongshou', 'dance', 'bow'][Math.abs(index) % 3];
+    if (['蒙古族', '藏族', '维吾尔族', '哈萨克族', '傣族', '朝鲜族', '塔吉克族'].indexOf(name) >= 0) sig = 'dance';
+    return { list: ['idle', 'walk', sig, 'wave'], sig: sig };
+  }
+
+  function poseOf(name, t, hunch) {
+    hunch = hunch || 0;
+    var p = { sp: 0.02 + hunch, nkY: 0, nkX: -hunch * 0.8,
+      shRx: 0.05, shRz: -0.07, elR: 0.16, shLx: 0.05, shLz: 0.07, elL: 0.16,
+      hipR: 0, hipL: 0, knR: 0.05, knL: 0.05, y: 0 };
+    var s = Math.sin(t * 1.7);
+    switch (name) {
+      case 'walk': {
+        var w = t * 6.0, sw = Math.sin(w);
+        p.hipR = -sw * 0.5; p.hipL = sw * 0.5;
+        p.knR = 0.1 + 0.5 * Math.max(0, Math.sin(w + 2));
+        p.knL = 0.1 + 0.5 * Math.max(0, Math.sin(w + 2 + Math.PI));
+        p.shRx = sw * 0.42; p.shLx = -sw * 0.42;
+        p.elR = 0.3; p.elL = 0.3;
+        p.y = Math.abs(Math.sin(w)) * 0.03;
+        p.sp = 0.04 + hunch;
+        break;
+      }
+      case 'wave':
+        p.shRx = -2.15; p.shRz = -0.35 + Math.sin(t * 8) * 0.28; p.elR = 0.5;
+        p.nkY = Math.sin(t * 1.5) * 0.12;
+        break;
+      case 'jump': {
+        var ph = (t % 1.1) / 1.1, air = Math.sin(ph * Math.PI);
+        p.hipR = -0.6 * air; p.hipL = -0.6 * air;
+        p.knR = 0.25 + 1.0 * air; p.knL = 0.25 + 1.0 * air;
+        p.shRx = -0.9 * air; p.shLx = -0.9 * air;
+        p.y = air * 0.75; p.sp = 0.1 * air;
+        break;
+      }
+      case 'gongshou':
+        p.shRx = -1.2; p.shRz = -0.42; p.elR = 1.85;
+        p.shLx = -1.2; p.shLz = 0.42; p.elL = 1.85;
+        p.sp = 0.14; p.nkX = -0.1;
+        break;
+      case 'bow':
+        p.sp = 0.45 + Math.sin(t * 1.2) * 0.05;
+        p.shRx = 0.02; p.shLx = 0.02; p.elR = 0.1; p.elL = 0.1;
+        p.nkX = -0.15;
+        break;
+      case 'dance': {
+        var d = Math.sin(t * 3.4);
+        p.shRz = -2.0 + d * 0.45; p.shRx = -0.4;
+        p.shLz = 2.0 - d * 0.45; p.shLx = -0.4;
+        p.elR = 0.6; p.elL = 0.6;
+        p.hipR = d * 0.12; p.hipL = -d * 0.12;
+        p.y = Math.abs(d) * 0.03;
+        p.sp = 0.06;
+        break;
+      }
+      case 'cook':
+        p.shRx = -1.45; p.shRz = -0.28; p.elR = 1.5 + Math.sin(t * 7) * 0.3;
+        p.shLx = -1.15; p.shLz = 0.2; p.elL = 1.55;
+        p.sp = 0.1; p.nkX = 0.08;
+        break;
+      case 'check':
+        p.shRx = -1.25; p.shRz = -0.55; p.elR = 2.1;
+        p.shLx = -0.3; p.shLz = 0.1; p.elL = 0.5;
+        p.sp = 0.06; p.nkX = 0.06;
+        break;
+      case 'teach':
+        p.shRx = -2.3; p.shRz = -0.25; p.elR = 0.55 + Math.sin(t * 2.2) * 0.1;
+        p.shLx = -0.9; p.shLz = 0.2; p.elL = 1.2;
+        p.nkY = Math.sin(t * 0.9) * 0.18;
+        break;
+      case 'salute':
+        p.shRx = -2.5; p.shRz = -0.6; p.elR = 2.0;
+        p.sp = -0.04; p.nkX = -0.2;
+        break;
+      case 'typing': {
+        var ty = Math.sin(t * 12);
+        p.shRx = -1.05; p.shRz = -0.35; p.elR = 1.25 + ty * 0.12;
+        p.shLx = -1.05; p.shLz = 0.35; p.elL = 1.25 - ty * 0.12;
+        p.sp = 0.16; p.nkX = 0.16;
+        break;
+      }
+      case 'hammer': {
+        var hw = Math.sin(t * 5);
+        p.shRx = -1.9 + hw * 0.9; p.shRz = -0.3; p.elR = 1.1;
+        p.shLx = -0.7; p.shLz = 0.15; p.elL = 1.3;
+        p.sp = 0.2 + hw * 0.08;
+        break;
+      }
+      case 'saw': {
+        var sa = Math.sin(t * 4.2);
+        p.shRx = -1.5 + sa * 0.35; p.shRz = -0.3; p.elR = 0.9;
+        p.shLx = -1.5 - sa * 0.35; p.shLz = 0.3; p.elL = 0.9;
+        p.sp = 0.14;
+        break;
+      }
+      case 'carry':
+        p.shRx = -1.45; p.shRz = -0.5; p.elR = 1.5;
+        p.shLx = -1.45; p.shLz = 0.5; p.elL = 1.5;
+        p.sp = 0.12 + Math.sin(t * 1.6) * 0.02;
+        p.y = Math.sin(t * 1.6) * 0.015;
+        break;
+      case 'operate':
+        p.shRx = -1.3; p.shRz = -0.45; p.elR = 1.3 + Math.sin(t * 6) * 0.1;
+        p.shLx = -1.3; p.shLz = 0.45; p.elL = 1.3 - Math.sin(t * 6) * 0.1;
+        p.sp = 0.14; p.nkX = 0.12;
+        break;
+      case 'inspect':
+        p.shRx = -1.7; p.shRz = -0.1; p.elR = 0.25 + Math.sin(t * 2) * 0.05;
+        p.shLx = -0.9; p.shLz = 0.25; p.elL = 1.4;
+        p.nkY = Math.sin(t * 1.2) * 0.2; p.sp = 0.08;
+        break;
+      case 'speak':
+        p.shRx = -1.5; p.shRz = -0.2; p.elR = 1.4 + Math.sin(t * 2.6) * 0.25;
+        p.shLx = -0.5; p.shLz = 0.15; p.elL = 1.0;
+        p.nkY = Math.sin(t * 1.1) * 0.15; p.sp = 0.04;
+        break;
+      default:
+        p.sp = 0.02 + hunch + s * 0.008;
+        p.nkY = 0.06 * Math.sin(t * 0.6);
+        p.shRx = 0.05 + s * 0.03; p.shLx = 0.05 - s * 0.03;
+        p.elR = 0.16; p.elL = 0.16;
+        p.y = 0.008 * s;
+    }
+    return p;
+  }
+
+  function applyPose(rig, name, dt, speed) {
+    if (!rig.motion) rig.motion = { name: 'idle', t: 0 };
+    if (rig.motion.name !== name) { rig.motion.name = name; rig.motion.t = 0; }
+    rig.motion.t += dt * (speed || 1) * (rig.spd || 1);
+    var p = poseOf(name, rig.motion.t, rig.hunch);
+    var k = 1 - Math.exp(-dt * 14);
+    var J = rig.j;
+    J.spine.rotation.x += (p.sp - J.spine.rotation.x) * k;
+    J.neck.rotation.x += (p.nkX - J.neck.rotation.x) * k;
+    J.neck.rotation.y += (p.nkY - J.neck.rotation.y) * k;
+    J.shR.rotation.x += (p.shRx - J.shR.rotation.x) * k;
+    J.shR.rotation.z += (p.shRz - J.shR.rotation.z) * k;
+    J.shL.rotation.x += (p.shLx - J.shL.rotation.x) * k;
+    J.shL.rotation.z += (p.shLz - J.shL.rotation.z) * k;
+    J.elR.rotation.x += (p.elR - J.elR.rotation.x) * k;
+    J.elL.rotation.x += (p.elL - J.elL.rotation.x) * k;
+    J.hipR.rotation.x += (p.hipR - J.hipR.rotation.x) * k;
+    J.hipL.rotation.x += (p.hipL - J.hipL.rotation.x) * k;
+    J.knR.rotation.x += (p.knR - J.knR.rotation.x) * k;
+    J.knL.rotation.x += (p.knL - J.knL.rotation.x) * k;
+    rig.rig.position.y += (p.y - rig.rig.position.y) * k;
+    return rig.motion.t;
+  }
+
+  function build(spec) {
+    if (!spec.age) spec.age = 'adult';
+    var rig = buildChar(spec);
+    rig.motion = { name: 'idle', t: 0 };
+    rig.boxes = 0;
+    rig.root.traverse(function (n) { if (n.kind === 'mesh' && n.visible !== false) rig.boxes++; });
+    return rig;
+  }
+
+  return { build: build, specFromEthnic: specFromEthnic, specFromOcc: specFromOcc,
+    poseOf: poseOf, applyPose: applyPose, actionsFor: actionsFor, OCC_ACT: OCC_ACT, AGES: AGES };
+})();
+
+/* ================= 暗影忍者 3D 角色 ================= */
+var NINJA3D = (function () {
+  var THREE = RigThree();
+  var THEMES = {
+    kuro: { name: '玄夜', suit: '#191d24', suit2: '#232a33', hood: '#12151a', red: '#9b2f2f', red2: '#6d1f1f',
+      leather: '#6b4630', leather2: '#8b5f40', metal: '#c9d0d7', shoe: '#cfd3d6', sole: '#9aa1a7',
+      skin: '#f2c79b', skin2: '#dba97a', eye: '#f6f8fa', pupil: '#141414', cape: '#1c212a', capeIn: '#0f1216' },
+    ao: { name: '青影', suit: '#16202b', suit2: '#1e2c3a', hood: '#101820', red: '#2f6d8f', red2: '#23536d',
+      leather: '#585049', leather2: '#75695e', metal: '#c2ccd6', shoe: '#c8d0d6', sole: '#95a0a8',
+      skin: '#f0c79e', skin2: '#d9a97c', eye: '#f4f8fb', pupil: '#101418', cape: '#182533', capeIn: '#0d151d' },
+    aka: { name: '赤忍', suit: '#2a1416', suit2: '#3a1b1d', hood: '#1d0f10', red: '#c8402f', red2: '#8f2a1d',
+      leather: '#6d4a35', leather2: '#8d6144', metal: '#d6cfc4', shoe: '#d9d2c8', sole: '#a09789',
+      skin: '#f3c8a0', skin2: '#dbab7d', eye: '#fff8f0', pupil: '#1a1410', cape: '#341819', capeIn: '#1e0e0f' },
+    shiro: { name: '白狼', suit: '#d8dde2', suit2: '#e8edf1', hood: '#cfd5db', red: '#8b3a3a', red2: '#66282a',
+      leather: '#7d6a58', leather2: '#9c8873', metal: '#b7c0c8', shoe: '#c3cad0', sole: '#8f979e',
+      skin: '#f2c79b', skin2: '#dba97a', eye: '#2a2f36', pupil: '#0f1216', cape: '#eef2f5', capeIn: '#c6cdd4' },
+    suna: { name: '沙隐', suit: '#4a4132', suit2: '#5a503f', hood: '#3b3427', red: '#a8794a', red2: '#7f5934',
+      leather: '#8a6a45', leather2: '#a8845a', metal: '#c9c1ae', shoe: '#cdc3ae', sole: '#9c927e',
+      skin: '#e9bb8c', skin2: '#d0a172', eye: '#f7f3e8', pupil: '#171410', cape: '#534936', capeIn: '#332c20' }
+  };
+  var AGES = {
+    child: { name: '儿童', sub: '7 岁', cm: 118, head: 1.05, torsoH: 0.66, torsoW: 0.76, hipH: 0.17, hipW: 0.72,
+      legL: 0.84, legW: 0.33, armL: 0.72, armW: 0.27, bounce: 1.35, spd: 1.15, hunch: 0 },
+    teen: { name: '少年', sub: '14 岁', cm: 152, head: 1.03, torsoH: 0.80, torsoW: 0.88, hipH: 0.20, hipW: 0.84,
+      legL: 1.00, legW: 0.35, armL: 0.88, armW: 0.30, bounce: 1.12, spd: 1.05, hunch: 0.03 },
+    adult: { name: '成年', sub: '26 岁', cm: 175, head: 0.98, torsoH: 0.88, torsoW: 0.96, hipH: 0.23, hipW: 0.91,
+      legL: 1.12, legW: 0.37, armL: 0.98, armW: 0.31, bounce: 1.0, spd: 1.0, hunch: 0.04 },
+    elder: { name: '长者', sub: '63 岁', cm: 167, head: 0.96, torsoH: 0.85, torsoW: 0.93, hipH: 0.21, hipW: 0.88,
+      legL: 1.05, legW: 0.35, armL: 0.93, armW: 0.30, bounce: 0.6, spd: 0.82, hunch: 0.16 }
+  };
+  var theme = THEMES.kuro;
+  var state = { age: 'adult', anim: 'idle', theme: 'kuro', speed: 1,
+    cape: true, dual: true, mask: true, scarf: true, fx: true };
+  var char = null;
+  var scene = { add: function () {}, remove: function () {} };
+  function disposeChar() { char = null; }
+
+  function B(parent, w, h, d, key, x, y, z) {
+    var mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), { key: key });
+    mesh.position.set(x || 0, y || 0, z || 0);
+    mesh.castShadow = true; mesh.receiveShadow = true;
+    parent.add(mesh);
+    return mesh;
+  }
+  function G(parent, x, y, z, name) {
+    var g = new THREE.Group();
+    g.position.set(x || 0, y || 0, z || 0);
+    if (name) g.name = name;
+    parent.add(g);
+    return g;
+  }
+
+  function buildNinja(ageKey) {
+    disposeChar();
+    var A = AGES[ageKey] || AGES.adult;
+
+    var legL = A.legL, legW = A.legW;
+    var hipH = A.hipH, hipW = A.hipW;
+    var torsoH = A.torsoH, torsoW = A.torsoW, torsoD = torsoW * 0.56;
+    var headW = A.head * 1.02, headH = A.head, headD = A.head * 0.99;
+    var armL = A.armL, armW = A.armW;
+
+    var legTopY = legL;
+    var waistY = legL + hipH;
+    var neckY = torsoH + 0.02;
+    var totalH = waistY + torsoH + headH;
+    var comY = totalH * 0.52;
+
+    var root = new THREE.Group();
+    var flip = new THREE.Group(); flip.position.y = comY; root.add(flip);
+    var rig = new THREE.Group(); rig.position.y = -comY; flip.add(rig);
+
+    var j = {};
+
+    var hipX = legW * 0.56;
+    ['R', 'L'].forEach(function (side) {
+      var sgn = side === 'R' ? -1 : 1;
+      var hip = G(rig, sgn * hipX, legTopY, 0, 'hip' + side);
+      B(hip, legW, legL * 0.5, legW, 'suit', 0, -legL * 0.25, 0);
+      var knee = G(hip, 0, -legL * 0.5, 0, 'kn' + side);
+      B(knee, legW * 0.94, legL * 0.34, legW * 0.94, 'suit2', 0, -legL * 0.17, 0);
+      for (var i = 0; i < 3; i++) {
+        B(knee, legW * 1.05, 0.05, legW * 1.05, i % 2 ? 'red2' : 'red', 0, -legL * 0.15 - i * 0.05, 0);
+      }
+      var shoeH = legL * 0.15, shoeL = legW * 1.28, shoeW = legW * 1.08;
+      var soleH = shoeH * 0.42;
+      var shoeY = -legL * 0.5 + shoeH * 0.5;
+      B(knee, shoeW, shoeH, shoeL, 'shoe', 0, shoeY, shoeL * 0.15);
+      B(knee, shoeW * 1.04, soleH, shoeL * 1.02, 'sole', 0, -legL * 0.5 + soleH * 0.5, shoeL * 0.15);
+      B(knee, shoeW * 0.62, shoeH * 0.26, shoeL * 0.2, 'sole', 0, shoeY + shoeH * 0.34, shoeL * 0.3);
+      j['hip' + side] = hip; j['kn' + side] = knee;
+    });
+
+    var spine = G(rig, 0, waistY, 0, 'spine');
+    j.spine = spine;
+    B(rig, hipW, hipH, torsoD + 0.03, 'suit', 0, waistY - hipH * 0.5, 0);
+    B(spine, torsoW, torsoH, torsoD, 'suit', 0, torsoH * 0.5, 0);
+    B(spine, torsoW * 0.44, torsoH * 0.14, torsoD * 0.55, 'suit2', 0, torsoH * 0.92, torsoD * 0.26);
+    B(spine, hipW * 1.05, 0.115, torsoD * 1.12, 'leather', 0, 0.01, 0);
+    B(spine, 0.15, 0.115, 0.05, 'metal', 0, 0.01, torsoD * 0.57);
+    B(spine, 0.07, 0.05, 0.02, 'suit2', 0, 0.01, torsoD * 0.6);
+    var strapY = torsoH * 0.56;
+    var strapLen = torsoH * 0.95;
+    var s1 = B(spine, 0.09, strapLen, 0.04, 'leather', 0, strapY, torsoD * 0.5 + 0.02);
+    s1.rotation.z = 0.6;
+    var s2 = B(spine, 0.09, strapLen, 0.04, 'leather2', 0, strapY, torsoD * 0.5 + 0.025);
+    s2.rotation.z = -0.6;
+    B(spine, 0.145, 0.145, 0.05, 'metal', 0, strapY, torsoD * 0.5 + 0.045);
+    B(spine, 0.09, 0.09, 0.03, 'suit2', 0, strapY, torsoD * 0.5 + 0.07);
+    B(spine, armW * 1.3, armW * 0.55, torsoD * 0.9, 'suit2', -(torsoW * 0.5 + armW * 0.06), torsoH * 0.96, 0);
+    B(spine, 0.15, 0.18, 0.12, 'leather2', -hipW * 0.44, -0.05, torsoD * 0.22);
+
+    var shY = torsoH - armW * 0.55;
+    var shX = torsoW * 0.5 + armW * 0.56;
+    ['R', 'L'].forEach(function (side) {
+      var sgn = side === 'R' ? -1 : 1;
+      var sh = G(spine, sgn * shX, shY, 0, 'sh' + side);
+      B(sh, armW, armL * 0.5, armW * 0.96, 'suit2', 0, -armL * 0.25, 0);
+      var el = G(sh, 0, -armL * 0.5, 0, 'el' + side);
+      B(el, armW * 0.94, armL * 0.36, armW * 0.94, 'suit2', 0, -armL * 0.18, 0);
+      for (var i = 0; i < 2; i++) {
+        B(el, armW * 1.03, 0.06, armW * 1.03, i ? 'red2' : 'red', 0, -armL * 0.27 - i * 0.062, 0);
+      }
+      B(el, armW * 1.02, armL * 0.13, armW * 1.02, 'suit2', 0, -armL * 0.43, 0);
+      j['el' + side] = el; j['sh' + side] = sh;
+    });
+
+    var neck = G(spine, 0, neckY, 0, 'neck');
+    j.neck = neck;
+    var head = G(neck, 0, 0, 0, 'head');
+
+    B(head, headW, headH, headD, 'hood', 0, headH * 0.5, 0);
+    B(head, headW * 0.8, 0.07, headD * 0.86, 'suit2', 0, headH + 0.015, -headD * 0.03);
+    B(head, headW * 0.5, 0.2, headD * 0.28, 'hood', 0, headH * 0.26, -headD * 0.55);
+    B(head, headW * 0.62, headH * 0.30, 0.05, 'skin', 0, headH * 0.585, headD * 0.5 + 0.005);
+    [-1, 1].forEach(function (sgn) {
+      B(head, headW * 0.155, headH * 0.115, 0.03, 'eye', sgn * headW * 0.15, headH * 0.60, headD * 0.5 + 0.025);
+      B(head, 0.05, headH * 0.085, 0.02, 'pupil', sgn * headW * 0.152, headH * 0.588, headD * 0.5 + 0.045);
+      var brow = B(head, headW * 0.19, 0.045, 0.03, 'pupil', sgn * headW * 0.145, headH * 0.685, headD * 0.5 + 0.025);
+      brow.rotation.z = sgn * 0.3;
+    });
+    var maskMesh = B(head, headW * 0.82, headH * 0.42, 0.12, 'hood', 0, headH * 0.245, headD * 0.5 - 0.01);
+    B(head, headW * 0.84, 0.035, 0.13, 'suit2', 0, headH * 0.455, headD * 0.5 - 0.01);
+    B(head, headW * 0.9, 0.14, 0.16, 'hood', 0, headH * 0.80, headD * 0.5 - 0.02);
+
+    var scarf = G(spine, 0, neckY - 0.07, 0, 'scarf');
+    B(scarf, torsoW * 0.86, 0.19, torsoD * 1.2, 'cape', 0, 0, 0);
+    B(scarf, torsoW * 0.5, 0.11, 0.13, 'cape', 0, -0.07, torsoD * 0.6);
+    var scarfTail = G(scarf, torsoW * 0.22, -0.06, -torsoD * 0.6, 'scarfTail');
+    B(scarfTail, 0.17, 0.5, 0.07, 'cape', 0, -0.25, 0);
+
+    var cape = G(spine, 0, torsoH - 0.02, -torsoD * 0.5 - 0.04, 'cape');
+    B(cape, torsoW * 1.18, torsoH * 0.55, 0.05, 'cape', 0, -torsoH * 0.28, 0);
+    var cape2 = B(cape, torsoW * 1.34, torsoH * 0.62, 0.05, 'cape', 0, -torsoH * 0.82, -0.04);
+    cape2.rotation.x = -0.06;
+    B(cape, torsoW * 0.8, 0.11, 0.1, 'capeIn', 0, 0.0, 0);
+    j.cape = cape;
+
+    function makeBlade(len, grip) {
+      var g = new THREE.Group();
+      B(g, 0.075, grip, 0.075, 'red2', 0, grip * 0.5, 0);
+      for (var i = 0; i < 3; i++) {
+        B(g, 0.083, 0.038, 0.083, 'metal', 0, grip * 0.18 + i * grip * 0.26, 0);
+      }
+      B(g, 0.2, 0.042, 0.13, 'metal', 0, 0, 0);
+      B(g, 0.09, len, 0.028, 'metal', 0, -len * 0.5 - 0.03, 0);
+      B(g, 0.09, len * 0.16, 0.03, 'metal', 0, -len * 1.04 - 0.03, 0).rotation.z = 0.05;
+      return g;
+    }
+
+    var sheathAnchor = G(spine, 0.12, torsoH * 0.72, -torsoD * 0.5 - 0.12, 'sheathAnchor');
+    sheathAnchor.rotation.z = -1.0;
+    sheathAnchor.rotation.x = -0.08;
+    var sheath = B(sheathAnchor, 0.1, 1.35, 0.075, 'suit2', 0, -0.35, 0);
+    B(sheathAnchor, 0.11, 0.05, 0.085, 'metal', 0, -1.0, 0);
+    B(sheathAnchor, 0.11, 0.04, 0.085, 'metal', 0, 0.30, 0);
+
+    var blade = makeBlade(0.95, 0.46);
+    var sheathGroup = G(sheathAnchor, 0, 0.30, 0, 'sheathBlade');
+    sheathGroup.add(blade);
+
+    var sheath2 = G(spine, -torsoW * 0.40, torsoH * 0.42, -torsoD * 0.5 - 0.1, 'sheath2');
+    sheath2.rotation.z = 0.72;
+    B(sheath2, 0.085, 0.78, 0.065, 'suit2', 0, -0.2, 0);
+    B(sheath2, 0.09, 0.04, 0.075, 'metal', 0, -0.58, 0);
+    var blade2 = makeBlade(0.62, 0.32);
+    var sheathGroup2 = G(sheath2, 0, 0.22, 0);
+    sheathGroup2.add(blade2);
+
+    var handAnchor = G(j.elR, 0, -armL * 0.44, 0.02, 'handAnchor');
+    handAnchor.rotation.x = -0.2;
+
+    char = {
+      root: root, flip: flip, rig: rig, j: j, age: A, totalH: totalH, comY: comY,
+      parts: { cape: cape, scarf: scarf, maskMesh: maskMesh, scarfTail: scarfTail,
+        sheath2: sheath2, blade: blade, blade2: blade2, sheathGroup: sheathGroup,
+        sheathGroup2: sheathGroup2, handAnchor: handAnchor, sheathAnchor: sheathAnchor, sheath: sheath },
+      swordInHand: false, sword2InHand: false
+    };
+    applyParts();
+    return char;
+  }
+
+  function applyParts() {
+    if (!char) return;
+    var p = char.parts;
+    p.cape.visible = !!state.cape;
+    p.scarf.visible = !!state.scarf;
+    p.maskMesh.visible = !!state.mask;
+    p.sheath2.visible = !!state.dual;
+    p.sheathGroup2.visible = state.dual && !char.sword2InHand;
+  }
+
+  function setSword(ch, on, second) {
+    if (!ch) return;
+    var p = ch.parts;
+    var blade = second ? p.blade2 : p.blade;
+    var from = second ? p.sheathGroup2 : p.sheathGroup;
+    var hand = p.handAnchor;
+    if (on) {
+      hand.add(blade);
+      blade.position.set(0, 0.10, 0.06);
+      blade.rotation.set(-1.45, 0, 0);
+      if (second) ch.sword2InHand = true; else ch.swordInHand = true;
+    } else {
+      from.add(blade);
+      blade.position.set(0, 0, 0);
+      blade.rotation.set(0, 0, 0);
+      if (second) ch.sword2InHand = false; else ch.swordInHand = false;
+    }
+  }
+
+  var POSE_KEYS = ['sp', 'nk', 'shR', 'elR', 'shL', 'elL', 'hpR', 'knR', 'hpL', 'knL', 'ry', 'fx', 'fy', 'cp', 'tl'];
+  function zeroPose() {
+    return { sp: [0, 0, 0], nk: [0, 0, 0], shR: [0, 0, 0], elR: 0, shL: [0, 0, 0], elL: 0,
+      hpR: [0, 0, 0], knR: 0, hpL: [0, 0, 0], knL: 0, ry: 0, fx: 0, fy: 0, cp: 0.05, tl: 0 };
+  }
+  function mixPose(a, b, t) {
+    var o = {};
+    POSE_KEYS.forEach(function (k) {
+      if (Array.isArray(a[k])) o[k] = a[k].map(function (v, i) { return v + (b[k][i] - v) * t; });
+      else o[k] = a[k] + (b[k] - a[k]) * t;
+    });
+    return o;
+  }
+  function poseAt(keys, p) {
+    if (p <= keys[0].p) return keys[0].pose;
+    for (var i = 0; i < keys.length - 1; i++) {
+      if (p >= keys[i].p && p <= keys[i + 1].p) {
+        var t = (p - keys[i].p) / (keys[i + 1].p - keys[i].p);
+        t = t * t * (3 - 2 * t);
+        return mixPose(keys[i].pose, keys[i + 1].pose, t);
+      }
+    }
+    return keys[keys.length - 1].pose;
+  }
+  function P(over) {
+    var p = zeroPose();
+    for (var k in over) p[k] = over[k];
+    return p;
+  }
+
+  var ANIMS = {
+    idle: { name: '待机', fn: function (t) {
+      var s = Math.sin(t * 1.7), s2 = Math.sin(t * 0.55);
+      return P({
+        sp: [0.02 + 0.012 * s, 0.015 * s2, 0],
+        nk: [0.01 - 0.008 * s, 0.12 * s2, 0.015],
+        shR: [-0.1, 0, -0.12], elR: 0.42 + 0.05 * s,
+        shL: [-0.06, 0, 0.12], elL: 0.3 + 0.04 * s,
+        hpR: [0.015, 0, -0.02], knR: 0.05,
+        hpL: [0.015, 0, 0.02], knL: 0.05,
+        ry: 0.008 * s, cp: 0.05 + 0.02 * Math.sin(t * 1.2), tl: 0.12 * Math.sin(t * 1.4)
+      });
+    } },
+    walk: { name: '步行', fn: function (t) {
+      var w = t * 5.6, s = Math.sin(w);
+      return P({
+        sp: [0.05, 0.04 * s, 0],
+        nk: [0.02, -0.05 * s, 0],
+        shR: [s * 0.5, 0, -0.1], elR: 0.34 + 0.16 * Math.max(0, s),
+        shL: [-s * 0.5, 0, 0.1], elL: 0.34 + 0.16 * Math.max(0, -s),
+        hpR: [-s * 0.55, 0, -0.02], knR: 0.1 + 0.55 * Math.max(0, Math.sin(w + 2.2)),
+        hpL: [s * 0.55, 0, 0.02], knL: 0.1 + 0.55 * Math.max(0, Math.sin(w + 2.2 + Math.PI)),
+        ry: Math.abs(Math.sin(w)) * 0.03 - 0.01, cp: 0.06 + 0.04 * s, tl: 0.2 * Math.sin(w)
+      });
+    } },
+    run: { name: '忍跑', fn: function (t) {
+      var w = t * 7.0, s = Math.sin(w);
+      return P({
+        sp: [0.5, 0.05 * s, 0],
+        nk: [-0.42, 0, 0],
+        shR: [1.15, 0, -0.16], elR: 0.18,
+        shL: [1.15, 0, 0.16], elL: 0.18,
+        hpR: [-s * 1.0, 0, -0.02], knR: 0.25 + 0.9 * Math.max(0, Math.sin(w + 1.8)),
+        hpL: [s * 1.0, 0, 0.02], knL: 0.25 + 0.9 * Math.max(0, Math.sin(w + 1.8 + Math.PI)),
+        ry: Math.abs(Math.sin(w)) * 0.07 - 0.02, cp: 0.34 + 0.1 * s, tl: 0.5 + 0.2 * s, fx: 0
+      });
+    } },
+    sneak: { name: '潜行', fn: function (t) {
+      var w = t * 3.2, s = Math.sin(w);
+      return P({
+        sp: [0.36, 0.05 * s, 0],
+        nk: [-0.3, 0.12 * Math.sin(t * 0.9), 0],
+        shR: [-0.55, 0, -0.24], elR: 1.0 + 0.1 * s,
+        shL: [-0.35, 0, 0.2], elL: 0.85,
+        hpR: [-0.62 - s * 0.18, 0, -0.08], knR: 1.1 + 0.16 * s,
+        hpL: [-0.42 + s * 0.18, 0, 0.08], knL: 1.0 - 0.16 * s,
+        ry: -0.30 + Math.abs(s) * 0.02, cp: 0.16, tl: 0.2
+      });
+    } },
+    slash: { name: '拔刀斩', dur: 1.25, fn: function (t, p) {
+      var K = ANIMS.slash.keys;
+      return poseAt(K, p);
+    }, keys: null },
+    jump: { name: '跳跃', dur: 1.15, fn: function (t, p) {
+      var air = Math.sin(Math.min(1, p * 1.05) * Math.PI);
+      var crouch = Math.max(0, 1 - p * 6) * 0.5 + Math.max(0, (p - 0.85) * 5) * 0.5;
+      return P({
+        sp: [0.12 + crouch * 0.2, 0, 0],
+        nk: [-0.1, 0, 0],
+        shR: [-0.9 * air, 0, -0.35 - 0.3 * air], elR: 0.5 + 0.9 * air,
+        shL: [-0.9 * air, 0, 0.35 + 0.3 * air], elL: 0.5 + 0.9 * air,
+        hpR: [-0.75 * air - crouch * 0.5, 0, -0.05], knR: 0.3 + 1.0 * air + crouch * 0.7,
+        hpL: [-0.75 * air - crouch * 0.5, 0, 0.05], knL: 0.3 + 1.0 * air + crouch * 0.7,
+        fy: air * (0.8 * (char ? char.totalH / 3.25 : 1)),
+        ry: -crouch * 0.18, cp: 0.2 + 0.3 * air
+      });
+    } },
+    flip: { name: '后空翻', dur: 1.25, fn: function (t, p) {
+      var air = Math.sin(Math.min(1, p * 1.0) * Math.PI);
+      var spin = p < 0.12 ? 0 : (p > 0.88 ? 0 : -Math.PI * 2 * ((p - 0.12) / 0.76));
+      return P({
+        sp: [0.1 + 0.5 * Math.sin(p * Math.PI), 0, 0],
+        nk: [0.15, 0, 0],
+        shR: [-0.95, 0, -0.22], elR: 1.7,
+        shL: [-0.95, 0, 0.22], elL: 1.7,
+        hpR: [-1.15, 0, -0.06], knR: 1.35,
+        hpL: [-1.15, 0, 0.06], knL: 1.35,
+        fy: air * (0.75 * (char ? char.totalH / 3.25 : 1)),
+        fx: spin, cp: 0.5
+      });
+    } },
+    seal: { name: '结印', fn: function (t) {
+      var s = Math.sin(t * 2.4);
+      return P({
+        sp: [0.08, 0, 0],
+        nk: [0.18, 0, 0],
+        shR: [-1.32, 0.3, -0.62], elR: 1.85 + 0.05 * s,
+        shL: [-1.32, -0.3, 0.62], elL: 1.85 - 0.05 * s,
+        hpR: [0.05, 0, -0.04], knR: 0.1,
+        hpL: [0.05, 0, 0.04], knL: 0.1,
+        cp: 0.04, tl: 0.05 * s
+      });
+    } },
+    throwK: { name: '飞镖', dur: 1.0, fn: function (t, p) {
+      var K = ANIMS.throwK.keys;
+      return poseAt(K, p);
+    }, keys: null }
+  };
+
+  (function () {
+    var base = zeroPose();
+    var coil = mixPose(base, P({
+      sp: [0.05, 0.5, 0], nk: [0.02, -0.35, 0],
+      shR: [2.0, 0.5, -0.35], elR: 1.35,
+      shL: [-0.5, 0, 0.35], elL: 1.1,
+      hpR: [0.1, 0, -0.05], knR: 0.25, hpL: [-0.15, 0, 0.05], knL: 0.3,
+      cp: 0.3
+    }), 1);
+    var swing = P({
+      sp: [0.12, -0.55, 0], nk: [0.0, 0.45, 0],
+      shR: [-1.45, -0.55, 0.15], elR: 0.15,
+      shL: [0.35, 0, 0.5], elL: 0.7,
+      hpR: [-0.45, 0, -0.1], knR: 0.5, hpL: [0.3, 0, 0.1], knL: 0.35,
+      cp: 0.55
+    });
+    var settle = mixPose(base, P({
+      sp: [0.06, 0.2, 0], nk: [0, -0.1, 0],
+      shR: [-0.5, -0.2, -0.1], elR: 0.5,
+      shL: [-0.1, 0, 0.14], elL: 0.4,
+      hpR: [-0.1, 0, -0.04], knR: 0.2, hpL: [0.1, 0, 0.04], knL: 0.2,
+      cp: 0.2
+    }), 1);
+    ANIMS.slash.keys = [
+      { p: 0.0, pose: base }, { p: 0.22, pose: coil }, { p: 0.40, pose: swing },
+      { p: 0.62, pose: settle }, { p: 1.0, pose: base }
+    ];
+    ANIMS.slash.fxAt = [0.28, 0.52];
+
+    ANIMS.throwK.keys = [
+      { p: 0.0, pose: base },
+      { p: 0.3, pose: P({
+        sp: [0.02, -0.45, 0], nk: [0, 0.3, 0],
+        shR: [-2.15, -0.35, -0.3], elR: 1.9,
+        shL: [-0.8, 0.2, 0.3], elL: 1.1,
+        hpR: [-0.15, 0, -0.05], knR: 0.25, hpL: [0.15, 0, 0.05], knL: 0.25,
+        cp: 0.3
+      }) },
+      { p: 0.48, pose: P({
+        sp: [0.16, 0.55, 0], nk: [0, -0.35, 0],
+        shR: [-1.35, 0.35, 0.35], elR: 0.25,
+        shL: [0.2, 0, 0.3], elL: 0.6,
+        hpR: [-0.3, 0, -0.05], knR: 0.4, hpL: [0.2, 0, 0.05], knL: 0.3,
+        cp: 0.5
+      }) },
+      { p: 0.72, pose: mixPose(base, P({ sp: [0.06, 0.2, 0], shR: [-0.4, 0, -0.2], elR: 0.6 }), 1) },
+      { p: 1.0, pose: base }
+    ];
+    ANIMS.throwK.fxAt = [0.42, 0.46];
+  })();
+
+  function lerpRot3(obj, arr, k) {
+    obj.rotation.x += (arr[0] - obj.rotation.x) * k;
+    obj.rotation.y += (arr[1] - obj.rotation.y) * k;
+    obj.rotation.z += (arr[2] - obj.rotation.z) * k;
+  }
+
+  function applyPose(ch, name, dt, speed) {
+    if (!ch) return;
+    var A = ANIMS[name] || ANIMS.idle;
+    if (!ch.motion) ch.motion = { name: 'idle', t: 0 };
+    if (ch.motion.name !== name) {
+      ch.motion.name = name; ch.motion.t = 0;
+      setSword(ch, name === 'slash' || name === 'seal', false);
+    }
+    ch.motion.t += dt * (speed || 1) * (ch.age.spd || 1);
+    var t = ch.motion.t;
+    var p = A.dur ? (t % A.dur) / A.dur : 0;
+    var pose = A.fn(t, p);
+    var k = 1 - Math.exp(-dt * (A.dur ? 24 : 13));
+    var J = ch.j;
+    lerpRot3(J.spine, [pose.sp[0] + (ch.age.hunch || 0), pose.sp[1], pose.sp[2]], k);
+    lerpRot3(J.neck, [pose.nk[0] - (ch.age.hunch || 0) * 0.8, pose.nk[1], pose.nk[2]], k);
+    lerpRot3(J.shR, pose.shR, k);
+    lerpRot3(J.shL, pose.shL, k);
+    J.elR.rotation.x += (pose.elR - J.elR.rotation.x) * k;
+    J.elL.rotation.x += (pose.elL - J.elL.rotation.x) * k;
+    J.knR.rotation.x += (pose.knR - J.knR.rotation.x) * k;
+    J.knL.rotation.x += (pose.knL - J.knL.rotation.x) * k;
+    lerpRot3(J.hipR, [pose.hpR[0], pose.hpR[1] || 0, pose.hpR[2] || 0], k);
+    lerpRot3(J.hipL, [pose.hpL[0], pose.hpL[1] || 0, pose.hpL[2] || 0], k);
+    var capeTarget = 0.05 + (pose.cp || 0);
+    J.cape.rotation.x += (capeTarget - J.cape.rotation.x) * (1 - Math.exp(-dt * 7));
+    J.cape.rotation.z = Math.sin(t * 1.3) * 0.02;
+    ch.rig.position.y = -ch.comY + (pose.ry || 0);
+    ch.flip.position.y = ch.comY + (pose.fy || 0);
+    ch.flip.rotation.x = pose.fx || 0;
+    if (ch.parts.scarfTail) {
+      ch.parts.scarfTail.rotation.x = -0.15 + (pose.tl || 0) * 0.9;
+      ch.parts.scarfTail.rotation.z = Math.sin(t * 2.1) * 0.08;
+    }
+    return t;
+  }
+
+  function setAnim(ch, name) {
+    if (!ANIMS[name]) return false;
+    ch.motion = { name: name, t: 0 };
+    setSword(ch, name === 'slash' || name === 'seal', false);
+    return true;
+  }
+
+  function build(ageKey) {
+    var ch = buildNinja(ageKey || 'adult');
+    ch.motion = { name: 'idle', t: 0 };
+    ch.boxes = 0;
+    ch.root.traverse(function (n) { if (n.kind === 'mesh' && n.visible !== false) ch.boxes++; });
+    return ch;
+  }
+
+  return { build: build, applyPose: applyPose, setAnim: setAnim, setSword: setSword,
+    ANIMS: ANIMS, THEMES: THEMES, AGES: AGES };
+})();
+
+/* =========================================================
+   自然生态图鉴 v3 · 方盒骨架
+   参考：自然生态图鉴 v3（22 动物 + 22 植物，14 种形态）
+   说明：buildCreature / applyAnim 原样抽取，仅适配现有场景图与渲染器。
+   ========================================================= */
+var NATURE3D = (function () {
+  var THREE = RigThree();
+var ANIMALS = [
+  ['东北虎','顶级捕食者','针阔混交林','肉食','quad',['#d9822b','#f6e7cd','#2a2622'],1.55,'独居巡猎，一只成年虎的领地可达数百平方公里。'],
+  ['狼','次级消费者','草原与森林','肉食','quad',['#8a8f96','#d8dde2','#3a3f45'],1.15,'群体协作捕猎，以嚎叫维持家族间的联络。'],
+  ['棕熊','杂食者','针叶林','杂食','quad',['#6b4a30','#8f6543','#2e2118'],1.7,'秋季大量进食囤积脂肪，冬季进入洞穴冬眠。'],
+  ['梅花鹿','初级消费者','落叶阔叶林','草食','quad',['#b07a45','#f2e6d4','#e8d9b8'],1.05,'夏毛栗红带白斑，雄鹿每年脱换一次鹿角。'],
+  ['亚洲象','初级消费者','热带季雨林','草食','quad',['#8e8b86','#c9c6c0','#5c5a56'],2.2,'象群由年长雌象带领，每日需进食上百公斤植物。'],
+  ['藏羚羊','初级消费者','高寒草甸','草食','quad',['#c99a5e','#f4ead5','#5a4632'],0.95,'每年夏季雌羚长途迁徙到可可西里产仔。'],
+  ['双峰驼','初级消费者','荒漠戈壁','草食','quad',['#b08a5c','#dcc39b','#6b5236'],1.6,'驼峰储存脂肪，可数日不饮水穿越戈壁。'],
+  ['大熊猫','初级消费者','亚高山竹林','竹食','quad',['#f2f2f0','#1d1e22','#4a4a50'],1.35,'每天进食十余小时，以竹子为主食。'],
+  ['赤狐','次级消费者','草原灌丛','杂食','quad',['#c25a2a','#f4e3d2','#3a2a22'],0.9,'听觉敏锐，能听见雪层下小型啮齿动物的动静。'],
+  ['高原鼠兔','初级消费者','高寒草甸','草食','quad',['#a98a68','#d9c6aa','#4a3a2c'],0.45,'草原食物链的关键一环，也是土壤翻动的工程师。'],
+  ['丹顶鹤','杂食鸟类','芦苇湿地','杂食','bird',['#f6f6f4','#1c1d20','#c0392b'],1.5,'头顶裸露皮肤呈朱红，迁徙时排成"人"字队形。'],
+  ['金雕','顶级捕食者','高原山地','肉食','bird',['#6b4a2e','#a9782f','#2a2118'],1.3,'翼展可达两米，盘旋时借上升气流节省体力。'],
+  ['绿孔雀','杂食鸟类','季雨林河谷','杂食','bird',['#1f7a6a','#2f9e8a','#d4a72c'],1.25,'雄鸟开屏求偶，尾屏眼斑可达百余枚。'],
+  ['朱鹮','湿地涉禽','水田沼泽','杂食','bird',['#f6efe6','#e8a9a0','#c0392b'],1.1,'曾一度被认为野外灭绝，如今种群逐步恢复。'],
+  ['麻雀','伴人鸟类','城镇农田','杂食','bird',['#8a6a4a','#d9cbb8','#3a2e24'],0.4,'与人共栖的小型鸟类，适应力极强。'],
+  ['中华鲟','洄游鱼类','长江干流','底栖肉食','fish',['#5b6670','#a8b2ba','#2f363c'],1.8,'古老的重游性鱼类，成鱼溯江而上产卵。'],
+  ['锦鲤','淡水鱼类','池塘湖泊','杂食','fish',['#e8622c','#f7d9c4','#ffffff'],0.85,'人工选育的观赏鲤，色彩与斑纹变化丰富。'],
+  ['扬子鳄','顶级捕食者','河湖湿地','肉食','reptile',['#4a5a3a','#7d8f5e','#2a3322'],1.2,'中国特有的小型鳄类，冬季掘洞穴居。'],
+  ['中华大蟾蜍','次级消费者','农田池塘','肉食','amphibian',['#7a6a4a','#b5a37e','#3a3222'],0.5,'皮肤腺体能分泌蟾酥，昼伏夜出捕食昆虫。'],
+  ['蜜蜂','传粉者','花田果园','花蜜','insect',['#e0b22a','#2a2622','#f6f2e6'],0.35,'蜂群分工严密，一只工蜂一生约采集数百次。'],
+  ['蝴蝶','传粉者','草甸林缘','花蜜','insect',['#3f7fd0','#1b2a3a','#f2f4f8'],0.4,'翅面鳞片决定色彩，成虫寿命常仅数周。'],
+  ['萤火虫','分解者伴生','溪边湿地','成虫不食','insect',['#2a2f22','#e8e04a','#8a8a3a'],0.3,'腹部发光器通过冷光通讯，用于求偶。']
+]
+
+var PLANTS = [
+  ['银杏','生产者','城镇林带','落叶乔木','tree',['#4f8a3a','#d8b24a','#6b4a2e'],1.5,'现存最古老的种子植物之一，秋季叶片金黄。'],
+  ['马尾松','生产者','亚热带山地','常绿针叶','conifer',['#2f5a32','#3f7a3f','#5a4230'],1.6,'耐瘠薄干旱，是荒山造林的先锋树种。'],
+  ['香樟','生产者','常绿阔叶林','常绿乔木','tree',['#2f6b3f','#4f8f4f','#5f4632'],1.6,'枝叶含樟脑香气，可驱虫，树冠浓密。'],
+  ['胡杨','生产者','荒漠河岸','落叶乔木','tree',['#c9a227','#e8c85a','#7a5a34'],1.5,'"生而千年不死"，耐盐碱，守住了绿洲边缘。'],
+  ['榕树','生产者','热带季雨林','常绿乔木','tree',['#2f6a3a','#4a8a4a','#6b5036'],1.7,'气根垂落成柱，一树可成林。'],
+  ['桃树','生产者','温带果园','落叶小乔木','tree',['#8a5a3a','#e79aa8','#4a7f3a'],1.1,'春季先花后叶，果实是重要的经济作物。'],
+  ['毛竹','生产者','亚热带竹林','单子叶竹','bamboo',['#5a8f3a','#8fbf5a','#3f6b2a'],1.8,'每日可生长数十厘米，是生长最快的植物之一。'],
+  ['杜鹃','生产者','高山灌丛','常绿灌木','shrub',['#2f6a3a','#c8425a','#4a8f3a'],0.9,'高山杜鹃成片开放，是山地春季的标志景观。'],
+  ['茶树','生产者','亚热带丘陵','常绿灌木','shrub',['#2f6a3a','#5f9a4a','#f2f6e8'],0.85,'嫩叶经杀青揉捻制成茶叶，喜酸怕涝。'],
+  ['荷花','生产者','浅水湖泊','水生草本','lotus',['#4f8f4a','#f0a8c0','#f8f2e0'],1.1,'根茎为藕，花叶挺出水面，出淤泥而不染。'],
+  ['芦苇','生产者','河滩湿地','挺水草本','flower',['#8aa04a','#c8d090','#6b7a3a'],1.4,'地下根茎蔓延成片，是湿地净化水质的主力。'],
+  ['兰花','生产者','林下阴湿','地生草本','flower',['#3f7a3a','#f2e6f0','#8a5a9a'],0.6,'花朵结构精巧，多与真菌共生萌发。'],
+  ['藏红花','生产者','高原山坡','球茎草本','flower',['#4a7a3a','#c8422a','#e8a02a'],0.5,'仅取雌蕊柱头入药，需人工逐朵采摘。'],
+  ['松茸','分解者','松栎混交林','外生菌根','mushroom',['#f2ece0','#8a6a4a','#5a4632'],0.6,'与松树根系共生，至今难以人工栽培。'],
+  ['灵芝','分解者','阔叶林腐木','木腐真菌','mushroom',['#8a3a22','#c86a3a','#f2e2c8'],0.55,'菌盖呈漆光泽，是我国传统药用真菌。'],
+  ['仙人掌','生产者','干旱荒漠','多肉植物','cactus',['#4a8a4a','#6fae5a','#e0c04a'],1.0,'肉质茎储水，刺是退化的叶，减少蒸腾。'],
+  ['胡枝子','生产者','草原灌丛','落叶灌木','shrub',['#4a7a3a','#b06a9a','#6b8a3a'],0.8,'根瘤可固氮，是贫瘠土壤的改良者。'],
+  ['沙蒿','生产者','荒漠沙地','半灌木','shrub',['#8a9a6a','#c8c8a0','#6b6a4a'],0.7,'根系发达固沙，是流动沙丘上的先锋植物。'],
+  ['水杉','生产者','湿地水岸','落叶针叶','conifer',['#3f7a3a','#6ba04a','#7a5a3a'],1.7,'"活化石"树种，秋叶转红，喜湿耐水。'],
+  ['睡莲','生产者','静水池塘','浮叶水生','lotus',['#4a8a4a','#f2c8e0','#f8f4ea'],0.7,'叶片浮于水面，花朵每日开合。'],
+  ['雪莲','生产者','高山流石滩','多年生草本','flower',['#6a8a5a','#f4f6f2','#c8d8c0'],0.55,'绒毛包裹花苞抵御强紫外线与骤寒。'],
+  ['芨芨草','生产者','干旱草原','丛生草本','flower',['#9aa06a','#c8c49a','#7a7a4a'],1.0,'丛生根系固土，是草原上的耐旱牧草。']
+]
+
+var SHAPE = {
+    '东北虎': { leg: 0.6, th: 0.5, tl: 1.25, hw: 0.52, neck: 0.3, tail: 0.95, wd: 0.5, limb: 0.28 },
+    '狼': { leg: 0.64, th: 0.44, tl: 1.15, hw: 0.42, neck: 0.28, tail: 0.6, wd: 0.42, limb: 0.22 },
+    '棕熊': { leg: 0.5, th: 0.62, tl: 1.15, hw: 0.56, neck: 0.24, tail: 0.22, wd: 0.62, limb: 0.34 },
+    '梅花鹿': { leg: 0.82, th: 0.44, tl: 0.92, hw: 0.36, neck: 0.5, tail: 0.28, wd: 0.4, limb: 0.16 },
+    '亚洲象': { leg: 0.72, th: 0.72, tl: 1.5, hw: 0.9, neck: 0.1, tail: 0.5, wd: 0.8, limb: 0.42 },
+    '藏羚羊': { leg: 0.78, th: 0.38, tl: 0.9, hw: 0.32, neck: 0.34, tail: 0.2, wd: 0.36, limb: 0.14 },
+    '双峰驼': { leg: 0.85, th: 0.55, tl: 1.35, hw: 0.44, neck: 0.72, tail: 0.4, wd: 0.6, limb: 0.26 },
+    '大熊猫': { leg: 0.46, th: 0.6, tl: 1.05, hw: 0.6, neck: 0.12, tail: 0.14, wd: 0.66, limb: 0.32 },
+    '赤狐': { leg: 0.5, th: 0.36, tl: 0.92, hw: 0.34, neck: 0.22, tail: 0.85, wd: 0.34, limb: 0.16 },
+    '高原鼠兔': { leg: 0.2, th: 0.26, tl: 0.46, hw: 0.24, neck: 0.06, tail: 0.06, wd: 0.28, limb: 0.1 }
+  }
+
+  var BOX = new THREE.BoxGeometry(1, 1, 1);
+  var CONE = new THREE.ConeGeometry(0.72, 1, 4, 1);
+  var cache = {};
+  function M(hex, r, m) {
+    var k = hex + '|' + (r || 0) + '|' + (m || 0);
+    if (!cache[k]) cache[k] = new THREE.MeshStandardMaterial({ color: hex, roughness: r == null ? 0.88 : r, metalness: m || 0.02 });
+    return cache[k];
+  }
+  function B(p, w, h, d, c, x, y, z, o) {
+    o = o || {};
+    var m = new THREE.Mesh(o.geo || BOX, M(c, o.r, o.m));
+    m.scale.set(w, h, d); m.position.set(x || 0, y || 0, z || 0);
+    if (o.rot) m.rotation.set(o.rot[0] || 0, o.rot[1] || 0, o.rot[2] || 0);
+    m.castShadow = true; m.receiveShadow = true;
+    p.add(m); return m;
+  }
+  function G(p, x, y, z, n) { var g = new THREE.Group(); g.position.set(x || 0, y || 0, z || 0); if (n) g.name = n; p.add(g); return g; }
+
+function buildCreature(sp) {
+    var c1 = sp.c[0], c2 = sp.c[1], c3 = sp.c[2];
+    var f = sp.form, s = sp.size || 1;
+    var root = new THREE.Group(), rig = new THREE.Group();
+    root.add(rig);
+    var j = { legs: [], knees: [], wings: [], tail: null, head: null, rig: rig };
+    var h = 1;
+
+    function eye(p, x, y, z, r) {
+      B(p, r, r, r * 0.5, '#ffffff', x, y, z);
+      B(p, r * 0.5, r * 0.5, r * 0.3, '#1a1a1a', x, y, z + r * 0.25);
+    }
+
+    if (f === 'quad') {
+      var S = SHAPE[sp.shape || sp.name] || SHAPE[sp.name] || {};
+      var legL = (S.leg || 0.62) * s, th = (S.th || 0.56) * s, tl = (S.tl || 1.22) * s;
+      var hw = (S.hw || 0.52) * s, nk = (S.neck || 0.34) * s, tl2 = (S.tail || 0.7) * s;
+      var wd = (S.wd || 0.5) * s, lt = (S.limb || 0.26) * s;
+      // 躯干：胸厚、腰细、臀圆
+      B(rig, tl * 0.54, th, wd, c1, tl * 0.19, legL + th * 0.5, 0);
+      B(rig, tl * 0.56, th * 0.84, wd * 0.9, c1, -tl * 0.25, legL + th * 0.45, 0);
+      B(rig, tl * 0.34, th * 0.7, wd * 1.04, c3, -tl * 0.5, legL + th * 0.52, 0);
+      B(rig, tl * 0.76, th * 0.15, wd * 1.02, c2, 0, legL + th * 0.14, 0);
+      // 前肢：肩 → 肘 → 掌
+      [-1, 1].forEach(function (sg) {
+        var sh = G(rig, tl * 0.34, legL + th * 0.44, sg * wd * 0.33);
+        B(sh, lt, legL * 0.52, lt, c1, 0, -legL * 0.26, 0);
+        var el = G(sh, 0, -legL * 0.52, 0);
+        B(el, lt * 0.85, legL * 0.3, lt * 0.85, c1, 0, -legL * 0.15, 0);
+        B(el, lt * 1.2, legL * 0.1, lt * 1.25, c3, 0, -legL * 0.34, lt * 0.1);
+        j.knees.push(el); j.legs.push(sh);
+      });
+      // 后肢：髋 → 膝 → 掌（大腿更粗）
+      [-1, 1].forEach(function (sg) {
+        var hp = G(rig, -tl * 0.34, legL, sg * wd * 0.33);
+        B(hp, lt * 1.3, legL * 0.55, lt * 1.3, c1, 0, -legL * 0.28, 0);
+        var kn = G(hp, 0, -legL * 0.55, 0);
+        B(kn, lt * 0.85, legL * 0.28, lt * 0.85, c1, 0, -legL * 0.14, 0);
+        B(kn, lt * 1.15, legL * 0.1, lt * 1.2, c3, 0, -legL * 0.32, lt * 0.08);
+        j.knees2 = j.knees2 || []; j.knees2.push(kn);
+        j.hinds = j.hinds || []; j.hinds.push(hp);
+      });
+      // 颈 + 头
+      var neck = G(rig, tl * 0.44, legL + th * 0.88, 0, 'neck');
+      neck.rotation.z = -0.2;
+      B(neck, nk * 0.72, nk, nk * 0.78, c1, 0, nk * 0.34, 0);
+      var hd = G(neck, nk * 0.1, nk * 0.72, 0);
+      B(hd, hw, hw * 0.86, hw * 0.94, c1, 0, 0, 0);
+      B(hd, hw * 0.56, hw * 0.42, hw * 0.5, c2, hw * 0.58, -hw * 0.16, 0);
+      B(hd, hw * 0.18, hw * 0.12, hw * 0.26, '#2b2b2b', hw * 0.86, -hw * 0.12, 0);
+      eye(hd, hw * 0.26, hw * 0.2, hw * 0.46, hw * 0.2);
+      eye(hd, hw * 0.26, hw * 0.2, -hw * 0.46, hw * 0.2);
+      [-1, 1].forEach(function (sg) {
+        B(hd, hw * 0.2, hw * 0.34, hw * 0.16, c3, -hw * 0.1, hw * 0.52, sg * hw * 0.34, { rot: [0, 0, sg * 0.12] });
+      });
+      j.head = hd; j.neck = neck;
+      // 尾巴两段
+      var t1 = G(rig, -tl * 0.6, legL + th * 0.74, 0, 'tail');
+      B(t1, tl2 * 0.6, lt * 0.5, lt * 0.5, c1, -tl2 * 0.3, 0, 0);
+      var t2 = G(t1, -tl2 * 0.6, 0, 0);
+      B(t2, tl2 * 0.5, lt * 0.6, lt * 0.6, c2, -tl2 * 0.25, 0, 0);
+      j.tail = t1; j.tail2 = t2;
+      h = legL + th + hw * 0.6;
+
+    } else if (f === 'bird') {
+      var bw = 0.5 * s, bh = 0.5 * s, legH2 = 0.5 * s;
+      B(rig, bw, bh * 0.9, bw * 0.8, c1, 0, legH2 + bh * 0.45, 0);
+      B(rig, bw * 0.7, bh * 0.4, bw * 0.72, c2, 0, legH2 + bh * 0.3, 0);
+      var hd2 = G(rig, bw * 0.42, legH2 + bh * 0.95, 0);
+      B(hd2, bw * 0.42, bh * 0.5, bw * 0.4, c1, 0, 0, 0);
+      B(hd2, bw * 0.2, bh * 0.12, bw * 0.14, '#e8a94a', bw * 0.3, -bh * 0.06, 0);  // 喙
+      eye(hd2, bw * 0.16, bh * 0.1, bw * 0.2, bw * 0.1);
+      eye(hd2, bw * 0.16, bh * 0.1, -bw * 0.2, bw * 0.1);
+      if (sp.crest) B(hd2, bw * 0.1, bh * 0.22, bw * 0.1, c3, -bw * 0.06, bh * 0.32, 0);
+      j.head = hd2;
+      [-1, 1].forEach(function (sgn) {
+        var wg = G(rig, 0, legH2 + bh * 0.6, sgn * bw * 0.42);
+        B(wg, bw * 0.7, bh * 0.5, bw * 0.07, c2, -bw * 0.1, 0, 0);
+        j.wings.push(wg);
+      });
+      [-1, 1].forEach(function (sgn) {
+        var lg = G(rig, 0, legH2, sgn * bw * 0.16);
+        B(lg, bw * 0.1, legH2, bw * 0.1, '#c98a3a', 0, -legH2 * 0.5, 0);
+        B(lg, bw * 0.18, legH2 * 0.1, bw * 0.3, '#c98a3a', 0, -legH2, bw * 0.06);
+        j.legs.push(lg);
+      });
+      var tl2 = G(rig, -bw * 0.5, legH2 + bh * 0.5, 0);
+      B(tl2, bw * 0.6, bh * 0.08, bw * 0.3, c2, -bw * 0.3, 0, 0);
+      j.tail = tl2;
+      h = legH2 + bh * 1.4;
+
+    } else if (f === 'fish') {
+      var fl = 1.0 * s, fh = 0.5 * s;
+      B(rig, fl, fh, fh * 0.6, c1, 0, fh * 0.6, 0);
+      B(rig, fl * 0.7, fh * 0.35, fh * 0.62, c2, 0, fh * 0.42, 0);
+      eye(rig, fl * 0.32, fh * 0.78, fh * 0.3, fh * 0.16);
+      eye(rig, fl * 0.32, fh * 0.78, -fh * 0.3, fh * 0.16);
+      B(rig, fl * 0.3, fh * 0.3, fh * 0.1, c3, -fl * 0.1, fh * 1.05, 0, { rot: [0, 0, 0] });  // 背鳍
+      var tf = G(rig, -fl * 0.5, fh * 0.6, 0);
+      B(tf, fl * 0.4, fh * 0.5, fh * 0.08, c2, -fl * 0.2, 0, 0);
+      j.tail = tf;
+      B(rig, fl * 0.28, fh * 0.12, fh * 0.9, c2, fl * 0.05, fh * 0.5, 0);   // 胸鳍
+      h = fh * 1.2;
+
+    } else if (f === 'reptile') {
+      var rl = 1.5 * s, rh = 0.34 * s, legH3 = 0.3 * s;
+      B(rig, rl, rh, rh * 1.5, c1, 0, legH3 + rh * 0.5, 0);
+      B(rig, rl * 0.9, rh * 0.28, rh * 1.4, c2, 0, legH3 + rh * 0.25, 0);
+      [[-rl * 0.32, 0.2], [rl * 0.32, 0.2], [-rl * 0.32, -0.2], [rl * 0.32, -0.2]].forEach(function (p) {
+        var lg = G(rig, p[0], legH3, p[1] * rh * 2);
+        B(lg, rh * 0.5, legH3, rh * 0.5, c1, 0, -legH3 * 0.5, 0);
+        j.legs.push(lg);
+      });
+      var hd3 = G(rig, rl * 0.52, legH3 + rh * 0.6, 0);
+      B(hd3, rh * 1.3, rh * 0.7, rh * 0.9, c1, rh * 0.3, 0, 0);
+      eye(hd3, rh * 0.5, rh * 0.2, rh * 0.42, rh * 0.16);
+      eye(hd3, rh * 0.5, rh * 0.2, -rh * 0.42, rh * 0.16);
+      j.head = hd3;
+      var tl3 = G(rig, -rl * 0.5, legH3 + rh * 0.5, 0);
+      B(tl3, rl * 0.7, rh * 0.5, rh * 0.6, c1, -rl * 0.35, 0, 0);
+      j.tail = tl3;
+      h = legH3 + rh * 1.2;
+
+    } else if (f === 'amphibian') {
+      var al = 0.7 * s, ah = 0.42 * s;
+      B(rig, al, ah, al * 0.9, c1, 0, ah * 0.5 + 0.12 * s, 0);
+      B(rig, al * 0.8, ah * 0.3, al * 0.85, c2, 0, ah * 0.3, 0);
+      [[-0.28, 0.3], [0.28, 0.3], [-0.28, -0.3], [0.28, -0.3]].forEach(function (p) {
+        var lg = G(rig, p[0] * al, ah * 0.35, p[1] * al);
+        B(lg, al * 0.16, ah * 0.5, al * 0.16, c1, 0, -ah * 0.25, 0);
+        j.legs.push(lg);
+      });
+      var hd4 = G(rig, al * 0.42, ah * 0.9, 0);
+      B(hd4, al * 0.5, ah * 0.55, al * 0.62, c1, 0, 0, 0);
+      B(hd4, al * 0.1, ah * 0.28, al * 0.1, '#e8e04a', al * 0.06, ah * 0.28, al * 0.16);  // 眼凸
+      B(hd4, al * 0.1, ah * 0.28, al * 0.1, '#e8e04a', al * 0.06, ah * 0.28, -al * 0.16);
+      B(hd4, al * 0.06, ah * 0.06, al * 0.06, '#151515', al * 0.06, ah * 0.3, al * 0.22);
+      B(hd4, al * 0.06, ah * 0.06, al * 0.06, '#151515', al * 0.06, ah * 0.3, -al * 0.22);
+      j.head = hd4;
+      h = ah * 1.2;
+
+    } else if (f === 'insect') {
+      var il = 0.42 * s;
+      B(rig, il * 0.9, il * 0.55, il * 0.7, c3, 0, il * 0.85, -il * 0.35);   // 腹
+      B(rig, il * 0.55, il * 0.5, il * 0.55, c1, 0, il * 0.9, il * 0.1);     // 胸
+      var ih = G(rig, 0, il * 0.95, il * 0.45);
+      B(ih, il * 0.4, il * 0.35, il * 0.35, c2, 0, 0, 0);
+      eye(ih, il * 0.14, il * 0.05, il * 0.18, il * 0.1);
+      eye(ih, il * 0.14, il * 0.05, -il * 0.18, il * 0.1);
+      B(ih, il * 0.05, il * 0.3, il * 0.05, c3, il * 0.1, il * 0.3, il * 0.12, { rot: [0, 0, -0.5] });
+      B(ih, il * 0.05, il * 0.3, il * 0.05, c3, il * 0.1, il * 0.3, -il * 0.12, { rot: [0, 0, -0.5] });
+      j.head = ih;
+      [-1, 1].forEach(function (sgn) {
+        var wg = G(rig, 0, il * 1.1, sgn * il * 0.2);
+        B(wg, il * 0.9, il * 0.08, il * 0.6, sgn > 0 ? c1 : c2, 0, 0, sgn * il * 0.28);
+        j.wings.push(wg);
+      });
+      [[-0.2, 0.25], [0.05, 0.28], [0.3, 0.25], [-0.2, -0.25], [0.05, -0.28], [0.3, -0.25]].forEach(function (p) {
+        var lg = G(rig, p[0] * il, il * 0.65, p[1] * il);
+        B(lg, il * 0.05, il * 0.45, il * 0.05, c3, 0, -il * 0.22, 0);
+        j.legs.push(lg);
+      });
+      h = il * 1.4;
+
+    } else if (f === 'tree' || f === 'conifer') {
+      var th = 1.5 * s;
+      B(rig, 0.26 * s, th, 0.26 * s, c3, 0, th * 0.5, 0);
+      B(rig, 0.42 * s, th * 0.12, 0.42 * s, c3, 0, 0.06 * s, 0);
+      if (f === 'conifer') {
+        [0, 1, 2].forEach(function (i) {
+          var w = (1.3 - i * 0.3) * s, y = th * (0.55 + i * 0.22);
+          B(rig, w, 0.28 * s, w, c1, 0, y, 0, { geo: CONE });
+        });
+        h = th * 1.25;
+      } else {
+        B(rig, 1.3 * s, 0.95 * s, 1.3 * s, c1, 0, th * 0.82, 0);
+        B(rig, 0.9 * s, 0.8 * s, 0.9 * s, c2, -0.55 * s, th * 0.95, 0.35 * s);
+        B(rig, 0.85 * s, 0.75 * s, 0.85 * s, c2, 0.5 * s, th * 0.9, -0.4 * s);
+        B(rig, 0.7 * s, 0.6 * s, 0.7 * s, c1, 0.15 * s, th * 1.1, 0.5 * s);
+        h = th * 1.35;
+      }
+      j.canopy = rig.children[rig.children.length - 1];
+
+    } else if (f === 'bamboo') {
+      var bh2 = 1.9 * s;
+      for (var i = 0; i < 3; i++) {
+        var ox = (i - 1) * 0.26 * s, oz = (i % 2) * 0.2 * s;
+        B(rig, 0.12 * s, bh2, 0.12 * s, c1, ox, bh2 * 0.5, oz);
+        for (var k = 1; k < 5; k++) B(rig, 0.15 * s, 0.04 * s, 0.15 * s, c3, ox, bh2 * k / 5, oz);
+        [0, 1, 2].forEach(function (n) {
+          var lf = G(rig, ox, bh2 * (0.62 + n * 0.12), oz);
+          B(lf, 0.5 * s, 0.06 * s, 0.16 * s, c2, (n % 2 ? 0.3 : -0.3) * s, 0.05 * s, 0, { rot: [0, 0, n % 2 ? -0.3 : 0.3] });
+        });
+      }
+      h = bh2;
+
+    } else if (f === 'shrub') {
+      var sh2 = 0.8 * s;
+      B(rig, 0.9 * s, 0.55 * s, 0.9 * s, c1, 0, sh2 * 0.5, 0);
+      B(rig, 0.6 * s, 0.45 * s, 0.6 * s, c2, -0.35 * s, sh2 * 0.8, 0.15 * s);
+      B(rig, 0.55 * s, 0.4 * s, 0.55 * s, c2, 0.35 * s, sh2 * 0.75, -0.2 * s);
+      for (var q = 0; q < 6; q++) {
+        var a = q * 1.05;
+        B(rig, 0.12 * s, 0.12 * s, 0.12 * s, c3, Math.cos(a) * 0.45 * s, sh2 * (0.55 + (q % 3) * 0.18), Math.sin(a) * 0.45 * s);
+      }
+      h = sh2 * 1.3;
+
+    } else if (f === 'flower') {
+      var fh2 = 0.9 * s;
+      B(rig, 0.07 * s, fh2, 0.07 * s, c1, 0, fh2 * 0.5, 0);
+      [0, 1, 2].forEach(function (i) {
+        B(rig, 0.32 * s, 0.06 * s, 0.16 * s, c1, (i % 2 ? 0.18 : -0.18) * s, fh2 * (0.28 + i * 0.18), 0, { rot: [0, 0, i % 2 ? -0.45 : 0.45] });
+      });
+      var fh = G(rig, 0, fh2, 0);
+      B(fh, 0.14 * s, 0.1 * s, 0.14 * s, c3, 0, 0, 0);
+      for (var pp = 0; pp < 5; pp++) {
+        var aa = pp * Math.PI * 2 / 5;
+        B(fh, 0.2 * s, 0.06 * s, 0.13 * s, c2, Math.cos(aa) * 0.14 * s, 0.06 * s, Math.sin(aa) * 0.14 * s, { rot: [0, -aa, 0.15] });
+      }
+      j.head = fh;
+      h = fh2 * 1.3;
+
+    } else if (f === 'lotus') {
+      B(rig, 1.2 * s, 0.07 * s, 1.2 * s, c1, 0, 0.16 * s, 0);
+      B(rig, 0.07 * s, 0.5 * s, 0.07 * s, c1, 0.1 * s, 0.4 * s, 0);
+      var lf2 = G(rig, 0.1 * s, 0.62 * s, 0);
+      for (var lp = 0; lp < 6; lp++) {
+        var la = lp * Math.PI / 3;
+        B(lf2, 0.34 * s, 0.1 * s, 0.16 * s, c2, Math.cos(la) * 0.16 * s, 0.05 * s, Math.sin(la) * 0.16 * s, { rot: [0, -la, 0.25] });
+      }
+      B(lf2, 0.12 * s, 0.12 * s, 0.12 * s, c3, 0, 0.1 * s, 0);
+      j.head = lf2;
+      h = 0.9 * s;
+
+    } else if (f === 'mushroom') {
+      var mh = 0.55 * s;
+      B(rig, 0.22 * s, mh, 0.22 * s, c1, 0, mh * 0.5, 0);
+      B(rig, 1.0 * s, 0.3 * s, 1.0 * s, c2, 0, mh + 0.08 * s, 0);
+      B(rig, 0.7 * s, 0.14 * s, 0.7 * s, c2, 0, mh + 0.26 * s, 0);
+      [[0.2, 0.2], [-0.25, 0.1], [0.05, -0.3]].forEach(function (p) {
+        B(rig, 0.12 * s, 0.05 * s, 0.12 * s, c3, p[0] * s, mh + 0.24 * s, p[1] * s);
+      });
+      h = mh + 0.4 * s;
+
+    } else { // cactus
+      var ch = 1.1 * s;
+      B(rig, 0.36 * s, ch, 0.36 * s, c1, 0, ch * 0.5, 0);
+      B(rig, 0.22 * s, 0.45 * s, 0.22 * s, c1, -0.3 * s, ch * 0.6, 0);
+      B(rig, 0.22 * s, 0.22 * s, 0.22 * s, c1, -0.3 * s, ch * 0.42, 0);
+      B(rig, 0.2 * s, 0.4 * s, 0.2 * s, c1, 0.28 * s, ch * 0.72, 0);
+      B(rig, 0.12 * s, 0.12 * s, 0.12 * s, c3, 0, ch + 0.06 * s, 0);
+      for (var sp2 = 0; sp2 < 6; sp2++) {
+        B(rig, 0.03 * s, 0.12 * s, 0.03 * s, c2, 0.19 * s * (sp2 % 2 ? 1 : -1), ch * (0.2 + sp2 * 0.12), 0);
+      }
+      h = ch + 0.15 * s;
+    }
+
+    root.traverse(function (o) { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+    return { root: root, rig: rig, j: j, height: h };
+  }
+
+function applyPose(rig, action, dt, speed) {
+    if (!rig) return;
+    var cur = rig, curSp = rig.spec;
+    if (!cur.motion) cur.motion = { name: 'idle', t: 0 };
+    if (cur.motion.name !== action) { cur.motion.name = action; cur.motion.t = 0; }
+    cur.motion.t += dt * (speed || 1);
+    var t = cur.motion.t, k = 1 - Math.exp(-dt * 12), J = cur.j, form = curSp.form;
+    var isPlant = ['tree', 'conifer', 'bamboo', 'shrub', 'flower', 'lotus', 'mushroom', 'cactus'].indexOf(form) >= 0;
+    var A = cur.motion.name;
+    if (isPlant) {
+      // 叶/果粒子
+      if (!cur.leaves) {
+        cur.leaves = [];
+        var ly = cur.height * 0.75;
+        for (var li = 0; li < 7; li++) {
+          var lf = new THREE.Mesh(BOX, M(curSp.c[1], 0.9));
+          lf.scale.set(0.14, 0.05, 0.09); lf.visible = false;
+          lf.userData.p = Math.random();
+          cur.root.add(lf); cur.leaves.push(lf);
+        }
+      }
+      if (A === 'bloom') {
+        var bl = 1 + Math.sin(t * 1.6) * 0.22;
+        if (J.head) { J.head.scale.set(bl, bl, bl); J.head.rotation.y = Math.sin(t * 0.8) * 0.4; }
+      } else if (A === 'fall') {
+        cur.leaves.forEach(function (lf, i) {
+          var p = (t * 0.22 + lf.userData.p) % 1;
+          lf.visible = true;
+          lf.position.set(Math.sin(p * 6 + i) * cur.height * 0.28, cur.height * (0.95 - p * 0.9), Math.cos(p * 5 + i) * cur.height * 0.22);
+          lf.rotation.z = p * 7;
+        });
+      } else {
+        cur.leaves.forEach(function (lf) { lf.visible = false; });
+        if (J.head) J.head.scale.set(1, 1, 1);
+      }
+      var sway = A === 'move' ? 0.16 : 0.05;
+      cur.rig.rotation.z += (Math.sin(t * (A === 'move' ? 1.9 : 1.1)) * sway - cur.rig.rotation.z) * k;
+      cur.rig.rotation.x += (Math.sin(t * 0.8 + 1) * sway * 0.4 - cur.rig.rotation.x) * k;
+      if (J.head && A === 'extra') J.head.rotation.y += (Math.sin(t * 1.4) * 0.3 - J.head.rotation.y) * k;
+      return;
+    }
+    if (form === 'bird') {
+      if (A === 'eat') {
+        if (J.head) J.head.rotation.x += (0.9 - J.head.rotation.x) * k;
+        cur.rig.position.y += (-0.04 - cur.rig.position.y) * k;
+        J.legs.forEach(function (l) { l.rotation.x += (0.3 - l.rotation.x) * k; });
+        return;
+      }
+      if (A === 'rest') {
+        cur.rig.position.y += (-0.18 - cur.rig.position.y) * k;
+        if (J.head) J.head.rotation.x += (0.45 - J.head.rotation.x) * k;
+        J.legs.forEach(function (l) { l.rotation.x += (1.2 - l.rotation.x) * k; });
+        return;
+      }
+      var flap = A === 'move' ? Math.sin(t * 11) * 0.9 : A === 'extra' ? Math.sin(t * 3) * 0.2 : Math.sin(t * 1.6) * 0.12;
+      J.wings.forEach(function (w, i) {
+        var sgn = i === 0 ? 1 : -1;
+        w.rotation.z += (sgn * flap - w.rotation.z) * k;
+      });
+      var hop = A === 'move' ? Math.abs(Math.sin(t * 6)) * 0.12 : 0;
+      cur.rig.position.y += (hop - cur.rig.position.y) * k;
+      if (J.head) J.head.rotation.y += ((A === 'extra' ? Math.sin(t * 2) * 0.4 : 0) - J.head.rotation.y) * k;
+      return;
+    }
+    if (form === 'fish') {
+      var wv = Math.sin(t * (A === 'move' ? 7 : 3));
+      cur.rig.rotation.y += ((A === 'move' ? wv * 0.35 : wv * 0.08) - cur.rig.rotation.y) * k;
+      if (J.tail) J.tail.rotation.y += (wv * 0.7 - J.tail.rotation.y) * k;
+      cur.rig.position.y += (0.15 + Math.sin(t * 1.6) * 0.05 - cur.rig.position.y) * k;
+      return;
+    }
+    if (form === 'insect') {
+      var wf = A === 'move' ? Math.sin(t * 30) * 1.1 : Math.sin(t * 4) * 0.15;
+      J.wings.forEach(function (w, i) { w.rotation.z += ((i ? -wf : wf) - w.rotation.z) * (1 - Math.exp(-dt * 40)); });
+      cur.rig.position.y += ((A === 'move' ? 0.25 + Math.sin(t * 6) * 0.08 : 0.12) - cur.rig.position.y) * k;
+      return;
+    }
+    // 四足 / 爬行 / 两栖
+    var bodyY = 0, headX = 0;
+    if (A === 'rest') {
+      var kr = 1 - Math.exp(-dt * 4);
+      J.legs.forEach(function (lg) { lg.rotation.x += ((form === 'quad' ? 1.35 : 1.1) - lg.rotation.x) * kr; });
+      J.knees.forEach(function (kn) { kn.rotation.x += (-1.2 - kn.rotation.x) * kr; });
+      bodyY = -(form === 'quad' ? 0.3 : 0.14) * (curSp.size || 1);
+      headX = 0.3;
+      if (J.tail) J.tail.rotation.y += (Math.sin(t * 0.6) * 0.25 - J.tail.rotation.y) * k;
+    } else if (A === 'eat') {
+      var chew = Math.sin(t * 7) * 0.08;
+      J.legs.forEach(function (lg, i) { lg.rotation.x += ((i < 2 ? -0.12 : 0.12) - lg.rotation.x) * k; });
+      J.knees.forEach(function (kn) { kn.rotation.x += ((form === 'quad' ? -0.3 : 0) - kn.rotation.x) * k; });
+      if (J.neck) J.neck.rotation.x += (0.95 - J.neck.rotation.x) * k;
+      headX = 0.5 + chew;
+      bodyY = -0.05 * (curSp.size || 1);
+      if (J.tail) J.tail.rotation.y += (Math.sin(t * 1.6) * 0.2 - J.tail.rotation.y) * k;
+    } else if (A === 'flee') {
+      var fs = t * 11, fb = 1 - Math.exp(-dt * 10);
+      bodyY = Math.abs(Math.sin(fs)) * 0.16 * (curSp.size || 1);
+      J.legs.forEach(function (lg, i) { lg.rotation.x += (Math.sin(fs + (i % 2 ? Math.PI : 0)) * 1.15 - lg.rotation.x) * fb; });
+      J.knees.forEach(function (kn, i) { kn.rotation.x += (-0.95 * Math.max(0, Math.sin(fs + i)) - kn.rotation.x) * fb; });
+      if (J.neck) J.neck.rotation.x += (-0.25 - J.neck.rotation.x) * fb;
+      headX = -0.25;
+      if (J.tail) J.tail.rotation.x += (1.0 - J.tail.rotation.x) * fb;
+    } else if (A === 'hunt') {
+      var cyc = 2.4, ph = (t % cyc) / cyc;
+      var pounce = ph < 0.62 ? 0 : Math.sin((ph - 0.62) / 0.38 * Math.PI);
+      bodyY = (-0.34 + pounce * 0.62) * (curSp.size || 1);
+      J.legs.forEach(function (lg, i) {
+        var tgt = ph < 0.62 ? (i % 2 ? 0.7 : -0.7) : (i % 3 ? -0.9 : 0.9);
+        lg.rotation.x += (tgt - lg.rotation.x) * k;
+      });
+      J.knees.forEach(function (kn) { kn.rotation.x += ((ph < 0.62 ? -0.9 : -0.2) - kn.rotation.x) * k; });
+      if (J.neck) J.neck.rotation.x += (0.15 + pounce * 0.3 - J.neck.rotation.x) * k;
+      headX = 0.18;
+      if (J.tail) J.tail.rotation.y += (Math.sin(t * 6) * 0.45 - J.tail.rotation.y) * k;
+    } else {
+      var sp = (form === 'quad' ? 4 : form === 'reptile' ? 3.2 : 5) * (A === 'move' ? 1 : 0.35);
+      var amp = A === 'move' ? 0.85 : 0.12;
+      J.legs.forEach(function (lg, i) {
+        lg.rotation.x += (Math.sin(t * sp + (i % 2 ? Math.PI : 0) + (i > 1 ? Math.PI : 0)) * amp - lg.rotation.x) * k;
+      });
+      J.knees.forEach(function (kn, i) {
+        var kb = A === 'move' ? -0.45 * Math.max(0, Math.sin(t * sp + i * 1.6)) : -0.1;
+        kn.rotation.x += (kb - kn.rotation.x) * k;
+      });
+      bodyY = Math.abs(Math.sin(t * sp)) * (A === 'move' ? 0.1 : 0.02);
+      if (J.tail) J.tail.rotation.y += (Math.sin(t * (A === 'move' ? 5 : 1.5)) * 0.3 - J.tail.rotation.y) * k;
+      headX = A === 'extra' ? 0.12 : 0;
+    }
+    if (J.head) {
+      J.head.rotation.y += ((A === 'extra' ? Math.sin(t * 1.2) * 0.55 : Math.sin(t * 0.9) * 0.08) - J.head.rotation.y) * k;
+      J.head.rotation.x += (headX - J.head.rotation.x) * k;
+    }
+    cur.rig.position.y += (bodyY - cur.rig.position.y) * k;
+  }
+
+  function build(sp) {
+    var c = buildCreature(sp);
+    c.spec = sp;
+    c.motion = { name: 'idle', t: 0 };
+    c.boxes = 0;
+    c.root.traverse(function (n) { if (n.kind === 'mesh' && n.visible !== false) c.boxes++; });
+    return c;
+  }
+
+  return { ANIMALS: ANIMALS, PLANTS: PLANTS, SHAPE: SHAPE, build: build, applyPose: applyPose };
+})();
+
+/* ================= 自然生态图鉴 v3 -> 世界 ================= */
+var NATURE_ANIMAL_MAP = {};
+NATURE3D.ANIMALS.forEach(function (r) {
+  NATURE_ANIMAL_MAP[r[0]] = { name: r[0], role: r[1], habitat: r[2], diet: r[3], form: r[4], c: r[5], size: r[6], desc: r[7] };
+});
+var NATURE_PLANT_MAP = {};
+NATURE3D.PLANTS.forEach(function (r) {
+  NATURE_PLANT_MAP[r[0]] = { name: r[0], role: r[1], habitat: r[2], diet: r[3], form: r[4], c: r[5], size: r[6], desc: r[7] };
+});
+var NATURE_PLANT_ALIAS = { '茶': '茶树', '莲': '荷花', '樟树': '香樟' };
+
+function natureHex(rgb) {
+  return '#' + rgb.map(function (v) {
+    return Math.max(0, Math.min(255, Math.round(v * 255))).toString(16).padStart(2, '0');
+  }).join('').toUpperCase();
 }
-function makePlantVox(hue,flowerHue,stage){
-  var v=[],seed=hue*31+flowerHue;
-  pushBoxVox(v,0,0.50,0,0.08,1.00,0.08,80,hue,0.9,seed);
-  pushBoxVox(v,-0.22,0.55,0,0.35,0.07,0.18,60,hue+1,0.95,seed+1);
-  pushBoxVox(v,0.22,0.78,0,0.35,0.07,0.18,60,hue+1,1.0,seed+2);
-  pushBoxVox(v,0,0.42,0.18,0.30,0.07,0.18,50,hue-1,0.85,seed+3);
-  if(stage==='开花'||stage==='结果'||stage==='成熟')pushBoxVox(v,0,1.05,0,0.22,0.18,0.22,90,flowerHue,1.0,seed+4);
-  return v;
+function natureBlend(a, b, t) {
+  return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 }
-function makeHumanVox(sex,stage,hue){
-  var sc=stage==='幼年'?0.55:(stage==='少年'?0.80:(stage==='老年'?0.94:1));
-  var shoulder=(sex==='男'?0.54:0.46)*sc,seed=(sex==='男'?7:11)+stage.length*3;
-  var v=[];
-  pushBoxVox(v,0,1.05*sc,0,shoulder,0.62*sc,0.28*sc,100,hue,1,seed);
-  pushBoxVox(v,0,1.58*sc,0,0.32*sc,0.32*sc,0.32*sc,100,17,0.72,seed+1);
-  pushBoxVox(v,0,1.78*sc,0,0.36*sc,0.10*sc,0.36*sc,50,23,0.7,seed+2);
-  pushBoxVox(v,-0.32*sc,1.05*sc,0,0.14*sc,0.55*sc,0.14*sc,60,hue,0.9,seed+3);
-  pushBoxVox(v,0.32*sc,1.05*sc,0,0.14*sc,0.55*sc,0.14*sc,60,hue,0.9,seed+4);
-  pushBoxVox(v,-0.13*sc,0.35*sc,0,0.16*sc,0.70*sc,0.16*sc,60,23,0.8,seed+5);
-  pushBoxVox(v,0.13*sc,0.35*sc,0,0.16*sc,0.70*sc,0.16*sc,60,23,0.8,seed+6);
-  return v;
+function natureHueHex(i) {
+  var c = hueColor(i, 1);
+  return natureHex(c);
 }
+function natureAnimalForm(a) {
+  var n = a.type;
+  if (/蟒|蛇|鳄|蜥/.test(n)) return 'reptile';
+  if (/蛙|蟾/.test(n)) return 'amphibian';
+  if (/鲟|鲤|鱼/.test(n)) return 'fish';
+  if (/蜂|蝶|萤/.test(n)) return 'insect';
+  if (a.def.kind === 'bird') return 'bird';
+  return 'quad';
+}
+function natureAnimalShape(a) {
+  var n = a.type;
+  if (/岩松鼠|鼠|兔/.test(n)) return '高原鼠兔';
+  if (/小熊猫|豹猫|紫貂|狐|松鼠/.test(n)) return '赤狐';
+  if (/大熊猫|棕熊|黑熊/.test(n)) return '棕熊';
+  if (/虎|豹/.test(n)) return '东北虎';
+  if (/象/.test(n)) return '亚洲象';
+  if (/驼/.test(n)) return '双峰驼';
+  if (/鹿|狍|麂|羚|驴/.test(n)) return '梅花鹿';
+  if (/猴/.test(n)) return '狼';
+  return '狼';
+}
+function natureAnimalSpec(a) {
+  var exact = NATURE_ANIMAL_MAP[a.type];
+  if (exact) {
+    return { name: exact.name, role: exact.role, habitat: exact.habitat, diet: exact.diet,
+      form: exact.form, c: exact.c.slice(), size: exact.size, shape: exact.name, desc: exact.desc };
+  }
+  var form = natureAnimalForm(a);
+  var base = a.def.color || [0.65, 0.55, 0.45];
+  var c1 = natureHex(base);
+  var c2 = natureHex(natureBlend(base, [1, 1, 1], 0.55));
+  var c3 = natureHex(natureBlend(base, [0.08, 0.08, 0.08], 0.55));
+  var size = 0.85 + (a.def.size || 0.7) * 0.45;
+  return { name: a.type, role: a.def.kind === 'pred' ? '捕食者' : (a.def.kind === 'bird' ? '鸟类' : '植食者'),
+    habitat: REGIONS[curRegion] ? REGIONS[curRegion].biome : '', diet: a.def.kind,
+    form: form, c: [c1, c2, c3], size: size, shape: natureAnimalShape(a), desc: '' };
+}
+function naturePlantForm(p) {
+  var n = p.type;
+  if (/竹/.test(n)) return 'bamboo';
+  if (/松|杉|柏|红豆杉/.test(n)) return 'conifer';
+  if (/雪莲/.test(n)) return 'flower';
+  if (/莲|荷/.test(n)) return 'lotus';
+  if (/菌|菇|灵芝|松茸/.test(n)) return 'mushroom';
+  if (/仙人掌|多肉/.test(n)) return 'cactus';
+  if (/刺|棘|梭梭|枣|栌|杜鹃|茶|胡枝子|沙蒿|灌木/.test(n)) return 'shrub';
+  if (/梅|景天|兰|菊|参|蕨|草|花|芦苇|雪莲|芨芨/.test(n)) return 'flower';
+  return 'tree';
+}
+function naturePlantSpec(p) {
+  var exact = NATURE_PLANT_MAP[p.type] || NATURE_PLANT_MAP[NATURE_PLANT_ALIAS[p.type]];
+  if (exact) {
+    return { name: exact.name, role: exact.role, habitat: exact.habitat, diet: exact.diet,
+      form: exact.form, c: exact.c.slice(), size: exact.size, desc: exact.desc };
+  }
+  var form = naturePlantForm(p);
+  var c1 = natureHueHex(p.hue == null ? 3 : p.hue);
+  var c1a = hexRGB(c1);
+  var c2;
+  if (form === 'flower' || form === 'lotus' || form === 'mushroom') c2 = natureHueHex(p.flowerHue == null ? 0 : p.flowerHue);
+  else c2 = natureHex(natureBlend(c1a, [1, 1, 1], 0.28));
+  var c3 = natureHex(natureBlend(c1a, [0.10, 0.08, 0.06], 0.55));
+  var baseSize = { tree: 1.35, conifer: 1.5, bamboo: 1.6, shrub: 0.9, flower: 0.85, lotus: 0.9, mushroom: 0.6, cactus: 1.0 }[form] || 1.1;
+  return { name: p.type, role: '生产者', habitat: REGIONS[curRegion] ? REGIONS[curRegion].biome : '',
+    diet: '光合作用', form: form, c: [c1, c2, c3], size: baseSize, desc: '' };
+}
+
+function getAnimalRig(a) {
+  var key = a.type + '|' + (a.def.kind || '') + '|' + (a.def.size || 0);
+  if (!a.natureRig || a.natureKey !== key) {
+    a.natureRig = NATURE3D.build(natureAnimalSpec(a));
+    a.natureKey = key;
+  }
+  return a.natureRig;
+}
+function getPlantRig(p) {
+  var key = p.type + '|' + p.hue + '|' + p.flowerHue;
+  if (!p.natureRig || p.natureKey !== key) {
+    p.natureRig = NATURE3D.build(naturePlantSpec(p));
+    p.natureKey = key;
+  }
+  return p.natureRig;
+}
+var NATURE_ANIMAL_HEIGHT = {
+  '东北虎':1.05,'华北豹':0.72,'雪豹':0.62,'豹':0.72,'豹猫':0.28,'紫貂':0.22,'岩松鼠':0.18,'小熊猫':0.32,'大熊猫':0.78,
+  '梅花鹿':0.95,'狍':0.72,'獐':0.55,'麂':0.52,'藏羚羊':0.80,'鹅喉羚':0.72,'蒙古野驴':1.20,'藏野驴':1.20,'猕猴':0.55,
+  '蟒蛇':0.25,'扬子鳄':0.35,'树蛙':0.10,'丹顶鹤':1.45,'白鹭':0.90,'东方白鹳':1.15,'白鹤':1.25,'黑颈鹤':1.40,
+  '金雕':0.80,'朱鹮':0.70,'褐马鸡':0.55,'白鹇':0.50,'鸳鸯':0.42,
+  '狼':0.80,'棕熊':1.20,'亚洲象':2.40,'双峰驼':1.80,'赤狐':0.40,'高原鼠兔':0.18,'绿孔雀':0.90,'麻雀':0.15,
+  '中华鲟':0.50,'锦鲤':0.25,'中华大蟾蜍':0.12,'蜜蜂':0.03,'蝴蝶':0.02,'萤火虫':0.02
+};
+var NATURE_PLANT_HEIGHT = {
+  '红松':8.0,'落叶松':8.0,'白桦':7.0,'人参':0.5,'油松':7.5,'栓皮栎':6.5,'酸枣':1.6,'黄栌':2.2,
+  '马尾松':7.5,'香樟':7.0,'毛竹':6.0,'茶':1.2,'樟树':7.0,'水杉':8.0,'莲':1.0,'芦苇':2.0,
+  '榕树':8.0,'木棉':7.0,'桫椤':3.0,'棕榈':5.0,'珙桐':7.0,'冷杉':8.0,'杜鹃':1.3,'高山栎':5.0,
+  '胡杨':7.0,'梭梭':2.0,'沙棘':2.0,'骆驼刺':1.5,'高山嵩草':0.6,'雪莲':0.35,'垫状点地梅':0.15,'红景天':0.3,
+  '银杏':7.0,'桃树':3.0,'兰花':0.4,'藏红花':0.3,'松茸':0.25,'灵芝':0.3,'仙人掌':1.2,'胡枝子':1.5,
+  '沙蒿':1.2,'睡莲':0.8,'芨芨草':1.0
+};
+function natureAnimalScale(a, rig) {
+  var size = a.def.size || 0.7;
+  var form = rig.spec.form;
+  var target = NATURE_ANIMAL_HEIGHT[a.type];
+  if (target == null) {
+    if (a.def.kind === 'bird') target = 0.30 + 0.55 * size;
+    else if (form === 'reptile') target = 0.12 + 0.35 * size;
+    else if (form === 'amphibian') target = 0.05 + 0.12 * size;
+    else if (form === 'fish') target = 0.15 + 0.4 * size;
+    else if (form === 'insect') target = 0.04 + 0.08 * size;
+    else target = 0.25 + 0.65 * size;
+  }
+  var st = { '幼年': 0.55, '少年': 0.78, '青年': 1, '中年': 1, '老年': 0.94 }[a.stage] || 1;
+  return Math.max(0.04, Math.min(2.4, target / rig.height * st));
+}
+function naturePlantScale(p, rig) {
+  var target = NATURE_PLANT_HEIGHT[p.type];
+  if (target == null) target = { tree: 6.5, conifer: 7.5, bamboo: 5.5, shrub: 1.5, flower: 0.6, lotus: 1.0, mushroom: 0.3, cactus: 1.2 }[rig.spec.form] || 1.5;
+  var growth = p.growth == null ? 0.5 : p.growth;
+  var f = 0.06 + 0.94 * growth;
+  if (p.stage === '枯萎') f *= 0.85;
+  return Math.max(0.03, target / rig.height * f);
+}
+function animalNatureAction(a, moving) {
+  if (a.tamed) {
+    var c = a.tameCommand;
+    if (c === 'sit') return 'rest';
+    if (c === 'eat') return 'eat';
+    if (c === 'flee') return 'flee';
+    if (c === 'hunt') return a.state === '捕食' ? 'hunt' : 'move';
+    if (c === 'follow') return moving ? 'move' : 'idle';
+    return 'idle';
+  }
+  if (a.def.kind === 'bird') {
+    if (a.state === '进食' || a.state === '觅食') return 'eat';
+    return 'move';
+  }
+  if (a.state === '捕食') return 'hunt';
+  if (a.state === '进食' || a.state === '觅食') return 'eat';
+  if (a.state === '逃避') return 'flee';
+  if (a.state === '迁徙') return 'move';
+  if (a.state === '隐匿' || /避/.test(a.state)) return 'rest';
+  if (moving) return 'move';
+  if (a.state === '休息' || a.state === '清洁共生') return 'rest';
+  return 'idle';
+}
+function plantNatureAction(p) {
+  if (env && env.season.key === 'winter') return 'idle';
+  if (p.stage === '开花') return 'bloom';
+  if ((p.stage === '结果' || p.stage === '成熟') && env && env.season.key === 'autumn') return 'fall';
+  return 'move';
+}
+function updateAnimalNature(a, dt) {
+  var rig = getAnimalRig(a);
+  var px = a._natureX == null ? a.x : a._natureX;
+  var pz = a._natureZ == null ? a.z : a._natureZ;
+  var moving = Math.abs(a.x - px) + Math.abs(a.z - pz) > 0.0012;
+  a._natureX = a.x; a._natureZ = a.z;
+  var act = animalNatureAction(a, moving);
+  NATURE3D.applyPose(rig, act, dt, act === 'hunt' || act === 'flee' ? 1.25 : 1);
+  return rig;
+}
+function updatePlantNature(p, dt) {
+  var rig = getPlantRig(p);
+  NATURE3D.applyPose(rig, plantNatureAction(p), dt, 1);
+  return rig;
+}
+function bakeAnimalRigs(arr, off, dt) {
+  if (!showFauna) return off;
+  for (var i = 0; i < fauna.length; i++) {
+    var a = fauna[i];
+    if (!a.alive || !a.active) continue;
+    var rig = updateAnimalNature(a, dt);
+    var gy = surfaceY(Math.floor(a.x), Math.floor(a.z)) + 0.02;
+    var y = gy;
+    if (a.def.kind === 'bird') y = gy + 2.0 + Math.sin((a.t || 0) * 2 + (a.seed || 0)) * 0.3;
+    var scale = natureAnimalScale(a, rig);
+    rigRootMat(a.x, y, a.z, -(a.dir || 0), scale, RIG_ROOT);
+    off = bakeRig(arr, off, rig.root, RIG_ROOT, null);
+  }
+  return off;
+}
+function bakePlantRigs(arr, off, dt) {
+  for (var i = 0; i < flora.length; i++) {
+    var p = flora[i];
+    if (!p.alive) continue;
+    var rig = updatePlantNature(p, dt);
+    var gy = surfaceY(Math.floor(p.x), Math.floor(p.z)) + 0.02;
+    var scale = naturePlantScale(p, rig);
+    rigRootMat(p.x, gy, p.z, p.dir || 0, scale, RIG_ROOT);
+    off = bakeRig(arr, off, rig.root, RIG_ROOT, null);
+  }
+  return off;
+}
+
+/* ================= 方盒骨架 -> 世界 WebGL ================= */
+var rigBuf = gl.createBuffer();
+var rigArr = new Float32Array(36 * 9 * 1800);
+var nRig = 0;
+var RIG_WORLD_POOL = [];
+var RIG_LOCAL_TMP = new Float32Array(16);
+var RIG_ROOT = new Float32Array(16);
+
+function rigWorldMat(depth) {
+  if (!RIG_WORLD_POOL[depth]) RIG_WORLD_POOL[depth] = new Float32Array(16);
+  return RIG_WORLD_POOL[depth];
+}
+function rigRotXYZ(rx, ry, rz, o) {
+  var a = Math.cos(rx), b = Math.sin(rx);
+  var c = Math.cos(ry), d = Math.sin(ry);
+  var e = Math.cos(rz), f = Math.sin(rz);
+  o[0] = c * e; o[4] = -c * f; o[8] = d;
+  o[1] = a * f + b * e * d; o[5] = a * e - b * f * d; o[9] = -b * c;
+  o[2] = b * f - a * e * d; o[6] = b * e + a * f * d; o[10] = a * c;
+  o[3] = 0; o[7] = 0; o[11] = 0;
+  o[12] = 0; o[13] = 0; o[14] = 0; o[15] = 1;
+  return o;
+}
+function rigLocal(node, o, dims) {
+  rigRotXYZ(node.rotation.x, node.rotation.y, node.rotation.z, o);
+  var sx = node.scale.x * (dims ? dims.w : 1);
+  var sy = node.scale.y * (dims ? dims.h : 1);
+  var sz = node.scale.z * (dims ? dims.d : 1);
+  o[0] *= sx; o[1] *= sx; o[2] *= sx;
+  o[4] *= sy; o[5] *= sy; o[6] *= sy;
+  o[8] *= sz; o[9] *= sz; o[10] *= sz;
+  o[12] = node.position.x; o[13] = node.position.y; o[14] = node.position.z;
+  return o;
+}
+function rigRootMat(x, y, z, yaw, scale, o) {
+  var c = Math.cos(yaw), s = Math.sin(yaw);
+  o[0] = c * scale; o[1] = 0; o[2] = -s * scale;
+  o[4] = 0; o[5] = scale; o[6] = 0;
+  o[8] = s * scale; o[9] = 0; o[10] = c * scale;
+  o[3] = 0; o[7] = 0; o[11] = 0;
+  o[12] = x; o[13] = y; o[14] = z; o[15] = 1;
+  return o;
+}
+function rigShade(nx, ny, nz, col) {
+  var l = nx * RIG_LIGHT[0] + ny * RIG_LIGHT[1] + nz * RIG_LIGHT[2];
+  var sh = 0.68 + 0.32 * Math.max(0, l);
+  return [Math.min(1, col[0] * sh), Math.min(1, col[1] * sh), Math.min(1, col[2] * sh)];
+}
+function rigPushVert(arr, off, m, x, y, z, nx, ny, nz, col) {
+  if (off + 9 > arr.length) return off;
+  var wx = m[0] * x + m[4] * y + m[8] * z + m[12];
+  var wy = m[1] * x + m[5] * y + m[9] * z + m[13];
+  var wz = m[2] * x + m[6] * y + m[10] * z + m[14];
+  var tx = m[0] * nx + m[4] * ny + m[8] * nz;
+  var ty = m[1] * nx + m[5] * ny + m[9] * nz;
+  var tz = m[2] * nx + m[6] * ny + m[10] * nz;
+  var tl = Math.sqrt(tx * tx + ty * ty + tz * tz) || 1;
+  tx /= tl; ty /= tl; tz /= tl;
+  var c = rigShade(tx, ty, tz, col);
+  arr[off++] = wx; arr[off++] = wy; arr[off++] = wz;
+  arr[off++] = tx; arr[off++] = ty; arr[off++] = tz;
+  arr[off++] = c[0]; arr[off++] = c[1]; arr[off++] = c[2];
+  return off;
+}
+function emitRigBox(arr, off, m, col) {
+  for (var i = 0; i < 36; i++) {
+    off = rigPushVert(arr, off, m,
+      cubeVerts[i * 6], cubeVerts[i * 6 + 1], cubeVerts[i * 6 + 2],
+      cubeVerts[i * 6 + 3], cubeVerts[i * 6 + 4], cubeVerts[i * 6 + 5], col);
+  }
+  return off;
+}
+function emitRigCone(arr, off, m, col, radius, height, seg) {
+  var base = -height * 0.5, apex = height * 0.5;
+  for (var i = 0; i < seg; i++) {
+    var a0 = (i / seg) * Math.PI * 2, a1 = ((i + 1) / seg) * Math.PI * 2;
+    var x0 = Math.sin(a0) * radius, z0 = Math.cos(a0) * radius;
+    var x1 = Math.sin(a1) * radius, z1 = Math.cos(a1) * radius;
+    var nx = Math.sin((a0 + a1) * 0.5), nz = Math.cos((a0 + a1) * 0.5);
+    var nl = Math.sqrt(nx * nx + nz * nz) || 1;
+    nx /= nl; nz /= nl;
+    off = rigPushVert(arr, off, m, x0, base, z0, nx, 0.18, nz, col);
+    off = rigPushVert(arr, off, m, x1, base, z1, nx, 0.18, nz, col);
+    off = rigPushVert(arr, off, m, 0, apex, 0, nx, 0.18, nz, col);
+  }
+  for (var j = 0; j < seg; j++) {
+    var b0 = (j / seg) * Math.PI * 2, b1 = ((j + 1) / seg) * Math.PI * 2;
+    var bx0 = Math.sin(b0) * radius, bz0 = Math.cos(b0) * radius;
+    var bx1 = Math.sin(b1) * radius, bz1 = Math.cos(b1) * radius;
+    off = rigPushVert(arr, off, m, 0, base, 0, 0, -1, 0, col);
+    off = rigPushVert(arr, off, m, bx0, base, bz0, 0, -1, 0, col);
+    off = rigPushVert(arr, off, m, bx1, base, bz1, 0, -1, 0, col);
+  }
+  return off;
+}
+function emitRigCylinder(arr, off, m, col, rTop, rBottom, height, seg) {
+  var top = height * 0.5, bot = -height * 0.5;
+  for (var i = 0; i < seg; i++) {
+    var a0 = (i / seg) * Math.PI * 2, a1 = ((i + 1) / seg) * Math.PI * 2;
+    var x0 = Math.sin(a0), z0 = Math.cos(a0), x1 = Math.sin(a1), z1 = Math.cos(a1);
+    var nx = Math.sin((a0 + a1) * 0.5), nz = Math.cos((a0 + a1) * 0.5);
+    off = rigPushVert(arr, off, m, x0 * rTop, top, z0 * rTop, nx, 0, nz, col);
+    off = rigPushVert(arr, off, m, x1 * rTop, top, z1 * rTop, nx, 0, nz, col);
+    off = rigPushVert(arr, off, m, x1 * rBottom, bot, z1 * rBottom, nx, 0, nz, col);
+    off = rigPushVert(arr, off, m, x0 * rTop, top, z0 * rTop, nx, 0, nz, col);
+    off = rigPushVert(arr, off, m, x1 * rBottom, bot, z1 * rBottom, nx, 0, nz, col);
+    off = rigPushVert(arr, off, m, x0 * rBottom, bot, z0 * rBottom, nx, 0, nz, col);
+  }
+  for (var t = 0; t < seg; t++) {
+    var ta0 = (t / seg) * Math.PI * 2, ta1 = ((t + 1) / seg) * Math.PI * 2;
+    off = rigPushVert(arr, off, m, 0, top, 0, 0, 1, 0, col);
+    off = rigPushVert(arr, off, m, Math.sin(ta0) * rTop, top, Math.cos(ta0) * rTop, 0, 1, 0, col);
+    off = rigPushVert(arr, off, m, Math.sin(ta1) * rTop, top, Math.cos(ta1) * rTop, 0, 1, 0, col);
+    off = rigPushVert(arr, off, m, 0, bot, 0, 0, -1, 0, col);
+    off = rigPushVert(arr, off, m, Math.sin(ta1) * rBottom, bot, Math.cos(ta1) * rBottom, 0, -1, 0, col);
+    off = rigPushVert(arr, off, m, Math.sin(ta0) * rBottom, bot, Math.cos(ta0) * rBottom, 0, -1, 0, col);
+  }
+  return off;
+}
+function emitRigMesh(arr, off, node, world, theme) {
+  var mat = node.material || {};
+  var colStr = mat.key ? (theme && theme[mat.key]) : mat.color;
+  var col = hexRGB(colStr || '#888888');
+  var g = node.geometry || { type: 'box' };
+  if (g.type === 'cone') return emitRigCone(arr, off, world, col, g.radius || 0.5, g.height || 1, g.segments || 4);
+  if (g.type === 'cylinder') return emitRigCylinder(arr, off, world, col, g.radiusTop == null ? 0.5 : g.radiusTop, g.radiusBottom == null ? 0.5 : g.radiusBottom, g.height || 1, g.segments || 12);
+  return emitRigBox(arr, off, world, col);
+}
+function bakeRigNode(arr, off, node, parentWorld, theme, depth) {
+  if (node.visible === false) return off;
+  var g = node.geometry;
+  var dims = (node.kind === 'mesh' && g && g.type === 'box') ? g : null;
+  rigLocal(node, RIG_LOCAL_TMP, dims);
+  var world = rigWorldMat(depth);
+  mMul(parentWorld, RIG_LOCAL_TMP, world);
+  if (node.kind === 'mesh') off = emitRigMesh(arr, off, node, world, theme);
+  for (var i = 0; i < node.children.length; i++) {
+    off = bakeRigNode(arr, off, node.children[i], world, theme, depth + 1);
+  }
+  return off;
+}
+function bakeRig(arr, off, root, rootMat, theme) {
+  return bakeRigNode(arr, off, root, rootMat || RIG_ROOT, theme, 0);
+}
+
+/* ---- 人类图鉴角色缓存与动作选择 ---- */
+function humanSpecFor(a) {
+  var gender = a.sex === '男' ? 'm' : 'f';
+  var spec = a.occ ? HUMAN3D.specFromOcc(a.atlas, gender) : HUMAN3D.specFromEthnic(a.atlas || atlasRow(a.ethnic), gender);
+  spec.age = atlasAgeKey(a.stage);
+  spec.seed = a.lookSeed || 3;
+  var act = HUMAN3D.actionsFor(a.occ ? a.occ : a.ethnic, !!a.occ, a.lookSeed || 0);
+  spec.actions = act.list;
+  spec.sig = act.sig;
+  return spec;
+}
+function getHumanRig(a) {
+  var key = (a.sex || '') + '|' + (a.stage || '') + '|' + (a.occ || '') + '|' + (a.atlasName || '') + '|' + (a.lookSeed || 0);
+  if (!a.rig3d || a.rig3dKey !== key) {
+    var spec = humanSpecFor(a);
+    a.rig3d = HUMAN3D.build(spec);
+    a.rig3dKey = key;
+    a.rig3d.spec = spec;
+    a.rig3d.motion = { name: 'idle', t: Math.random() * 3 };
+  }
+  return a.rig3d;
+}
+function humanAction(a, rig, moving) {
+  if (moving) return 'walk';
+  if (a.state === '求偶') return (rig.spec.sig === 'dance' ? 'dance' : 'wave');
+  if (a.state === '交谈' || a.state === '争执') return 'wave';
+  var ph = Math.floor((a.t || 0) / 9) % 3;
+  if (ph === 0) return 'idle';
+  if (ph === 1) return rig.spec.sig || 'idle';
+  return 'idle';
+}
+function updateHumanRig(a, dt) {
+  var rig = getHumanRig(a);
+  var px = a._rigX == null ? a.x : a._rigX;
+  var pz = a._rigZ == null ? a.z : a._rigZ;
+  var moving = Math.abs(a.x - px) + Math.abs(a.z - pz) > 0.0008;
+  a._rigX = a.x; a._rigZ = a.z;
+  HUMAN3D.applyPose(rig, humanAction(a, rig, moving), dt, moving ? 0.8 : 1);
+  return rig;
+}
+function bakeHumanRigs(arr, off, dt) {
+  for (var i = 0; i < humans.length; i++) {
+    var a = humans[i];
+    if (!a.alive) continue;
+    var rig = updateHumanRig(a, dt);
+    var gy = surfaceY(Math.floor(a.x), Math.floor(a.z)) + 0.02;
+    var yaw = Math.PI / 2 - (a.dir || 0);
+    rigRootMat(a.x, gy, a.z, yaw, RIG_SCALE, RIG_ROOT);
+    off = bakeRig(arr, off, rig.root, RIG_ROOT, null);
+  }
+  return off;
+}
+
+/* ---- 玩家忍者 ---- */
+var playerNinja = null;
+var playerNinjaTheme = 'kuro';
+var NINJA_ORDER = ['idle', 'walk', 'run', 'sneak', 'slash', 'jump', 'flip', 'seal', 'throwK'];
+function getPlayerNinja() {
+  if (!playerNinja) {
+    playerNinja = NINJA3D.build('adult');
+    playerNinja.motion = { name: 'idle', t: 0 };
+  }
+  return playerNinja;
+}
+function bakePlayerRig(arr, off, dt) {
+  if (!thirdPerson) return off;
+  var ch = getPlayerNinja();
+  var act = 'idle';
+  if (player.animOverride) {
+    var o = player.animOverride;
+    o.t = (o.t || 0) + dt;
+    var A = NINJA3D.ANIMS[o.name] || NINJA3D.ANIMS.idle;
+    var dur = A.dur || 2.4;
+    if (o.t > dur + 0.25) player.animOverride = null;
+    else act = o.name;
+  }
+  if (!player.animOverride) {
+    act = !player.onGround ? 'jump' : (player.moving ? (player.running ? 'run' : 'walk') : 'idle');
+  }
+  NINJA3D.applyPose(ch, act, dt, 1);
+  rigRootMat(player.x, player.y + 0.02, player.z, player.yaw + Math.PI, RIG_SCALE, RIG_ROOT);
+  return bakeRig(arr, off, ch.root, RIG_ROOT, NINJA3D.THEMES[playerNinjaTheme] || NINJA3D.THEMES.kuro);
+}
+/* ---- 角色软阴影（独立小着色器） ---- */
+var P_SHADOW = prog(
+  'attribute vec3 aPos;attribute vec2 aUV;uniform mat4 uMVP;varying vec2 vUV;' +
+  'void main(){vUV=aUV;gl_Position=uMVP*vec4(aPos,1.0);}',
+  'precision mediump float;varying vec2 vUV;uniform float uAlpha;' +
+  'void main(){float d=length(vUV);float a=smoothstep(1.0,0.10,d)*uAlpha;gl_FragColor=vec4(0.015,0.022,0.030,a);}');
+var USH = { mvp: gl.getUniformLocation(P_SHADOW, 'uMVP'), alpha: gl.getUniformLocation(P_SHADOW, 'uAlpha') };
+var SHpos = gl.getAttribLocation(P_SHADOW, 'aPos'), SHuv = gl.getAttribLocation(P_SHADOW, 'aUV');
+var shadowBuf = gl.createBuffer();
+var shadowArr = new Float32Array(5 * 6 * 64);
+var nShadow = 0;
+
+function pushShadow(x, y, z, w, d) {
+  var o = nShadow * 30;
+  if (o + 30 > shadowArr.length) return;
+  var hw = w * 0.5, hd = d * 0.5;
+  var verts = [
+    [-hw, 0, -hd, -1, -1], [hw, 0, -hd, 1, -1], [hw, 0, hd, 1, 1],
+    [-hw, 0, -hd, -1, -1], [hw, 0, hd, 1, 1], [-hw, 0, hd, -1, 1]
+  ];
+  for (var i = 0; i < 6; i++) {
+    shadowArr[o++] = x + verts[i][0];
+    shadowArr[o++] = y;
+    shadowArr[o++] = z + verts[i][2];
+    shadowArr[o++] = verts[i][3];
+    shadowArr[o++] = verts[i][4];
+  }
+  nShadow++;
+}
+function buildShadowBuffer() {
+  nShadow = 0;
+  for (var i = 0; i < humans.length; i++) {
+    var a = humans[i];
+    if (!a.alive) continue;
+    var gy = surfaceY(Math.floor(a.x), Math.floor(a.z)) + 0.035;
+    pushShadow(a.x, gy, a.z, 1.05, 0.78);
+  }
+  if (thirdPerson) pushShadow(player.x, player.y + 0.035, player.z, 1.10, 0.82);
+}
+function drawShadows(eyeVec, mvp) {
+  buildShadowBuffer();
+  if (!nShadow) return;
+  gl.useProgram(P_SHADOW);
+  gl.bindBuffer(gl.ARRAY_BUFFER, shadowBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, shadowArr.subarray(0, nShadow * 30), gl.DYNAMIC_DRAW);
+  gl.vertexAttribPointer(SHpos, 3, gl.FLOAT, false, 20, 0);
+  gl.vertexAttribPointer(SHuv, 2, gl.FLOAT, false, 20, 12);
+  gl.enableVertexAttribArray(SHpos); gl.enableVertexAttribArray(SHuv);
+  gl.uniformMatrix4fv(USH.mvp, false, mvp);
+  gl.uniform1f(USH.alpha, 0.24);
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  gl.depthMask(false);
+  gl.disable(gl.CULL_FACE);
+  gl.drawArrays(gl.TRIANGLES, 0, nShadow * 6);
+  gl.depthMask(true);
+  gl.disable(gl.BLEND);
+  gl.enable(gl.CULL_FACE);
+}
+
+function drawRigCharacters(dt, eyeVec, mvp) {
+  var off = 0;
+  off = bakeHumanRigs(rigArr, off, dt);
+  off = bakePlayerRig(rigArr, off, dt);
+  off = bakeAnimalRigs(rigArr, off, dt);
+  off = bakePlantRigs(rigArr, off, dt);
+  nRig = off / 9;
+  if (!off) return 0;
+  gl.useProgram(P_BLOCK);
+  gl.bindBuffer(gl.ARRAY_BUFFER, rigBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, rigArr.subarray(0, off), gl.DYNAMIC_DRAW);
+  gl.vertexAttribPointer(BLpos, 3, gl.FLOAT, false, 36, 0);
+  gl.vertexAttribPointer(BLcol, 3, gl.FLOAT, false, 36, 24);
+  gl.enableVertexAttribArray(BLpos); gl.enableVertexAttribArray(BLcol);
+  gl.uniformMatrix4fv(UB.mvp, false, mvp);
+  gl.uniform3f(UB.eye, eyeVec[0], eyeVec[1], eyeVec[2]);
+  gl.uniform3f(UB.sky, env.sky[0], env.sky[1], env.sky[2]);
+  gl.uniform1f(UB.dim, atomMode ? 0.32 : env.dim);
+  gl.uniform1f(UB.alpha, 1);
+  gl.disable(gl.BLEND);
+  gl.depthMask(true);
+  gl.enable(gl.DEPTH_TEST);
+  gl.enable(gl.CULL_FACE);
+  gl.cullFace(gl.BACK);
+  gl.drawArrays(gl.TRIANGLES, 0, off / 9);
+  return off / 9 / 36;
+}
+
 function makeAnimal(def,index){
   var t=AGENT_TRAITS[def.kind]||AGENT_TRAITS.herb;
   var h=hash2(index*17+3,def.n.length*29+7);
@@ -2780,9 +5063,7 @@ function makeAnimal(def,index){
     recovery:+(t.rec*(0.8+h*0.4)).toFixed(1),energy:60+Math.round(h*35),state:'休息',drive:'生存',
     hue:hue,size:def.size||0.7,x:0,z:0,dir:Math.random()*6.28,t:Math.random()*10,active:true,
     seed:index*97+13,alive:true,respawn:0,cooldown:0,gestation:0,pregnant:false,children:0,
-    parasiteLoad:h>0.72?0.6:0.15,mutual:false};
-  a.vox=makeAnimalVox(def,a.size,hue);
-  a.voxCount=a.vox.length/6;
+    parasiteLoad:h>0.72?0.6:0.15,mutual:false,tamed:false,tameCommand:''};
   return a;
 }
 function initFauna(){
@@ -2814,8 +5095,6 @@ function initFlora(){
       lifespanDays:Math.round(180+h*220),growthDays:Math.round(25+h*40),hp:70,maxHp:90,
       hue:3+(i%4),flowerHue:[2,12,14,0][i%4],flowerSeason:(i%2?'summer':'spring'),fruitSeason:(i%2?'autumn':'summer'),x:x,z:z,dir:Math.random()*6.28,t:Math.random()*5,
       alive:true,cooldown:0,seeds:0,state:'生长',drive:'生存'};
-    a.vox=makePlantVox(a.hue,a.flowerHue,a.stage);
-    a.voxCount=a.vox.length/6;
     flora.push(a);
   }
 }
@@ -2827,9 +5106,13 @@ function initHumans(){
     var sex=(i%2===0?'男':'女');
     var age=ages[i]+Math.round((hash2(i*31+7,5)-0.5)*4);
     var h=hash2(i*71+3,13);
+    var ethnic=pickEthnic(curRegion,h,i===3&&['ne','hn','xn','xb','qz'].indexOf(curRegion)>=0);
+    var occ=(i===2?ATLAS_OCC[Math.floor(h*ATLAS_OCC.length)]:null);
+    var atlas=occ||atlasRow(ethnic);
     var a={id:'h'+(++agentSeq),kind:'human',type:'人类',sex:sex,ageYears:age,stage:stageOfHuman(age),
       strength:Math.round(32+h*58+(sex==='男'?5:0)),hp:0,maxHp:0,energy:65+Math.round(h*30),
-      state:'劳作',drive:'生存',ethnic:pickEthnic(curRegion,h,i===3&&['ne','hn','xn','xb','qz'].indexOf(curRegion)>=0),culture:REGION_CULTURE[curRegion]||'农耕',
+      state:'劳作',drive:'生存',ethnic:ethnic,occ:occ?occ[0]:'',atlas:atlas,atlasName:atlas[0],
+      culture:REGION_CULTURE[curRegion]||'农耕',lookSeed:i*71+13,
       x:0,z:0,dir:Math.random()*6.28,t:Math.random()*6,alive:true,cooldown:0,gestation:0,
       pregnant:false,children:0,hue:hues[i%hues.length],attack:0,defense:0,recovery:2.5};
     a.maxHp=50+a.strength;a.hp=a.maxHp;
@@ -2837,8 +5120,6 @@ function initHumans(){
     var ang=fw+[0,0.08,-0.08,1.8][i%4],r=[7,6,6.5,9][i%4];
     a.x=Math.max(3,Math.min(WX-4,player.x+Math.cos(ang)*r));
     a.z=Math.max(3,Math.min(WZ-4,player.z+Math.sin(ang)*r));
-    a.vox=makeHumanVox(a.sex,a.stage,a.hue);
-    a.voxCount=a.vox.length/6;
     humans.push(a);
   }
   npc={x:humans[0].x,z:humans[0].z};
@@ -2866,22 +5147,52 @@ function spawnPlant(p){
     x:Math.max(3,Math.min(WX-4,p.x+(Math.random()-0.5)*3)),
     z:Math.max(3,Math.min(WZ-4,p.z+(Math.random()-0.5)*3)),
     dir:Math.random()*6.28,t:Math.random()*4,alive:true,cooldown:50,seeds:0,state:'种子',drive:'生存'};
-  c.vox=makePlantVox(c.hue,c.flowerHue,c.stage);c.voxCount=c.vox.length/6;
   flora.push(c);return c;
 }
 function spawnHumanChild(p){
   if(humans.filter(function(a){return a.alive;}).length>=8)return null;
   var sex=Math.random()<0.5?'男':'女',h=Math.random();
+  var ethnic=pickEthnic(curRegion,h),atlas=atlasRow(ethnic);
   var c={id:'h'+(++agentSeq),kind:'human',type:'人类',sex:sex,ageYears:0,stage:'幼年',
     strength:Math.round(12+h*10),hp:0,maxHp:0,energy:70,state:'幼年',drive:'生存',
-    ethnic:pickEthnic(curRegion,h),culture:REGION_CULTURE[curRegion]||'农耕',
+    ethnic:ethnic,occ:'',atlas:atlas,atlasName:atlas[0],culture:REGION_CULTURE[curRegion]||'农耕',
+    lookSeed:agentSeq*13+5,
     x:Math.max(3,Math.min(WX-4,p.x+(Math.random()-0.5)*1.5)),
     z:Math.max(3,Math.min(WZ-4,p.z+(Math.random()-0.5)*1.5)),
     dir:Math.random()*6.28,t:Math.random()*4,alive:true,cooldown:0,gestation:0,pregnant:false,
     children:0,hue:p.hue,attack:2,defense:2,recovery:2};
   c.maxHp=50+c.strength;c.hp=c.maxHp;
-  c.vox=makeHumanVox(c.sex,c.stage,c.hue);c.voxCount=c.vox.length/6;
   humans.push(c);return c;
+}
+function tameAnimal(id) {
+  var a = findAgent(id);
+  if (!a || a.kind !== 'animal') return { ok: false, msg: '只能驯服动物' };
+  if (!a.alive) return { ok: false, msg: '目标已死亡' };
+  if (a.tamed) { a.tamed = false; a.tameCommand = ''; return { ok: true, tamed: false, type: a.type }; }
+  var d = Math.hypot(a.x - player.x, a.z - player.z);
+  if (d > 5.5) return { ok: false, msg: '靠近到 5 格以内再驯服' };
+  a.tamed = true; a.tameCommand = 'follow'; a.active = true;
+  return { ok: true, tamed: true, type: a.type };
+}
+function commandAnimal(id, cmd) {
+  var a = findAgent(id);
+  if (!a || a.kind !== 'animal' || !a.tamed) return { ok: false, msg: '先驯服这只动物' };
+  if (!a.alive) return { ok: false, msg: '目标已死亡' };
+  if (cmd === 'hunt' && a.def.kind !== 'pred') return { ok: false, msg: '只有捕食者可以捕猎' };
+  if (['follow','stay','sit','eat','hunt','flee'].indexOf(cmd) < 0) return { ok: false, msg: '未知指令' };
+  a.tameCommand = cmd;
+  return { ok: true, cmd: cmd, type: a.type };
+}
+function tameNearest() {
+  var best = null, bd = 5.5;
+  for (var i = 0; i < fauna.length; i++) {
+    var a = fauna[i];
+    if (!a.alive || !a.active) continue;
+    var d = Math.hypot(a.x - player.x, a.z - player.z);
+    if (d < bd) { bd = d; best = a; }
+  }
+  if (!best) return { ok: false, msg: '附近没有动物' };
+  return tameAnimal(best.id);
 }
 function updateFauna(dt,bio){
   if(!env)return;
@@ -2896,7 +5207,7 @@ function updateFauna(dt,bio){
     a.cooldown=Math.max(0,a.cooldown-(bio||0));
     a.ageDays+=(bio||0);
     a.stage=stageOfAnimal(a.ageDays,a.lifespanDays);
-    if(a.ageDays>=a.lifespanDays){a.alive=false;a.respawn=10;continue;}
+    if(a.ageDays>=a.lifespanDays){a.alive=false;a.respawn=10;a.tamed=false;a.tameCommand='';continue;}
     a.energy=Math.max(0,Math.min(100,a.energy-dt*1.1));
     if(a.energy>35)a.hp=Math.min(a.maxHp,a.hp+a.recovery*dt);
     if(a.parasiteLoad)a.hp-=a.parasiteLoad*dt*0.35;
@@ -2911,7 +5222,36 @@ function updateFauna(dt,bio){
         }
       }
     }
-    if(a.hp<=0){a.alive=false;a.respawn=8;continue;}
+    if(a.hp<=0){a.alive=false;a.respawn=8;a.tamed=false;a.tameCommand='';continue;}
+    if(a.tamed){
+      a.active=true;
+      a.t+=dt;
+      a.state='待命';a.drive='社交';
+      if(a.tameCommand==='follow'){
+        var fdx=player.x-a.x,fdz=player.z-a.z,fdd=Math.hypot(fdx,fdz);
+        if(fdd>2.4){a.dir=Math.atan2(fdz,fdx);a.x+=fdx/fdd*dt*1.6;a.z+=fdz/fdd*dt*1.6;a.state='跟随';}
+      }else if(a.tameCommand==='flee'){
+        var ffx=a.x-player.x,ffz=a.z-player.z,ffd=Math.hypot(ffx,ffz)||1;
+        a.dir=Math.atan2(ffz,ffx);a.x+=ffx/ffd*dt*2.0;a.z+=ffz/ffd*dt*2.0;a.state='逃避';
+      }else if(a.tameCommand==='hunt'){
+        var tgt=null,tdd=99;
+        for(var ti=0;ti<fauna.length;ti++){
+          var q=fauna[ti];
+          if(q===a||!q.alive||q.tamed||q.def.kind!=='herb'||!q.active)continue;
+          var qd=Math.hypot(q.x-a.x,q.z-a.z);
+          if(qd<tdd){tdd=qd;tgt=q;}
+        }
+        if(tgt&&tdd<8){
+          a.dir=Math.atan2(tgt.z-a.z,tgt.x-a.x);
+          if(tdd>1.4){a.x+=Math.cos(a.dir)*dt*1.8;a.z+=Math.sin(a.dir)*dt*1.8;a.state='捕猎';}
+          else{a.state='捕食';tgt.hp-=Math.max(1,a.attack-tgt.defense*0.5)*dt*1.2;a.energy=Math.min(100,a.energy+dt*4);if(tgt.hp<=0){tgt.alive=false;tgt.respawn=12;a.energy=Math.min(100,a.energy+20);}}
+        }else a.state='搜寻';
+      }else if(a.tameCommand==='eat'){
+        a.energy=Math.min(100,a.energy+dt*4);a.state='进食';
+      }else if(a.tameCommand==='sit'){a.state='坐下';}
+      a.x=Math.max(3,Math.min(WX-4,a.x));a.z=Math.max(3,Math.min(WZ-4,a.z));
+      continue;
+    }
     a.active=!(winter&&a.def.winter==='hide');
     if(!a.active){a.state='隐匿';a.drive='生存';continue;}
     a.t+=dt;
@@ -3014,7 +5354,7 @@ function updateFlora(dt,bio){
     else a.stage='成熟';
     if(a.ageDays>a.lifespanDays*0.98)a.stage='枯萎';
     a.state=seasonOk?('生长 · '+a.stage):('休眠 · '+a.stage);
-    if(a.stage!==old){a.vox=makePlantVox(a.hue,a.flowerHue,a.stage);a.voxCount=a.vox.length/6;}
+    /* 植物阶段只影响缩放，方盒骨架无需重建 */
     if(a.hp<a.maxHp)a.hp=Math.min(a.maxHp,a.hp+0.5*dt);
     a.cooldown=Math.max(0,a.cooldown-(bio||0));
     if(a.stage==='结果'&&a.cooldown<=0&&seasonOk){
@@ -3030,7 +5370,7 @@ function updateHumans(dt,bio){
     if(!a.alive)continue;
     a.ageYears+=(bio||0)/365;
     var old=a.stage;a.stage=stageOfHuman(a.ageYears);
-    if(a.stage!==old){a.vox=makeHumanVox(a.sex,a.stage,a.hue);a.voxCount=a.vox.length/6;}
+    if(a.stage!==old){a.rig3d=null;a.rig3dKey='';}
     if(a.ageYears>85){a.alive=false;continue;}
     a.energy=Math.max(0,Math.min(100,a.energy-dt*0.45));
     a.hp=Math.min(a.maxHp,a.hp+a.recovery*dt+(a.energy>40?0.3:0));
@@ -3086,49 +5426,6 @@ function fastForward(days){
   if(selectedAgent)renderSpecies();
   return {animals:fauna.length,plants:flora.length,humans:humans.length};
 }
-function buildVoxBuffer(){
-  var o=0,cap=voxArr.length;
-  function add(a,yOff,scale){
-    if(!a.alive||!a.vox)return;
-    var gy=surfaceY(Math.floor(a.x),Math.floor(a.z));
-    var y0=gy+yOff;
-    var ca=Math.cos(a.dir||0),sa=Math.sin(a.dir||0);
-    var v=a.vox,boost=selectedAgent===a.id?1.3:1;
-    for(var i=0;i<v.length;i+=6){
-      if(o+6>cap)return;
-      var lx=v[i],ly=v[i+1],lz=v[i+2];
-      voxArr[o++]=a.x+lx*ca-lz*sa;
-      voxArr[o++]=y0+ly*scale;
-      voxArr[o++]=a.z+lx*sa+lz*ca;
-      voxArr[o++]=Math.min(1,v[i+3]*boost);
-      voxArr[o++]=Math.min(1,v[i+4]*boost);
-      voxArr[o++]=Math.min(1,v[i+5]*boost);
-    }
-  }
-  if(fineVoxel&&showFauna){
-    for(var i=0;i<fauna.length;i++){var a=fauna[i];if(a.alive&&a.active)add(a,a.def.kind==='bird'?4.5:0.02,1);}
-  }
-  for(var j=0;j<flora.length;j++){var p=flora[j];if(p.alive)add(p,0,0.45+0.55*p.growth);}
-  if(fineVoxel)for(var k=0;k<humans.length;k++){var h=humans[k];if(h.alive)add(h,0.02,1);}
-  nVox=o/6;
-}
-function drawVoxels(){
-  buildVoxBuffer();
-  if(!nVox)return;
-  gl.useProgram(P_VOX);
-  gl.bindBuffer(gl.ARRAY_BUFFER,voxBuf);
-  gl.bufferData(gl.ARRAY_BUFFER,voxArr.subarray(0,nVox*6),gl.DYNAMIC_DRAW);
-  gl.vertexAttribPointer(VXpos,3,gl.FLOAT,false,24,0);
-  gl.vertexAttribPointer(VXcol,3,gl.FLOAT,false,24,12);
-  gl.enableVertexAttribArray(VXpos);gl.enableVertexAttribArray(VXcol);
-  gl.uniformMatrix4fv(UVX.mvp,false,MVP);
-  gl.uniform1f(UVX.size,Math.max(2.2,Math.min(5,(devicePixelRatio||1)*2.3)));
-  gl.uniform1f(UVX.dim,atomMode?0.8:env.dim);
-  gl.disable(gl.BLEND);
-  gl.depthMask(true);
-  gl.enable(gl.DEPTH_TEST);
-  gl.drawArrays(gl.POINTS,0,nVox);
-}
 function updateFaunaLabels(){
   var box=document.getElementById('faunaLabels');
   if(!box)return;
@@ -3147,9 +5444,10 @@ function updateFaunaLabels(){
     var extra='';
     if(a.kind==='animal'&&env&&env.season.key==='winter'&&a.def.winter==='migrate')extra=' · 迁徙';
     if(a.kind==='animal'&&a.pregnant)extra+=' · 孕';
-    if(a.kind==='human')extra=' · '+a.stage;
+    if(a.kind==='animal'&&a.tamed)extra+=' · 已驯服';
+    if(a.kind==='human')extra=' · '+(a.occ||a.ethnic)+' · '+a.stage;
     if(a.kind==='plant')extra=' · '+a.stage;
-    html+='<div class="fl'+(selectedAgent===a.id?' sel':'')+'" data-agent="'+a.id+'" style="left:'+sx.toFixed(0)+'px;top:'+sy.toFixed(0)+'px">'+a.type+extra+'</div>';
+    html+='<div class="fl'+(selectedAgent===a.id?' sel':'')+(a.kind==='animal'&&a.tamed?' tamed':'')+'" data-agent="'+a.id+'" style="left:'+sx.toFixed(0)+'px;top:'+sy.toFixed(0)+'px">'+a.type+extra+'</div>';
   }
   for(var i=0;i<fauna.length;i++)add(fauna[i],fauna[i].def.kind==='bird'?5.2:1.25*fauna[i].size);
   for(var j=0;j<humans.length;j++)add(humans[j],1.95);
@@ -3160,32 +5458,6 @@ function updateFaunaLabels(){
   }
   box.innerHTML=html;
 }
-function bakeAnimal(off,a){
-  var d=a.def,s=d.size,col=d.color;
-  var gy=surfaceY(Math.floor(a.x),Math.floor(a.z));
-  var y=d.kind==='bird'?gy+4.5+Math.sin(a.t*2+a.seed)*0.5:gy+0.02;
-  var fx=Math.cos(a.dir),fz=Math.sin(a.dir);
-  var dark=[col[0]*0.72,col[1]*0.72,col[2]*0.72];
-  var head=[Math.min(1,col[0]*1.18+0.05),Math.min(1,col[1]*1.18+0.05),Math.min(1,col[2]*1.18+0.05)];
-  if(d.kind==='bird'){
-    off=bakePart(charArr,off,a.x,y+0.55*s,a.z,a.dir,0,0,0.5*s,0.38*s,0.7*s,col);
-    off=bakePart(charArr,off,a.x+fx*0.5*s,y+0.78*s,a.z+fz*0.5*s,a.dir,0,0,0.26*s,0.26*s,0.26*s,col);
-    var flap=Math.sin(a.t*9+a.seed)*0.5;
-    off=bakePart(charArr,off,a.x-fz*0.35*s,y+0.55*s,a.z+fx*0.35*s,a.dir,0,flap,0.16*s,0.10*s,0.5*s,dark);
-    off=bakePart(charArr,off,a.x+fz*0.35*s,y+0.55*s,a.z-fx*0.35*s,a.dir,0,-flap,0.16*s,0.10*s,0.5*s,dark);
-    off=bakePart(charArr,off,a.x-fx*0.55*s,y+0.55*s,a.z-fz*0.55*s,a.dir,0.3,0,0.18*s,0.10*s,0.35*s,dark);
-  }else{
-    off=bakePart(charArr,off,a.x,y+0.55*s,a.z,a.dir,0,0,0.55*s,0.42*s,0.35*s,col);
-    off=bakePart(charArr,off,a.x+fx*0.55*s,y+0.82*s,a.z+fz*0.55*s,a.dir,0,0,0.30*s,0.30*s,0.30*s,head);
-    off=bakePart(charArr,off,a.x-fx*0.55*s,y+0.58*s,a.z-fz*0.55*s,a.dir,0,0,0.12*s,0.12*s,0.38*s,dark);
-    var lx=Math.cos(a.dir+Math.PI/2)*0.20*s,lz=Math.sin(a.dir+Math.PI/2)*0.20*s;
-    var step=Math.sin(a.t*7+a.seed)*0.16*s;
-    off=bakePart(charArr,off,a.x+lx,y+0.22*s+step,a.z+lz,a.dir,0,0,0.12*s,0.42*s,0.12*s,dark);
-    off=bakePart(charArr,off,a.x-lx,y+0.22*s-step,a.z-lz,a.dir,0,0,0.12*s,0.42*s,0.12*s,dark);
-  }
-  return off;
-}
-
 /* ---------- 物种详情 ---------- */
 function findAgent(id){
   for(var i=0;i<fauna.length;i++)if(fauna[i].id===id)return fauna[i];
@@ -3203,7 +5475,7 @@ function openSpeciesList(){
     if(!arr.length)return;
     h+='<div class="catline">'+title+'（'+arr.length+'）</div><div class="mgrid">'+arr.map(function(a){
       var c=hueColor(a.hue||0,1),rgb='rgb('+Math.round(c[0]*255)+','+Math.round(c[1]*255)+','+Math.round(c[2]*255)+')';
-      var sub=kind==='animal'?(a.sex+' · '+a.stage+' · '+a.state):(kind==='plant'?(a.stage+' · '+Math.round(a.growth*100)+'%'):(a.sex+' · '+a.stage+' · '+a.ethnic));
+      var sub=kind==='animal'?(a.sex+' · '+a.stage+' · '+a.state+(a.tamed?' · 已驯服':'')):(kind==='plant'?(a.stage+' · '+Math.round(a.growth*100)+'%'):(a.sex+' · '+a.stage+' · '+a.ethnic));
       return '<div class="mcard" data-agent="'+a.id+'"><span class="sw" style="background:'+rgb+'"></span><div><div class="mn">'+a.type+(a.alive?'':'（死亡）')+'</div><div class="mf">'+sub+'</div></div></div>';
     }).join('')+'</div>';
   }
@@ -3223,6 +5495,16 @@ function closeSpecies(){
 }
 function speciesBar(v,max,cls){
   return '<div class="wbar'+(cls?' '+cls:'')+'"><i style="width:'+Math.max(0,Math.min(100,Math.round(v/max*100)))+'%"></i></div>';
+}
+function agentRigSummary(a){
+  if(a.kind==='human'){var r=getHumanRig(a);return (r.boxes||0)+' 个方盒部件 · 图鉴骨架 / 关节动作 · '+(a.occ?'职业':'民族')+'配色 · 约 '+(r.height*0.56).toFixed(2)+' m 高';}
+  if(a.kind==='animal'){var r=getAnimalRig(a);return (r.boxes||0)+' 个方盒部件 · 自然生态图鉴 v3 · '+r.spec.form+' 形态 · 约 '+(r.height*natureAnimalScale(a,r)).toFixed(2)+' m 高';}
+  var rp=getPlantRig(a);return (rp.boxes||0)+' 个方盒部件 · 自然生态图鉴 v3 · '+rp.spec.form+' 形态 · 约 '+(rp.height*naturePlantScale(a,rp)).toFixed(2)+' m 高';
+}
+function agentRigAction(a){
+  if(a.kind==='human')return a.rig3d?a.rig3d.motion.name:'—';
+  var r=a.kind==='animal'?getAnimalRig(a):getPlantRig(a);
+  return r.motion?r.motion.name:'—';
 }
 function renderSpecies(){
   var a=findAgent(selectedAgent);
@@ -3249,7 +5531,18 @@ function renderSpecies(){
       '<div class="kv"><span>食性 / 迁徙</span><span>'+(a.def.kind==='pred'?'肉食':(a.def.kind==='herb'?'植食':'杂食'))+' · '+(a.def.winter==='migrate'?'迁徙':(a.def.winter==='hide'?'冬眠/隐匿':'常驻'))+'</span></div>'+
       '<div class="kv"><span>参数区间</span><span>HP '+Math.round(a.maxHp*0.85)+'–'+Math.round(a.maxHp*1.15)+' · 攻击 '+Math.max(1,Math.round(a.attack*0.8))+'–'+Math.round(a.attack*1.2)+' · 寿命 '+(a.lifespanDays*0.85/365).toFixed(1)+'–'+(a.lifespanDays*1.15/365).toFixed(1)+' 岁</span></div>'+
       '<div class="kv"><span>繁殖 / 后代</span><span>'+(a.pregnant?('怀孕中 · 剩余 '+Math.max(0,a.gestation).toFixed(1)+' 天'):('冷却 '+a.cooldown.toFixed(1)+' 天'))+' · 已有 '+a.children+' 胎</span></div>'+
-      '<div class="kv"><span>体表寄生负荷</span><span>'+a.parasiteLoad.toFixed(2)+'</span></div>';
+      '<div class="kv"><span>体表寄生负荷</span><span>'+a.parasiteLoad.toFixed(2)+'</span></div>'+
+      '<div class="catline">驯服 / 指令</div>'+
+      '<div class="wrow tamebar">'+
+        '<button id="btnTame" type="button" style="'+(a.tamed?'':'border-color:#ffd166;color:#ffd166')+'">'+(a.tamed?'放归':'驯服')+'</button>'+
+        (a.tamed?'<button data-tame="follow" class="'+(a.tameCommand==='follow'?'on':'')+'">跟随</button>'+
+          '<button data-tame="stay" class="'+(a.tameCommand==='stay'?'on':'')+'">待命</button>'+
+          '<button data-tame="sit" class="'+(a.tameCommand==='sit'?'on':'')+'">坐下</button>'+
+          '<button data-tame="eat" class="'+(a.tameCommand==='eat'?'on':'')+'">进食</button>'+
+          (a.def.kind==='pred'?'<button data-tame="hunt" class="'+(a.tameCommand==='hunt'?'on':'')+'">捕猎</button>':'')+
+          '<button data-tame="flee" class="'+(a.tameCommand==='flee'?'on':'')+'">逃跑</button>':'')+
+      '</div>'+
+      '<div class="note">'+(a.tamed?'已驯服 · 当前指令：'+({follow:'跟随',stay:'待命',sit:'坐下',eat:'进食',hunt:'捕猎',flee:'逃跑'}[a.tameCommand]||'待命'):'靠近到 5 格以内可驯服（也可按 T 驯服最近动物）。')+'</div>';
   }else if(a.kind==='plant'){
     h+='<div class="kv"><span>生长阶段</span><span>'+a.stage+'</span></div>'+
       '<div class="kv"><span>生长进度</span><span>'+Math.round(a.growth*100)+'%</span></div>'+speciesBar(a.growth,1)+
@@ -3264,6 +5557,8 @@ function renderSpecies(){
   }else{
     h+='<div class="kv"><span>性别 / 年龄</span><span>'+a.sex+' · '+a.ageYears.toFixed(1)+' 岁 · '+a.stage+'</span></div>'+
       '<div class="kv"><span>民族 / 文化</span><span>'+a.ethnic+' · '+a.culture+'</span></div>'+
+      '<div class="kv"><span>服饰 / 头饰 / 配饰</span><span>'+(a.occ?('职业 '+a.occ+' · '):'')+(a.atlas?((ATLAS_TOP_CN[a.atlas[6]]||a.atlas[6])+' · '+(ATLAS_HEAD_CN[a.atlas[7]]||a.atlas[7])+' · '+(ATLAS_EX_CN[a.atlas[8]]||a.atlas[8])):'—')+'</span></div>'+
+      '<div class="kv"><span>图鉴动作</span><span>'+agentRigAction(a)+'</span></div>'+
       '<div class="kv"><span>状态 / 第一驱动</span><span>'+a.state+' · '+a.drive+'</span></div>'+
       '<div class="kv"><span>HP</span><span>'+Math.round(a.hp)+' / '+a.maxHp+'</span></div>'+speciesBar(Math.max(0,a.hp),a.maxHp)+
       '<div class="kv"><span>能量</span><span>'+Math.round(a.energy)+' / 100</span></div>'+speciesBar(a.energy,100,'night')+
@@ -3279,9 +5574,25 @@ function renderSpecies(){
   var rel=REGION_REL[curRegion]||{mutual:[],parasite:[]};
   h+='<div class="catline">互利共生</div><div class="mut" style="font-size:11px;line-height:1.8">'+rel.mutual.map(function(x){return '· '+x;}).join('<br>')+'</div>'+
     '<div class="catline">寄生关系</div><div class="mut" style="font-size:11px;line-height:1.8">'+rel.parasite.map(function(x){return '· '+x;}).join('<br>')+'</div>'+
-    '<div class="kv" style="margin-top:6px"><span>精细轮廓</span><span>'+a.voxCount+' 个微方块采样点 · 每个粗方块约 '+VOX_PER_BLOCK+' · 24 色相 H'+(a.hue||0)+'</span></div>'+
-    '<div class="note">行为优先级：生存（HP/能量/逃避）→ 繁衍（求偶/怀孕/育幼）→ 社交/休息。参数为教学模拟，不是真实种群动力学。</div></div>';
+    '<div class="kv" style="margin-top:6px"><span>角色模型</span><span>'+agentRigSummary(a)+'</span></div>'+
+    '<div class="note">行为优先级：生存（HP/能量/逃避）→ 繁衍（求偶/怀孕/育幼）→ 社交/休息。参数为教学模拟，不是真实种群动力学；体高以人类约 1.8 m 为基准（1 方块≈1 m）。</div></div>';
+  if(a.kind==='human')h+='<div class="note">角色外观：中华人物图鉴 v2 方盒骨架（56 民族 × 男女 × 4 年龄 / 11 职业 / 18 动作）；玩家忍者来自「暗影忍者 3D 角色」（9 动作 / 5 配色）。动物与植物来自「自然生态图鉴 v3」方盒骨架（四足 / 鸟 / 鱼 / 爬行 / 两栖 / 昆虫 / 树 / 针叶 / 竹 / 灌丛 / 花 / 水生 / 菌菇 / 多肉）。</div>';
   body.innerHTML=h;
+  var _tb=document.getElementById('btnTame');
+  if(_tb)_tb.addEventListener('click',function(){
+    var r=__world.tame(a.id);
+    if(r&&r.ok){toast(r.tamed?'已驯服：'+a.type:'已放归：'+a.type);renderSpecies();}
+    else toast(r&&r.msg?r.msg:'无法驯服');
+  });
+  var _tameBtns=body.querySelectorAll('[data-tame]');
+  [].forEach.call(_tameBtns,function(btn){
+    btn.addEventListener('click',function(){
+      var cmd=btn.getAttribute('data-tame');
+      var r=__world.command(a.id,cmd);
+      if(r&&r.ok){toast('指令：'+({follow:'跟随',stay:'待命',sit:'坐下',eat:'进食',hunt:'捕猎',flee:'逃跑'}[cmd]||cmd));renderSpecies();}
+      else toast(r&&r.msg?r.msg:'指令失败');
+    });
+  });
 }
 function refreshSpecies(){
   if(selectedAgent&&!document.getElementById('species').classList.contains('hidden'))renderSpecies();
@@ -3517,11 +5828,6 @@ function bindWorldUI(){
     if(!humans.length)initHumans();
     toast(showFauna?'3D 世界：显示代表动物':'3D 世界：隐藏动物');
   });
-  document.getElementById('btnVox').addEventListener('click',function(){
-    fineVoxel=!fineVoxel;
-    this.classList.toggle('on',fineVoxel);
-    toast(fineVoxel?'精细微方块：每个粗方块约 100 个微方块 · 24 色相':'已切回粗方块轮廓');
-  });
   document.getElementById('btnEcoFast').addEventListener('click',function(){
     var c=fastForward(30);
     toast('生态快进 30 天（不改变日历）：动物 '+c.animals+' · 植物 '+c.plants+' · 人 '+c.humans);
@@ -3616,11 +5922,62 @@ window.__world={
   },
   applyTerrain:function(){applyRegionTerrain();},
   faunaList:function(){return fauna.map(function(a){return {id:a.id,n:a.type,x:a.x,z:a.z,active:a.active,alive:a.alive};});},
-  agents:function(){return {fauna:fauna.map(function(a){return {id:a.id,type:a.type,sex:a.sex,stage:a.stage,state:a.state,hp:a.hp,pregnant:a.pregnant,alive:a.alive};}),flora:flora.map(function(a){return {id:a.id,type:a.type,stage:a.stage,growth:a.growth,alive:a.alive};}),humans:humans.map(function(a){return {id:a.id,sex:a.sex,age:a.ageYears,stage:a.stage,ethnic:a.ethnic,state:a.state,energy:a.energy,cooldown:a.cooldown,pregnant:a.pregnant,alive:a.alive};})};},
+  agents:function(){return {fauna:fauna.map(function(a){return {id:a.id,type:a.type,sex:a.sex,stage:a.stage,state:a.state,hp:a.hp,pregnant:a.pregnant,alive:a.alive,tamed:a.tamed||false,tameCommand:a.tameCommand||'',x:a.x,z:a.z,active:a.active};}),flora:flora.map(function(a){return {id:a.id,type:a.type,stage:a.stage,growth:a.growth,alive:a.alive};}),humans:humans.map(function(a){return {id:a.id,sex:a.sex,age:a.ageYears,stage:a.stage,ethnic:a.ethnic,state:a.state,energy:a.energy,cooldown:a.cooldown,pregnant:a.pregnant,alive:a.alive,x:a.x,z:a.z,occ:a.occ,atlas:a.atlasName};})};},
   openSpecies:function(id){openSpecies(id);},
   openList:function(){openSpeciesList();},
   fastForward:function(d){return fastForward(d||30);},
-  lookAt:function(x,z){player.yaw=Math.atan2(-(x-player.x),-(z-player.z));player.pitch=0;}
+  lookAt:function(x,z){player.yaw=Math.atan2(-(x-player.x),-(z-player.z));player.pitch=0;},
+  freeCam:function(x,y,z,tx,ty,tz){
+    if(x==null){debugCam=null;return null;}
+    var dx=tx-x,dy=ty-y,dz=tz-z;
+    debugCam={x:x,y:y,z:z,yaw:Math.atan2(-dx,-dz),pitch:Math.atan2(dy,Math.max(0.1,Math.hypot(dx,dz)))};
+    return debugCam;
+  },
+  surfaceAt:function(x,z){return surfaceY(Math.floor(x),Math.floor(z));},
+  lookAtPoint:function(x,y,z){
+    var dx=x-player.x,dz=z-player.z,dy=y-(player.y+1.65);
+    player.yaw=Math.atan2(-dx,-dz);
+    player.pitch=Math.atan2(dy,Math.max(0.1,Math.hypot(dx,dz)));
+  },
+  natureInfo:function(){
+    return {animals:fauna.map(function(a){return {id:a.id,type:a.type,form:a.natureRig?a.natureRig.spec.form:null,boxes:a.natureRig?a.natureRig.boxes:0,action:a.natureRig?a.natureRig.motion.name:null,x:a.x,z:a.z,stage:a.stage,active:a.active,alive:a.alive,tamed:a.tamed||false,tameCommand:a.tameCommand||'',height:a.natureRig?a.natureRig.height*natureAnimalScale(a,a.natureRig):0};}),
+      plants:flora.map(function(p){return {type:p.type,form:p.natureRig?p.natureRig.spec.form:null,boxes:p.natureRig?p.natureRig.boxes:0,action:p.natureRig?p.natureRig.motion.name:null,x:p.x,z:p.z,stage:p.stage,growth:p.growth,alive:p.alive,height:p.natureRig?p.natureRig.height*naturePlantScale(p,p.natureRig):0};})};
+  },
+  ninjaAnim:function(name){
+    if(!name){player.animOverride=null;return 'auto';}
+    if(!NINJA3D.ANIMS[name])return null;
+    player.animOverride={name:name,t:0};
+    return name;
+  },
+  ninjaAnims:function(){return NINJA_ORDER.slice();},
+  ninjaTheme:function(k){
+    if(k==null)return playerNinjaTheme;
+    if(!NINJA3D.THEMES[k])return null;
+    playerNinjaTheme=k;return {key:k,name:NINJA3D.THEMES[k].name};
+  },
+  ninjaThemes:function(){return Object.keys(NINJA3D.THEMES).map(function(k){return {key:k,name:NINJA3D.THEMES[k].name};});},
+  tp:function(x,z,y,yawn){
+    player.x=x;player.z=z;
+    player.y=(y!=null?y:surfaceY(Math.floor(x),Math.floor(z))+0.1);
+    if(yawn!=null)player.yaw=yawn;
+    player.vy=0;return [player.x,player.y,player.z,player.yaw];
+  },
+  setDir:function(id,dir){var a=findAgent(id);if(a){a.dir=dir;return true;}return false;},
+  tame:function(id){return tameAnimal(id);},
+  command:function(id,cmd){return commandAnimal(id,cmd);},
+  tameNearest:function(){return tameNearest();},
+  third:function(v){
+    thirdPerson=!!v;camOrbit=0;
+    var b=document.getElementById('btnView');if(b)b.classList.toggle('on',thirdPerson);
+    var f=document.getElementById('btnFront');if(f)f.classList.toggle('show',thirdPerson);
+    return thirdPerson;
+  },
+  camOrbit:function(v){if(v==null)return camOrbit;camOrbit=Number(v)||0;return camOrbit;},
+  rigInfo:function(){
+    return {verts:nRig,scale:RIG_SCALE,
+      ninja:playerNinja?{boxes:playerNinja.boxes,action:playerNinja.motion.name,totalH:playerNinja.totalH}:null,
+      humans:humans.map(function(a){var r=getHumanRig(a),q=r.spec||{};return {id:a.id,sex:a.sex,ethnic:a.ethnic,occ:a.occ,stage:a.stage,boxes:r.boxes,action:r.motion.name,spec:{c1:q.c1,c2:q.c2,c3:q.c3,c4:q.c4,top:q.top,head:q.head,extra:q.extra,gender:q.gender,age:q.age}};})};
+  }
 };
 requestAnimationFrame(function(t){last=t;loop(t);});
 setTimeout(function(){document.getElementById('hint').style.opacity='0';document.getElementById('hint').style.transition='opacity 1.2s';},9000);
