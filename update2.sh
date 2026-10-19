@@ -44,7 +44,7 @@ remote_size() {
 }
 
 download() {
-  local rel="$1" url="$2" want="$3" tmo="${4:-900}"
+  local rel="$1" url="$2" want="$3" tmo="${4:-900}" tailneed="${5:-}" needle="${6:-}"
   local tmp="$rel.part" rc=0 ok=0 try tsize
   mkdir -p "$(dirname "$rel")" || return 1
   rm -f "$tmp"
@@ -83,15 +83,36 @@ download() {
     return 1
   fi
 
+  if [ -n "$tailneed" ]; then
+    if ! tail -c 64 "$tmp" | grep -q "$tailneed"; then
+      echo "fail $rel（结尾缺少 $tailneed，疑似下载截断，旧文件保留）"
+      return 1
+    fi
+  fi
+
+  if [ -n "$needle" ]; then
+    if ! grep -q "$needle" "$tmp"; then
+      echo "fail $rel（内容校验失败：缺少 $needle，旧文件保留）"
+      return 1
+    fi
+  fi
+
   mv -f "$tmp" "$rel" || return 1
   echo "ok   $rel（$tsize B）"
   return 0
 }
 
 program_file() {
-  local rel="$1" old_sum new_sum
+  local rel="$1" old_sum new_sum want tailneed="" needle=""
+  want=-1
+  if want=$(remote_size "$BASE/$rel"); then :; else want=-1; fi
+  case "$rel" in
+    portal.html) tailneed="</html>" ; needle='id="c-world"' ;;
+    world.html) tailneed="</html>" ; needle='name="version" content="world-v' ;;
+    *.html) tailneed="</html>" ;;
+  esac
   old_sum=$(md5sum "$rel" 2>/dev/null | awk '{print $1}')
-  if ! download "$rel" "$BASE/$rel" -1 300; then
+  if ! download "$rel" "$BASE/$rel" "$want" 300 "$tailneed" "$needle"; then
     FAIL=$((FAIL + 1))
     return 1
   fi
