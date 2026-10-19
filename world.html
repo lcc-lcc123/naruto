@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <link rel="icon" href="data:,">
 <title>映射 + AI 世界</title>
-<meta name="version" content="world-v8.1.0">
+<meta name="version" content="world-v8.2.0">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:"PingFang SC","Microsoft YaHei",sans-serif;color:#fff;touch-action:none;user-select:none;-webkit-user-select:none}
@@ -277,6 +277,25 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
 .bagSlot.empty{opacity:.35}
 .bagRow .bagSlot{width:auto;min-height:48px}
 .bagSlot .sw{width:20px;height:20px;border-radius:4px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.15)}
+
+/* ---------- 化学反应台 v2 ---------- */
+#rInputs{margin:6px 0}
+.rxrow{display:flex;gap:6px;align-items:center;margin:6px 0}
+.rxrow .rsel{flex:1;min-width:0}
+.rxrow .ramt{width:74px;flex:0 0 74px;padding:7px 4px}
+.rxrow .rmv{width:30px;flex:0 0 30px;padding:0;background:rgba(239,90,90,.18);border:1px solid rgba(239,90,90,.4);color:#ffb3b3;border-radius:8px;font-size:16px;line-height:1;touch-action:none}
+.legacy-amt{display:none}
+.rxfil{flex-wrap:wrap}
+.rxfil select,.rxfil input{flex:1 1 108px;min-width:0}
+.rxtype{display:inline-block;font-size:10px;line-height:1.7;padding:0 7px;border-radius:999px;border:1px solid rgba(143,226,179,.35);color:#8fe2b3;background:rgba(143,226,179,.12);margin-right:6px;white-space:nowrap}
+.rxtype.t-d{border-color:rgba(255,209,102,.4);color:#ffd166;background:rgba(255,209,102,.12)}
+.rxtype.t-z{border-color:rgba(120,180,255,.4);color:#78b4ff;background:rgba(120,180,255,.12)}
+.rxtype.t-f{border-color:rgba(198,140,255,.4);color:#c68cff;background:rgba(198,140,255,.12)}
+.rxtype.t-o{border-color:rgba(150,160,180,.4);color:#9aa8bd;background:rgba(150,160,180,.12)}
+.rxn{font-size:10px;color:#8fa6c4;margin-right:6px}
+.rxitem .mut{color:#8fa6c4;font-size:11px}
+.rxrow select{flex:1;min-width:0;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);color:#eaf2ff;border-radius:9px;padding:9px 10px;font-size:13px;outline:none}
+.rrow .mini{flex:0 0 auto;background:rgba(143,226,179,.16);border:1px solid rgba(143,226,179,.4);color:#8fe2b3;border-radius:9px;padding:9px 12px;font-size:12px;touch-action:none}
 </style>
 </head>
 <body>
@@ -331,7 +350,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
     <div class="chead">
       <button class="cback" id="chemBack" type="button">‹</button>
       <div class="ctitle">化学映射</div>
-      <div class="csub">118 元素 · 物质 · 反应</div>
+      <div class="csub">118 元素 · 111 物质 · 123 反应</div>
     </div>
     <div class="ctabs">
       <button data-ctab="table" class="on" type="button">元素周期表</button>
@@ -350,18 +369,25 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
         <div class="detail" id="matDetail">选择一种物质，查看它的元素组成、物理性质、微观结构，以及它能参与的反应。</div>
       </div>
       <div id="cpanel-react" class="cpanel hidden">
-        <div class="rrow"><select id="rA"></select><button class="swap" id="rSwap" type="button">⇄</button><select id="rB"></select></div>
-        <div class="rrow">
-          <select id="rCond"><option>常温</option><option>加热</option><option>点燃</option><option>通电</option><option>催化剂</option><option>光照</option></select>
-          <select id="rAmt"><option>适量</option><option>少量</option><option>过量</option></select>
-        </div>
-        <div class="rrow"><button class="run" id="rRun" type="button">进行反应</button></div>
-        <div class="detail" id="rOut">选择两种物质、条件与用量，查看产物。现实反应还受浓度、压强、催化剂与加入顺序影响。</div>
-        <div class="catline" id="rxCount">反应库</div>
-        <div class="rrow"><select id="rxFilter"><option value="">全部条件</option><option>常温</option><option>加热</option><option>点燃</option><option>通电</option><option>催化剂</option><option>光照</option></select><input id="rxSearch" placeholder="搜索物质 / 方程式"></div>
-        <div id="rxLib" class="rxlib"></div>
+      <div class="catline">反应物 · 1–4 种（分解 1 种；其他可多选）</div>
+      <div id="rInputs"></div>
+      <div class="rrow">
+        <button class="mini" id="rAdd" type="button">＋ 添加反应物</button>
+        <select id="rCond" title="反应条件"><option>常温</option><option>加热</option><option>点燃</option><option>通电</option><option>催化剂</option><option>光照</option></select>
+        <select id="rAmt" class="legacy-amt" title="统一用量（兼容旧入口）"><option>适量</option><option>少量</option><option>过量</option></select>
       </div>
-      <div id="cpanel-dist" class="cpanel hidden">
+      <div class="rrow"><button class="run" id="rRun" type="button">进行反应</button></div>
+      <div class="detail" id="rOut">选择 1–4 种物质与条件。四类基本反应：化合、分解、置换、复分解；其他类型归为“其他”。</div>
+      <div class="catline" id="rxCount">反应库</div>
+      <div class="rrow rxfil">
+        <select id="rxType" title="按反应类型筛选"><option value="">全部类型</option><option>化合</option><option>分解</option><option>置换</option><option>复分解</option><option>其他</option></select>
+        <select id="rxN" title="按反应物数量筛选"><option value="">全部反应物数</option><option value="1">1 种</option><option value="2">2 种</option><option value="3">3 种以上</option></select>
+        <select id="rxFilter" title="按条件筛选"><option value="">全部条件</option><option>常温</option><option>加热</option><option>点燃</option><option>通电</option><option>催化剂</option><option>光照</option></select>
+        <input id="rxSearch" placeholder="搜索物质 / 反应式" autocomplete="off">
+      </div>
+      <div id="rxLib" class="rxlib"></div>
+    </div>
+    <div id="cpanel-dist" class="cpanel hidden">
         <div class="catline">地壳元素丰度（质量 ppm）</div>
         <div class="abund" id="abund"></div>
         <div class="catline">当前世界中的矿物分布（生成规则）</div>
@@ -1539,6 +1565,69 @@ var ELEMENTS=[
 var EMAP={};
 ELEMENTS.forEach(function(e){EMAP[e[1]]=e;});
 
+function parseFormula(f){
+  if(!f)return {};
+  f=String(f).replace(/[₀-₉]/g,function(c){return String(c.charCodeAt(0)-0x2080);}).replace(/（/g,'(').replace(/）/g,')');
+  var total={},parts=f.split('·');
+  for(var pi=0;pi<parts.length;pi++){
+    var p=parts[pi].trim();if(!p)continue;
+    var coef=1,m=p.match(/^(\d+)/);if(m){coef=+m[1];p=p.slice(m[1].length);}
+    var stack=[{}],i=0;
+    while(i<p.length){
+      var ch=p[i];
+      if(ch==='('){stack.push({});i++;continue;}
+      if(ch===')'){
+        var g=stack.pop();i++;
+        var n='';while(i<p.length&&/\d/.test(p[i]))n+=p[i++];
+        var mul=n?+n:1;
+        for(var k in g)stack[stack.length-1][k]=(stack[stack.length-1][k]||0)+g[k]*mul;
+        continue;
+      }
+      if(/[A-Z]/.test(ch)){
+        var sym=ch;i++;
+        while(i<p.length&&/[a-z]/.test(p[i]))sym+=p[i++];
+        var num='';while(i<p.length&&/\d/.test(p[i]))num+=p[i++];
+        var cnt=num?+num:1,top=stack[stack.length-1];
+        top[sym]=(top[sym]||0)+cnt;
+        continue;
+      }
+      i++;
+    }
+    var root=stack[0];
+    for(var e in root)total[e]=(total[e]||0)+root[e]*coef;
+  }
+  return total;
+}
+function compOf(m){
+  if(m.comp)return m.comp;
+  if(!m.f||m.f==='—')return null;
+  var c=parseFormula(m.f),tot=0,out={};
+  for(var e in c){if(!EMAP[e])continue;tot+=c[e]*EMAP[e][3];}
+  if(!tot)return null;
+  for(var e2 in c){if(!EMAP[e2])continue;out[e2]=Math.round(c[e2]*EMAP[e2][3]/tot*1000)/10;}
+  return out;
+}
+function elColor(sym){
+  var m={O:'#e05050',Si:'#c9b18a',Al:'#b9c0cc',Fe:'#c98a5a',Ca:'#8fd6a8',C:'#8a8a8a',H:'#e8eefc',Na:'#e6b85c',Cl:'#8fe08f',K:'#c58ad8',Mg:'#5fbf5f',S:'#e8d44d',N:'#7ea6ff',Cu:'#d08a4a',Zn:'#c8ccd2',Mn:'#b07a9a',P:'#e8a05a',F:'#9fe0b8',Ti:'#9aa8b8'};
+  return m[sym]||'#9db0c6';
+}
+function fmtNum(v,d){if(v==null||v===0&&d===undefined)return '—';return v;}
+function kelvin(v){return v==null?'—':(Math.round((v-273.15)*10)/10)+' °C';}
+function catClass(c){return 'cat-'+c;}
+/* 元素周期表位置 */
+function posOf(z){
+  if(z===1)return[1,1];if(z===2)return[1,18];
+  if(z<=10){var c2=[1,2,13,14,15,16,17,18];return[2,c2[z-3]];}
+  if(z<=18){var c3=[1,2,13,14,15,16,17,18];return[3,c3[z-11]];}
+  if(z<=36)return[4,z-18];
+  if(z<=54)return[5,z-36];
+  if(z<=56)return[6,z-54];
+  if(z<=71)return[8,z-54];
+  if(z<=86)return[6,z-68];
+  if(z<=88)return[7,z-86];
+  if(z<=103)return[9,z-86];
+  return[7,z-100];
+}
 var MATS={
  soil:{n:'腐殖土',f:'—',block:1,color:'#6b563a',st:'固（混合物）',props:'疏松多孔，含腐殖质与微生物，pH 5.5–7.5',struct:'矿物颗粒 + 腐殖质团聚体（非晶）',where:'地表 0–0.3 m：草方块 / 泥土',comp:{O:49,Si:28,Al:8,Fe:4,C:5,Ca:2,H:2,K:1,Mg:1}},
  granite:{n:'花岗岩',f:'—',block:3,color:'#8c8f95',st:'固（混合物）',props:'致密坚硬，密度约 2.6–2.8 g/cm³，耐酸',struct:'石英 + 长石 + 云母的显晶质结构',where:'地下 0–15 m：石头',comp:{O:46,Si:32,Al:8,K:5,Na:3,Ca:2,Fe:2,Mg:1,H:1}},
@@ -1653,183 +1742,7 @@ var MATS={
  fe3o4:{n:'四氧化三铁',f:'Fe3O4',block:0,color:'#2a2a2a',st:'固',props:'黑色，具磁性',struct:'反尖晶石结构'}
 };
 
-var RX=[
- {a:'limestone',b:'',cond:'加热',out:['quicklime','co2'],eq:'CaCO₃ → CaO + CO₂↑',note:'约 900 °C 分解，工业制生石灰。'},
- {a:'quicklime',b:'water',cond:'常温',out:['slaked'],eq:'CaO + H₂O → Ca(OH)₂',note:'剧烈放热，体积膨胀。'},
- {a:'slaked',b:'co2',cond:'常温',out:['limestone','water'],eq:'Ca(OH)₂ + CO₂ → CaCO₃↓ + H₂O',note:'石灰水变浑浊，检验 CO₂。'},
- {a:'water',b:'',cond:'通电',out:['h2','o2'],eq:'2H₂O →(电解) 2H₂↑ + O₂↑',note:'氢氧体积比 2:1。'},
- {a:'h2',b:'o2',cond:'点燃',out:['water'],eq:'2H₂ + O₂ →(点燃) 2H₂O',note:'淡蓝色火焰，可能爆鸣。'},
- {a:'coal',b:'o2',cond:'点燃',out:['co2'],eq:'C + O₂ →(点燃) CO₂',note:'充分燃烧，放热。'},
- {a:'coal',b:'o2',cond:'点燃',amt:'少量',out:['co'],eq:'2C + O₂(不足) → 2CO',note:'氧气不足生成有毒的一氧化碳。'},
- {a:'iron',b:'o2',cond:'常温',out:['rust'],eq:'4Fe + 3O₂ + nH₂O → 2Fe₂O₃·nH₂O',note:'潮湿空气中缓慢锈蚀。',order:'需要水与氧气同时存在'},
- {a:'iron',b:'hcl',cond:'常温',out:['fecl2','h2'],eq:'Fe + 2HCl → FeCl₂ + H₂↑',note:'置换反应，溶液变浅绿。'},
- {a:'zinc',b:'h2so4',cond:'常温',out:['znso4','h2'],eq:'Zn + H₂SO₄ → ZnSO₄ + H₂↑',note:'实验室制氢气。'},
- {a:'limestone',b:'hcl',cond:'常温',out:['cacl2','water','co2'],eq:'CaCO₃ + 2HCl → CaCl₂ + H₂O + CO₂↑',note:'检验碳酸盐，起泡。'},
- {a:'naoh',b:'hcl',cond:'常温',out:['halite','water'],eq:'NaOH + HCl → NaCl + H₂O',note:'中和反应，放热。'},
- {a:'copper',b:'o2',cond:'加热',out:['cuo'],eq:'2Cu + O₂ →(Δ) 2CuO',note:'红色铜变黑。'},
- {a:'cuo',b:'h2',cond:'加热',out:['copper','water'],eq:'CuO + H₂ →(Δ) Cu + H₂O',note:'还原反应，黑色变红。'},
- {a:'mg',b:'o2',cond:'点燃',out:['mgo'],eq:'2Mg + O₂ →(点燃) 2MgO',note:'耀眼白光，放热。'},
- {a:'s',b:'o2',cond:'点燃',out:['so2'],eq:'S + O₂ →(点燃) SO₂',note:'蓝紫色火焰，刺激性气体。'},
- {a:'n2',b:'h2',cond:'催化剂',out:['nh3'],eq:'N₂ + 3H₂ ⇌ 2NH₃',note:'高温高压铁触媒，合成氨。'},
- {a:'ch4',b:'o2',cond:'点燃',out:['co2','water'],eq:'CH₄ + 2O₂ →(点燃) CO₂ + 2H₂O',note:'天然气燃烧。'},
- {a:'co2',b:'naoh',cond:'常温',amt:'少量',out:['na2co3','water'],eq:'CO₂ + 2NaOH → Na₂CO₃ + H₂O',note:'CO₂ 少量时生成碳酸钠。'},
- {a:'co2',b:'naoh',cond:'常温',amt:'过量',out:['nahco3'],eq:'CO₂ + NaOH → NaHCO₃',note:'CO₂ 过量时生成碳酸氢钠——用量改变产物。'},
- {a:'al',b:'o2',cond:'常温',out:['al2o3'],eq:'4Al + 3O₂ → 2Al₂O₃',note:'表面生成致密氧化膜，钝化保护。'},
- {a:'quicklime',b:'hcl',cond:'常温',out:['cacl2','water'],eq:'CaO + 2HCl → CaCl₂ + H₂O',note:'放热。'},
- {a:'cuso4',b:'naoh',cond:'常温',out:['cuoh2','na2so4'],eq:'CuSO₄ + 2NaOH → Cu(OH)₂↓ + Na₂SO₄',note:'蓝色絮状沉淀。'},
- {a:'sand',b:'na2co3',cond:'加热',out:['glass','co2'],eq:'SiO₂ + Na₂CO₃ →(高温) Na₂SiO₃ + CO₂↑',note:'工业玻璃的简化模型。'},
- {a:'h2so4',b:'water',cond:'常温',out:['dilute'],eq:'H₂SO₄ + H₂O → 稀硫酸',note:'必须“酸入水”，缓慢搅拌；水入浓酸会剧烈放热飞溅。',order:'加入顺序决定安全性与局部温度'},
- {a:'h2',b:'cl2',cond:'点燃',out:['hcl'],eq:'H₂ + Cl₂ →(点燃) 2HCl',note:'苍白色火焰，生成氯化氢气体。'},
- {a:'h2',b:'s',cond:'加热',out:['h2s'],eq:'H₂ + S →(Δ) H₂S',note:'化合反应，生成臭鸡蛋气味气体。'},
- {a:'h2',b:'fe2o3',cond:'加热',out:['iron','water'],eq:'3H₂ + Fe₂O₃ →(Δ) 2Fe + 3H₂O',note:'氢气还原氧化铁。'},
- {a:'c',b:'co2',cond:'加热',out:['co'],eq:'C + CO₂ →(Δ) 2CO',note:'高温下碳还原二氧化碳。'},
- {a:'c',b:'water',cond:'加热',out:['co','h2'],eq:'C + H₂O →(Δ) CO + H₂',note:'水煤气反应，需高温。'},
- {a:'c',b:'cuo',cond:'加热',out:['copper','co2'],eq:'C + 2CuO →(Δ) 2Cu + CO₂↑',note:'碳还原氧化铜。'},
- {a:'c',b:'fe2o3',cond:'加热',out:['iron','co2'],eq:'3C + 2Fe₂O₃ →(Δ) 4Fe + 3CO₂↑',note:'高温炼铁原理之一。'},
- {a:'co',b:'o2',cond:'点燃',out:['co2'],eq:'2CO + O₂ →(点燃) 2CO₂',note:'蓝色火焰，放热。'},
- {a:'co',b:'cuo',cond:'加热',out:['copper','co2'],eq:'CO + CuO →(Δ) Cu + CO₂',note:'一氧化碳还原氧化铜。'},
- {a:'co',b:'fe2o3',cond:'加热',out:['iron','co2'],eq:'3CO + Fe₂O₃ →(Δ) 2Fe + 3CO₂',note:'高炉炼铁主要反应。'},
- {a:'co2',b:'water',cond:'常温',out:['h2co3'],eq:'CO₂ + H₂O ⇌ H₂CO₃',note:'碳酸不稳定，使紫色石蕊变红。'},
- {a:'h2co3',b:'',cond:'加热',out:['co2','water'],eq:'H₂CO₃ →(Δ) CO₂↑ + H₂O',note:'碳酸受热分解。'},
- {a:'co2',b:'limestone',cond:'常温',out:['ca_hco3'],eq:'CaCO₃ + CO₂ + H₂O → Ca(HCO₃)₂',note:'需水参与；溶洞形成与硬水暂时硬度。'},
- {a:'ca_hco3',b:'',cond:'加热',out:['limestone','co2','water'],eq:'Ca(HCO₃)₂ →(Δ) CaCO₃↓ + CO₂↑ + H₂O',note:'水垢与钟乳石形成。'},
- {a:'co2',b:'na2co3',cond:'常温',out:['nahco3'],eq:'Na₂CO₃ + CO₂ + H₂O → 2NaHCO₃',note:'需水参与。'},
- {a:'nahco3',b:'',cond:'加热',out:['na2co3','co2','water'],eq:'2NaHCO₃ →(Δ) Na₂CO₃ + CO₂↑ + H₂O',note:'小苏打受热分解。'},
- {a:'na2co3',b:'hcl',cond:'常温',out:['halite','water','co2'],eq:'Na₂CO₃ + 2HCl → 2NaCl + H₂O + CO₂↑',note:'起泡，检验碳酸盐。'},
- {a:'nahco3',b:'hcl',cond:'常温',out:['halite','water','co2'],eq:'NaHCO₃ + HCl → NaCl + H₂O + CO₂↑',note:'比碳酸钠更剧烈。'},
- {a:'naoh',b:'sio2',cond:'加热',out:['na2sio3','water'],eq:'2NaOH + SiO₂ →(Δ) Na₂SiO₃ + H₂O',note:'碱腐蚀玻璃的简化模型。'},
- {a:'na2sio3',b:'hcl',cond:'常温',out:['h2sio3','halite'],eq:'Na₂SiO₃ + 2HCl → H₂SiO₃↓ + 2NaCl',note:'生成白色硅酸胶体。'},
- {a:'quicklime',b:'sio2',cond:'加热',out:['casio3'],eq:'CaO + SiO₂ →(Δ) CaSiO₃',note:'炉渣主要成分。'},
- {a:'limestone',b:'sio2',cond:'加热',out:['casio3','co2'],eq:'CaCO₃ + SiO₂ →(Δ) CaSiO₃ + CO₂↑',note:'高温下碳酸钙被二氧化硅分解。'},
- {a:'quicklime',b:'so2',cond:'加热',out:['caso3'],eq:'CaO + SO₂ →(Δ) CaSO₃',note:'干法脱硫的简化模型。'},
- {a:'caso3',b:'o2',cond:'加热',out:['caso4'],eq:'2CaSO₃ + O₂ →(Δ) 2CaSO₄',note:'亚硫酸钙被氧化。'},
- {a:'so2',b:'o2',cond:'催化剂',out:['so3'],eq:'2SO₂ + O₂ ⇌(催化剂) 2SO₃',note:'接触法制硫酸。'},
- {a:'so3',b:'water',cond:'常温',out:['h2so4'],eq:'SO₃ + H₂O → H₂SO₄',note:'剧烈放热，工业用浓硫酸吸收。'},
- {a:'h2so4',b:'copper',cond:'加热',out:['cuso4','so2','water'],eq:'Cu + 2H₂SO₄(浓) →(Δ) CuSO₄ + SO₂↑ + 2H₂O',note:'浓硫酸强氧化性，不生成氢气。'},
- {a:'h2so4',b:'iron',cond:'常温',out:['feso4','h2'],eq:'Fe + H₂SO₄ → FeSO₄ + H₂↑',note:'稀硫酸与铁发生置换。'},
- {a:'h2so4',b:'slaked',cond:'常温',out:['caso4','water'],eq:'H₂SO₄ + Ca(OH)₂ → CaSO₄ + 2H₂O',note:'中和反应。'},
- {a:'h2so4',b:'bacl2',cond:'常温',out:['baso4','hcl'],eq:'H₂SO₄ + BaCl₂ → BaSO₄↓ + 2HCl',note:'白色沉淀，检验硫酸根。'},
- {a:'hcl',b:'fe2o3',cond:'加热',out:['fecl3','water'],eq:'6HCl + Fe₂O₃ →(Δ) 2FeCl₃ + 3H₂O',note:'除铁锈，溶液呈黄色。'},
- {a:'hcl',b:'cuo',cond:'加热',out:['cucl2','water'],eq:'2HCl + CuO →(Δ) CuCl₂ + H₂O',note:'黑色氧化铜溶解，溶液蓝绿色。'},
- {a:'hcl',b:'aloh3',cond:'常温',out:['alcl3','water'],eq:'3HCl + Al(OH)₃ → AlCl₃ + 3H₂O',note:'两性氢氧化物溶于酸。'},
- {a:'hcl',b:'mg',cond:'常温',out:['mgcl2','h2'],eq:'Mg + 2HCl → MgCl₂ + H₂↑',note:'剧烈置换，放热。'},
- {a:'hcl',b:'zinc',cond:'常温',out:['zncl2','h2'],eq:'Zn + 2HCl → ZnCl₂ + H₂↑',note:'实验室制氢气常用。'},
- {a:'cl2',b:'naoh',cond:'常温',out:['halite','naclo','water'],eq:'Cl₂ + 2NaOH → NaCl + NaClO + H₂O',note:'歧化反应，漂白液制备。'},
- {a:'cl2',b:'slaked',cond:'常温',out:['ca_clo','halite','water'],eq:'2Cl₂ + 2Ca(OH)₂ → Ca(ClO)₂ + CaCl₂ + 2H₂O',note:'工业制漂白粉。'},
- {a:'cl2',b:'water',cond:'常温',out:['hcl','hclo'],eq:'Cl₂ + H₂O ⇌ HCl + HClO',note:'氯水成分，次氯酸具漂白性。'},
- {a:'hclo',b:'',cond:'光照',out:['hcl','o2'],eq:'2HClO →(光照) 2HCl + O₂↑',note:'次氯酸见光分解，漂白液失效。'},
- {a:'cl2',b:'iron',cond:'点燃',out:['fecl3'],eq:'2Fe + 3Cl₂ →(点燃) 2FeCl₃',note:'生成棕黄色烟。'},
- {a:'cl2',b:'copper',cond:'点燃',out:['cucl2'],eq:'Cu + Cl₂ →(点燃) CuCl₂',note:'生成棕黄色烟。'},
- {a:'cl2',b:'na',cond:'点燃',out:['halite'],eq:'2Na + Cl₂ →(点燃) 2NaCl',note:'黄色火焰，白色固体。'},
- {a:'na',b:'o2',cond:'常温',out:['na2o'],eq:'4Na + O₂ → 2Na₂O',note:'常温缓慢氧化，表面变暗。'},
- {a:'na',b:'o2',cond:'点燃',out:['na2o2'],eq:'2Na + O₂ →(点燃) Na₂O₂',note:'淡黄色过氧化钠。'},
- {a:'na2o',b:'water',cond:'常温',out:['naoh'],eq:'Na₂O + H₂O → 2NaOH',note:'碱性氧化物水化。'},
- {a:'na2o2',b:'water',cond:'常温',out:['naoh','o2'],eq:'2Na₂O₂ + 2H₂O → 4NaOH + O₂↑',note:'供氧剂，放热。'},
- {a:'na2o2',b:'co2',cond:'常温',out:['na2co3','o2'],eq:'2Na₂O₂ + 2CO₂ → 2Na₂CO₃ + O₂',note:'潜艇/呼吸面具供氧。'},
- {a:'na',b:'water',cond:'常温',out:['naoh','h2'],eq:'2Na + 2H₂O → 2NaOH + H₂↑',note:'浮、熔、游、响、红。'},
- {a:'k',b:'water',cond:'常温',out:['koh','h2'],eq:'2K + 2H₂O → 2KOH + H₂↑',note:'比钠更剧烈，可能燃烧。'},
- {a:'mg',b:'co2',cond:'点燃',out:['mgo','c'],eq:'2Mg + CO₂ →(点燃) 2MgO + C',note:'镁能在二氧化碳中燃烧。'},
- {a:'al',b:'hcl',cond:'常温',out:['alcl3','h2'],eq:'2Al + 6HCl → 2AlCl₃ + 3H₂↑',note:'铝与盐酸反应。'},
- {a:'al',b:'naoh',cond:'常温',out:['naalo2','h2'],eq:'2Al + 2NaOH + 2H₂O → 2NaAlO₂ + 3H₂↑',note:'需水参与；铝的两性。'},
- {a:'al2o3',b:'naoh',cond:'加热',out:['naalo2','water'],eq:'Al₂O₃ + 2NaOH →(Δ) 2NaAlO₂ + H₂O',note:'两性氧化物溶于强碱。'},
- {a:'alcl3',b:'naoh',cond:'常温',out:['aloh3','halite'],eq:'AlCl₃ + 3NaOH → Al(OH)₃↓ + 3NaCl',note:'白色胶状沉淀，过量碱会溶解。'},
- {a:'iron',b:'cuso4',cond:'常温',out:['feso4','copper'],eq:'Fe + CuSO₄ → FeSO₄ + Cu',note:'湿法炼铜，铁表面析出红色铜。'},
- {a:'fe2o3',b:'al',cond:'点燃',out:['iron','al2o3'],eq:'Fe₂O₃ + 2Al →(点燃) 2Fe + Al₂O₃',note:'铝热反应，高温焊接。'},
- {a:'fe3o4',b:'co',cond:'加热',out:['iron','co2'],eq:'Fe₃O₄ + 4CO →(Δ) 3Fe + 4CO₂',note:'磁铁矿还原。'},
- {a:'feoh3',b:'',cond:'加热',out:['fe2o3','water'],eq:'2Fe(OH)₃ →(Δ) Fe₂O₃ + 3H₂O',note:'红褐色沉淀受热分解。'},
- {a:'fecl3',b:'naoh',cond:'常温',out:['feoh3','halite'],eq:'FeCl₃ + 3NaOH → Fe(OH)₃↓ + 3NaCl',note:'红褐色沉淀。'},
- {a:'cucl2',b:'naoh',cond:'常温',out:['cuoh2','halite'],eq:'CuCl₂ + 2NaOH → Cu(OH)₂↓ + 2NaCl',note:'蓝色絮状沉淀。'},
- {a:'cuoh2',b:'',cond:'加热',out:['cuo','water'],eq:'Cu(OH)₂ →(Δ) CuO + H₂O',note:'蓝色沉淀变黑。'},
- {a:'cuso4',b:'bacl2',cond:'常温',out:['baso4','cucl2'],eq:'CuSO₄ + BaCl₂ → BaSO₄↓ + CuCl₂',note:'白色沉淀。'},
- {a:'zinc',b:'cuso4',cond:'常温',out:['znso4','copper'],eq:'Zn + CuSO₄ → ZnSO₄ + Cu',note:'锌表面析出红色铜。'},
- {a:'zinc',b:'o2',cond:'加热',out:['zno'],eq:'2Zn + O₂ →(Δ) 2ZnO',note:'白色氧化锌。'},
- {a:'zno',b:'h2so4',cond:'常温',out:['znso4','water'],eq:'ZnO + H₂SO₄ → ZnSO₄ + H₂O',note:'两性氧化物溶于酸。'},
- {a:'nh3',b:'hcl',cond:'常温',out:['nh4cl'],eq:'NH₃ + HCl → NH₄Cl',note:'白烟，检验氨气。'},
- {a:'nh3',b:'water',cond:'常温',out:['nh3h2o'],eq:'NH₃ + H₂O ⇌ NH₃·H₂O',note:'氨水呈弱碱性。'},
- {a:'nh4cl',b:'',cond:'加热',out:['nh3','hcl'],eq:'NH₄Cl →(Δ) NH₃↑ + HCl↑',note:'受热分解，遇冷重新化合。'},
- {a:'nh4hco3',b:'',cond:'加热',out:['nh3','co2','water'],eq:'NH₄HCO₃ →(Δ) NH₃↑ + CO₂↑ + H₂O',note:'碳酸氢铵受热分解。'},
- {a:'nh3',b:'o2',cond:'催化剂',out:['no','water'],eq:'4NH₃ + 5O₂ →(催化剂,Δ) 4NO + 6H₂O',note:'氨的催化氧化，工业制硝酸第一步。'},
- {a:'no',b:'o2',cond:'常温',out:['no2'],eq:'2NO + O₂ → 2NO₂',note:'无色变红棕色。'},
- {a:'no2',b:'water',cond:'常温',out:['hno3','no'],eq:'3NO₂ + H₂O → 2HNO₃ + NO',note:'工业制硝酸，尾气需处理。'},
- {a:'n2',b:'o2',cond:'通电',out:['no'],eq:'N₂ + O₂ →(放电) 2NO',note:'雷雨闪电固氮的简化模型。'},
- {a:'hno3',b:'naoh',cond:'常温',out:['nano3','water'],eq:'HNO₃ + NaOH → NaNO₃ + H₂O',note:'中和反应。'},
- {a:'hno3',b:'copper',cond:'加热',out:['cuno32','no2','water'],eq:'Cu + 4HNO₃(浓) →(Δ) Cu(NO₃)₂ + 2NO₂↑ + 2H₂O',note:'浓硝酸强氧化性。'},
- {a:'agno3',b:'halite',cond:'常温',out:['agcl','nano3'],eq:'AgNO₃ + NaCl → AgCl↓ + NaNO₃',note:'白色沉淀，检验氯离子。'},
- {a:'agno3',b:'hcl',cond:'常温',out:['agcl','hno3'],eq:'AgNO₃ + HCl → AgCl↓ + HNO₃',note:'白色沉淀。'},
- {a:'agcl',b:'',cond:'光照',out:['ag','cl2'],eq:'2AgCl →(光照) 2Ag + Cl₂↑',note:'白色沉淀变黑，感光材料原理。'},
- {a:'h2o2',b:'',cond:'催化剂',out:['water','o2'],eq:'2H₂O₂ →(MnO₂) 2H₂O + O₂↑',note:'实验室制氧气。'},
- {a:'kmno4',b:'',cond:'加热',out:['k2mno4','mno2','o2'],eq:'2KMnO₄ →(Δ) K₂MnO₄ + MnO₂ + O₂↑',note:'紫黑色固体受热分解。'},
- {a:'kclo3',b:'',cond:'加热',out:['kcl','o2'],eq:'2KClO₃ →(MnO₂,Δ) 2KCl + 3O₂↑',note:'需二氧化锰催化。'},
- {a:'s',b:'iron',cond:'加热',out:['fes'],eq:'Fe + S →(Δ) FeS',note:'黑色硫化亚铁。'},
- {a:'p',b:'o2',cond:'点燃',out:['p2o5'],eq:'4P + 5O₂ →(点燃) 2P₂O₅',note:'白烟，放热。'},
- {a:'p2o5',b:'water',cond:'常温',out:['h3po4'],eq:'P₂O₅ + 3H₂O → 2H₃PO₄',note:'强吸水性。'},
- {a:'ch4',b:'cl2',cond:'光照',out:['ch3cl','hcl'],eq:'CH₄ + Cl₂ →(光照) CH₃Cl + HCl',note:'取代反应，需控制条件。'},
- {a:'c2h5oh',b:'o2',cond:'点燃',out:['co2','water'],eq:'C₂H₅OH + 3O₂ →(点燃) 2CO₂ + 3H₂O',note:'乙醇完全燃烧，淡蓝色火焰。'},
- {a:'ch3cooh',b:'nahco3',cond:'常温',out:['ch3coona','water','co2'],eq:'CH₃COOH + NaHCO₃ → CH₃COONa + H₂O + CO₂↑',note:'食醋与小苏打反应。'},
- {a:'c6h12o6',b:'o2',cond:'催化剂',out:['co2','water'],eq:'C₆H₁₂O₆ + 6O₂ →(酶) 6CO₂ + 6H₂O',note:'细胞呼吸的简化模型。'},
- {a:'co2',b:'water',cond:'光照',out:['c6h12o6','o2'],eq:'6CO₂ + 6H₂O →(光照,叶绿体) C₆H₁₂O₆ + 6O₂',note:'光合作用的简化模型，需叶绿体与光。'},
- {a:'cac2',b:'water',cond:'常温',out:['c2h2','slaked'],eq:'CaC₂ + 2H₂O → C₂H₂↑ + Ca(OH)₂',note:'电石制乙炔。'},
- {a:'sio2',b:'hf',cond:'常温',out:['sif4','water'],eq:'SiO₂ + 4HF → SiF₄↑ + 2H₂O',note:'氢氟酸腐蚀玻璃。'}
-];
-
-var parseFormula=function(f){
-  var stack=[{}],i=0;
-  while(i<f.length){
-    var ch=f[i];
-    if(ch==='('){stack.push({});i++;continue;}
-    if(ch===')'){
-      var g=stack.pop();i++;
-      var n='';while(i<f.length&&/\d/.test(f[i]))n+=f[i++];
-      var mul=n?+n:1;
-      for(var k in g)stack[stack.length-1][k]=(stack[stack.length-1][k]||0)+g[k]*mul;
-      continue;
-    }
-    if(/[A-Z]/.test(ch)){
-      var sym=ch;i++;
-      while(i<f.length&&/[a-z]/.test(f[i]))sym+=f[i++];
-      var num='';while(i<f.length&&/\d/.test(f[i]))num+=f[i++];
-      var cnt=num?+num:1;
-      var top=stack[stack.length-1];
-      top[sym]=(top[sym]||0)+cnt;
-      continue;
-    }
-    i++;
-  }
-  return stack[0];
-};
-function compOf(m){
-  if(m.comp)return m.comp;
-  if(!m.f||m.f==='—')return null;
-  var c=parseFormula(m.f),tot=0,out={};
-  for(var s in c){if(!EMAP[s])continue;tot+=c[s]*EMAP[s][3];}
-  if(!tot)return null;
-  for(var s2 in c){if(!EMAP[s2])continue;out[s2]=Math.round(c[s2]*EMAP[s2][3]/tot*1000)/10;}
-  return out;
-}
-function elColor(sym){
-  var m={O:'#e05050',Si:'#c9b18a',Al:'#b9c0cc',Fe:'#c98a5a',Ca:'#8fd6a8',C:'#8a8a8a',H:'#e8eefc',Na:'#e6b85c',Cl:'#8fe08f',K:'#c58ad8',Mg:'#5fbf5f',S:'#e8d44d',N:'#7ea6ff',Cu:'#d08a4a',Zn:'#c8ccd2',Mn:'#b07a9a',P:'#e8a05a',F:'#9fe0b8',Ti:'#9aa8b8'};
-  return m[sym]||'#9db0c6';
-}
-function fmtNum(v,d){if(v==null||v===0&&d===undefined)return '—';return v;}
-function kelvin(v){return v==null?'—':(Math.round((v-273.15)*10)/10)+' °C';}
-function catClass(c){return 'cat-'+c;}
-
-/* 元素周期表位置 */
-function posOf(z){
-  if(z===1)return[1,1];if(z===2)return[1,18];
-  if(z<=10){var c2=[1,2,13,14,15,16,17,18];return[2,c2[z-3]];}
-  if(z<=18){var c3=[1,2,13,14,15,16,17,18];return[3,c3[z-11]];}
-  if(z<=36)return[4,z-18];
-  if(z<=54)return[5,z-36];
-  if(z<=56)return[6,z-54];
-  if(z<=71)return[8,z-54];      // 镧系 57-71 -> 第8行 3..17
-  if(z<=86)return[6,z-68];      // 72-86 -> 4..18
-  if(z<=88)return[7,z-86];
-  if(z<=103)return[9,z-86];     // 锕系 89-103
-  return[7,z-100];              // 104-118 -> 4..18
-}
-
-/* ---------- 自动组合：按化合价生成无机物 ---------- */
+var RX=[{"a":"limestone","b":"","cond":"加热","out":["quicklime","co2"],"eq":"CaCO₃ → CaO + CO₂↑","note":"约 900 °C 分解，工业制生石灰。"},{"a":"quicklime","b":"water","cond":"常温","out":["slaked"],"eq":"CaO + H₂O → Ca(OH)₂","note":"剧烈放热，体积膨胀。"},{"a":"slaked","b":"co2","cond":"常温","out":["limestone","water"],"eq":"Ca(OH)₂ + CO₂ → CaCO₃↓ + H₂O","note":"石灰水变浑浊，检验 CO₂。"},{"a":"water","b":"","cond":"通电","out":["h2","o2"],"eq":"2H₂O →(电解) 2H₂↑ + O₂↑","note":"氢氧体积比 2:1。"},{"a":"h2","b":"o2","cond":"点燃","out":["water"],"eq":"2H₂ + O₂ →(点燃) 2H₂O","note":"淡蓝色火焰，可能爆鸣。"},{"a":"coal","b":"o2","cond":"点燃","out":["co2"],"eq":"C + O₂ →(点燃) CO₂","note":"充分燃烧，放热。"},{"a":"coal","b":"o2","cond":"点燃","amt":"少量","out":["co"],"eq":"2C + O₂(不足) → 2CO","note":"氧气不足生成有毒的一氧化碳。","amtOn":"o2"},{"a":"iron","b":"o2","cond":"常温","out":["rust"],"eq":"4Fe + 3O₂ + nH₂O → 2Fe₂O₃·nH₂O","note":"潮湿空气中缓慢锈蚀。","order":"需要水与氧气同时存在","c":"water"},{"a":"iron","b":"hcl","cond":"常温","out":["fecl2","h2"],"eq":"Fe + 2HCl → FeCl₂ + H₂↑","note":"置换反应，溶液变浅绿。"},{"a":"zinc","b":"h2so4","cond":"常温","out":["znso4","h2"],"eq":"Zn + H₂SO₄ → ZnSO₄ + H₂↑","note":"实验室制氢气。"},{"a":"limestone","b":"hcl","cond":"常温","out":["cacl2","water","co2"],"eq":"CaCO₃ + 2HCl → CaCl₂ + H₂O + CO₂↑","note":"检验碳酸盐，起泡。"},{"a":"naoh","b":"hcl","cond":"常温","out":["halite","water"],"eq":"NaOH + HCl → NaCl + H₂O","note":"中和反应，放热。"},{"a":"copper","b":"o2","cond":"加热","out":["cuo"],"eq":"2Cu + O₂ →(Δ) 2CuO","note":"红色铜变黑。"},{"a":"cuo","b":"h2","cond":"加热","out":["copper","water"],"eq":"CuO + H₂ →(Δ) Cu + H₂O","note":"还原反应，黑色变红。"},{"a":"mg","b":"o2","cond":"点燃","out":["mgo"],"eq":"2Mg + O₂ →(点燃) 2MgO","note":"耀眼白光，放热。"},{"a":"s","b":"o2","cond":"点燃","out":["so2"],"eq":"S + O₂ →(点燃) SO₂","note":"蓝紫色火焰，刺激性气体。"},{"a":"n2","b":"h2","cond":"催化剂","out":["nh3"],"eq":"N₂ + 3H₂ ⇌ 2NH₃","note":"高温高压铁触媒，合成氨。"},{"a":"ch4","b":"o2","cond":"点燃","out":["co2","water"],"eq":"CH₄ + 2O₂ →(点燃) CO₂ + 2H₂O","note":"天然气燃烧。"},{"a":"co2","b":"naoh","cond":"常温","amt":"少量","out":["na2co3","water"],"eq":"CO₂ + 2NaOH → Na₂CO₃ + H₂O","note":"CO₂ 少量时生成碳酸钠。","amtOn":"co2","t":"其他"},{"a":"co2","b":"naoh","cond":"常温","amt":"过量","out":["nahco3"],"eq":"CO₂ + NaOH → NaHCO₃","note":"CO₂ 过量时生成碳酸氢钠——用量改变产物。","amtOn":"co2","t":"其他"},{"a":"al","b":"o2","cond":"常温","out":["al2o3"],"eq":"4Al + 3O₂ → 2Al₂O₃","note":"表面生成致密氧化膜，钝化保护。"},{"a":"quicklime","b":"hcl","cond":"常温","out":["cacl2","water"],"eq":"CaO + 2HCl → CaCl₂ + H₂O","note":"放热。"},{"a":"cuso4","b":"naoh","cond":"常温","out":["cuoh2","na2so4"],"eq":"CuSO₄ + 2NaOH → Cu(OH)₂↓ + Na₂SO₄","note":"蓝色絮状沉淀。"},{"a":"sand","b":"na2co3","cond":"加热","out":["glass","co2"],"eq":"SiO₂ + Na₂CO₃ →(高温) Na₂SiO₃ + CO₂↑","note":"工业玻璃的简化模型。"},{"a":"h2so4","b":"water","cond":"常温","out":["dilute"],"eq":"H₂SO₄ + H₂O → 稀硫酸","note":"必须“酸入水”，缓慢搅拌；水入浓酸会剧烈放热飞溅。","order":"加入顺序决定安全性与局部温度"},{"a":"h2","b":"cl2","cond":"点燃","out":["hcl"],"eq":"H₂ + Cl₂ →(点燃) 2HCl","note":"苍白色火焰，生成氯化氢气体。"},{"a":"h2","b":"s","cond":"加热","out":["h2s"],"eq":"H₂ + S →(Δ) H₂S","note":"化合反应，生成臭鸡蛋气味气体。"},{"a":"h2","b":"fe2o3","cond":"加热","out":["iron","water"],"eq":"3H₂ + Fe₂O₃ →(Δ) 2Fe + 3H₂O","note":"氢气还原氧化铁。"},{"a":"c","b":"co2","cond":"加热","out":["co"],"eq":"C + CO₂ →(Δ) 2CO","note":"高温下碳还原二氧化碳。"},{"a":"c","b":"water","cond":"加热","out":["co","h2"],"eq":"C + H₂O →(Δ) CO + H₂","note":"水煤气反应，需高温。"},{"a":"c","b":"cuo","cond":"加热","out":["copper","co2"],"eq":"C + 2CuO →(Δ) 2Cu + CO₂↑","note":"碳还原氧化铜。"},{"a":"c","b":"fe2o3","cond":"加热","out":["iron","co2"],"eq":"3C + 2Fe₂O₃ →(Δ) 4Fe + 3CO₂↑","note":"高温炼铁原理之一。"},{"a":"co","b":"o2","cond":"点燃","out":["co2"],"eq":"2CO + O₂ →(点燃) 2CO₂","note":"蓝色火焰，放热。"},{"a":"co","b":"cuo","cond":"加热","out":["copper","co2"],"eq":"CO + CuO →(Δ) Cu + CO₂","note":"一氧化碳还原氧化铜。"},{"a":"co","b":"fe2o3","cond":"加热","out":["iron","co2"],"eq":"3CO + Fe₂O₃ →(Δ) 2Fe + 3CO₂","note":"高炉炼铁主要反应。"},{"a":"co2","b":"water","cond":"常温","out":["h2co3"],"eq":"CO₂ + H₂O ⇌ H₂CO₃","note":"碳酸不稳定，使紫色石蕊变红。"},{"a":"h2co3","b":"","cond":"加热","out":["co2","water"],"eq":"H₂CO₃ →(Δ) CO₂↑ + H₂O","note":"碳酸受热分解。"},{"a":"co2","b":"limestone","cond":"常温","out":["ca_hco3"],"eq":"CaCO₃ + CO₂ + H₂O → Ca(HCO₃)₂","note":"需水参与；溶洞形成与硬水暂时硬度。","c":"water"},{"a":"ca_hco3","b":"","cond":"加热","out":["limestone","co2","water"],"eq":"Ca(HCO₃)₂ →(Δ) CaCO₃↓ + CO₂↑ + H₂O","note":"水垢与钟乳石形成。"},{"a":"co2","b":"na2co3","cond":"常温","out":["nahco3"],"eq":"Na₂CO₃ + CO₂ + H₂O → 2NaHCO₃","note":"需水参与。","c":"water"},{"a":"nahco3","b":"","cond":"加热","out":["na2co3","co2","water"],"eq":"2NaHCO₃ →(Δ) Na₂CO₃ + CO₂↑ + H₂O","note":"小苏打受热分解。"},{"a":"na2co3","b":"hcl","cond":"常温","out":["halite","water","co2"],"eq":"Na₂CO₃ + 2HCl → 2NaCl + H₂O + CO₂↑","note":"起泡，检验碳酸盐。"},{"a":"nahco3","b":"hcl","cond":"常温","out":["halite","water","co2"],"eq":"NaHCO₃ + HCl → NaCl + H₂O + CO₂↑","note":"比碳酸钠更剧烈。"},{"a":"naoh","b":"sio2","cond":"加热","out":["na2sio3","water"],"eq":"2NaOH + SiO₂ →(Δ) Na₂SiO₃ + H₂O","note":"碱腐蚀玻璃的简化模型。"},{"a":"na2sio3","b":"hcl","cond":"常温","out":["h2sio3","halite"],"eq":"Na₂SiO₃ + 2HCl → H₂SiO₃↓ + 2NaCl","note":"生成白色硅酸胶体。"},{"a":"quicklime","b":"sio2","cond":"加热","out":["casio3"],"eq":"CaO + SiO₂ →(Δ) CaSiO₃","note":"炉渣主要成分。"},{"a":"limestone","b":"sio2","cond":"加热","out":["casio3","co2"],"eq":"CaCO₃ + SiO₂ →(Δ) CaSiO₃ + CO₂↑","note":"高温下碳酸钙被二氧化硅分解。"},{"a":"quicklime","b":"so2","cond":"加热","out":["caso3"],"eq":"CaO + SO₂ →(Δ) CaSO₃","note":"干法脱硫的简化模型。"},{"a":"caso3","b":"o2","cond":"加热","out":["caso4"],"eq":"2CaSO₃ + O₂ →(Δ) 2CaSO₄","note":"亚硫酸钙被氧化。"},{"a":"so2","b":"o2","cond":"催化剂","out":["so3"],"eq":"2SO₂ + O₂ ⇌(催化剂) 2SO₃","note":"接触法制硫酸。"},{"a":"so3","b":"water","cond":"常温","out":["h2so4"],"eq":"SO₃ + H₂O → H₂SO₄","note":"剧烈放热，工业用浓硫酸吸收。"},{"a":"h2so4","b":"copper","cond":"加热","out":["cuso4","so2","water"],"eq":"Cu + 2H₂SO₄(浓) →(Δ) CuSO₄ + SO₂↑ + 2H₂O","note":"浓硫酸强氧化性，不生成氢气。"},{"a":"h2so4","b":"iron","cond":"常温","out":["feso4","h2"],"eq":"Fe + H₂SO₄ → FeSO₄ + H₂↑","note":"稀硫酸与铁发生置换。"},{"a":"h2so4","b":"slaked","cond":"常温","out":["caso4","water"],"eq":"H₂SO₄ + Ca(OH)₂ → CaSO₄ + 2H₂O","note":"中和反应。"},{"a":"h2so4","b":"bacl2","cond":"常温","out":["baso4","hcl"],"eq":"H₂SO₄ + BaCl₂ → BaSO₄↓ + 2HCl","note":"白色沉淀，检验硫酸根。"},{"a":"hcl","b":"fe2o3","cond":"加热","out":["fecl3","water"],"eq":"6HCl + Fe₂O₃ →(Δ) 2FeCl₃ + 3H₂O","note":"除铁锈，溶液呈黄色。"},{"a":"hcl","b":"cuo","cond":"加热","out":["cucl2","water"],"eq":"2HCl + CuO →(Δ) CuCl₂ + H₂O","note":"黑色氧化铜溶解，溶液蓝绿色。"},{"a":"hcl","b":"aloh3","cond":"常温","out":["alcl3","water"],"eq":"3HCl + Al(OH)₃ → AlCl₃ + 3H₂O","note":"两性氢氧化物溶于酸。"},{"a":"hcl","b":"mg","cond":"常温","out":["mgcl2","h2"],"eq":"Mg + 2HCl → MgCl₂ + H₂↑","note":"剧烈置换，放热。"},{"a":"hcl","b":"zinc","cond":"常温","out":["zncl2","h2"],"eq":"Zn + 2HCl → ZnCl₂ + H₂↑","note":"实验室制氢气常用。"},{"a":"cl2","b":"naoh","cond":"常温","out":["halite","naclo","water"],"eq":"Cl₂ + 2NaOH → NaCl + NaClO + H₂O","note":"歧化反应，漂白液制备。"},{"a":"cl2","b":"slaked","cond":"常温","out":["ca_clo","halite","water"],"eq":"2Cl₂ + 2Ca(OH)₂ → Ca(ClO)₂ + CaCl₂ + 2H₂O","note":"工业制漂白粉。"},{"a":"cl2","b":"water","cond":"常温","out":["hcl","hclo"],"eq":"Cl₂ + H₂O ⇌ HCl + HClO","note":"氯水成分，次氯酸具漂白性。"},{"a":"hclo","b":"","cond":"光照","out":["hcl","o2"],"eq":"2HClO →(光照) 2HCl + O₂↑","note":"次氯酸见光分解，漂白液失效。"},{"a":"cl2","b":"iron","cond":"点燃","out":["fecl3"],"eq":"2Fe + 3Cl₂ →(点燃) 2FeCl₃","note":"生成棕黄色烟。"},{"a":"cl2","b":"copper","cond":"点燃","out":["cucl2"],"eq":"Cu + Cl₂ →(点燃) CuCl₂","note":"生成棕黄色烟。"},{"a":"cl2","b":"na","cond":"点燃","out":["halite"],"eq":"2Na + Cl₂ →(点燃) 2NaCl","note":"黄色火焰，白色固体。"},{"a":"na","b":"o2","cond":"常温","out":["na2o"],"eq":"4Na + O₂ → 2Na₂O","note":"常温缓慢氧化，表面变暗。"},{"a":"na","b":"o2","cond":"点燃","out":["na2o2"],"eq":"2Na + O₂ →(点燃) Na₂O₂","note":"淡黄色过氧化钠。"},{"a":"na2o","b":"water","cond":"常温","out":["naoh"],"eq":"Na₂O + H₂O → 2NaOH","note":"碱性氧化物水化。"},{"a":"na2o2","b":"water","cond":"常温","out":["naoh","o2"],"eq":"2Na₂O₂ + 2H₂O → 4NaOH + O₂↑","note":"供氧剂，放热。"},{"a":"na2o2","b":"co2","cond":"常温","out":["na2co3","o2"],"eq":"2Na₂O₂ + 2CO₂ → 2Na₂CO₃ + O₂","note":"潜艇/呼吸面具供氧。"},{"a":"na","b":"water","cond":"常温","out":["naoh","h2"],"eq":"2Na + 2H₂O → 2NaOH + H₂↑","note":"浮、熔、游、响、红。"},{"a":"k","b":"water","cond":"常温","out":["koh","h2"],"eq":"2K + 2H₂O → 2KOH + H₂↑","note":"比钠更剧烈，可能燃烧。"},{"a":"mg","b":"co2","cond":"点燃","out":["mgo","c"],"eq":"2Mg + CO₂ →(点燃) 2MgO + C","note":"镁能在二氧化碳中燃烧。"},{"a":"al","b":"hcl","cond":"常温","out":["alcl3","h2"],"eq":"2Al + 6HCl → 2AlCl₃ + 3H₂↑","note":"铝与盐酸反应。"},{"a":"al","b":"naoh","cond":"常温","out":["naalo2","h2"],"eq":"2Al + 2NaOH + 2H₂O → 2NaAlO₂ + 3H₂↑","note":"需水参与；铝的两性。"},{"a":"al2o3","b":"naoh","cond":"加热","out":["naalo2","water"],"eq":"Al₂O₃ + 2NaOH →(Δ) 2NaAlO₂ + H₂O","note":"两性氧化物溶于强碱。"},{"a":"alcl3","b":"naoh","cond":"常温","out":["aloh3","halite"],"eq":"AlCl₃ + 3NaOH → Al(OH)₃↓ + 3NaCl","note":"白色胶状沉淀，过量碱会溶解。"},{"a":"iron","b":"cuso4","cond":"常温","out":["feso4","copper"],"eq":"Fe + CuSO₄ → FeSO₄ + Cu","note":"湿法炼铜，铁表面析出红色铜。"},{"a":"fe2o3","b":"al","cond":"点燃","out":["iron","al2o3"],"eq":"Fe₂O₃ + 2Al →(点燃) 2Fe + Al₂O₃","note":"铝热反应，高温焊接。"},{"a":"fe3o4","b":"co","cond":"加热","out":["iron","co2"],"eq":"Fe₃O₄ + 4CO →(Δ) 3Fe + 4CO₂","note":"磁铁矿还原。"},{"a":"feoh3","b":"","cond":"加热","out":["fe2o3","water"],"eq":"2Fe(OH)₃ →(Δ) Fe₂O₃ + 3H₂O","note":"红褐色沉淀受热分解。"},{"a":"fecl3","b":"naoh","cond":"常温","out":["feoh3","halite"],"eq":"FeCl₃ + 3NaOH → Fe(OH)₃↓ + 3NaCl","note":"红褐色沉淀。"},{"a":"cucl2","b":"naoh","cond":"常温","out":["cuoh2","halite"],"eq":"CuCl₂ + 2NaOH → Cu(OH)₂↓ + 2NaCl","note":"蓝色絮状沉淀。"},{"a":"cuoh2","b":"","cond":"加热","out":["cuo","water"],"eq":"Cu(OH)₂ →(Δ) CuO + H₂O","note":"蓝色沉淀变黑。"},{"a":"cuso4","b":"bacl2","cond":"常温","out":["baso4","cucl2"],"eq":"CuSO₄ + BaCl₂ → BaSO₄↓ + CuCl₂","note":"白色沉淀。"},{"a":"zinc","b":"cuso4","cond":"常温","out":["znso4","copper"],"eq":"Zn + CuSO₄ → ZnSO₄ + Cu","note":"锌表面析出红色铜。"},{"a":"zinc","b":"o2","cond":"加热","out":["zno"],"eq":"2Zn + O₂ →(Δ) 2ZnO","note":"白色氧化锌。"},{"a":"zno","b":"h2so4","cond":"常温","out":["znso4","water"],"eq":"ZnO + H₂SO₄ → ZnSO₄ + H₂O","note":"两性氧化物溶于酸。"},{"a":"nh3","b":"hcl","cond":"常温","out":["nh4cl"],"eq":"NH₃ + HCl → NH₄Cl","note":"白烟，检验氨气。"},{"a":"nh3","b":"water","cond":"常温","out":["nh3h2o"],"eq":"NH₃ + H₂O ⇌ NH₃·H₂O","note":"氨水呈弱碱性。"},{"a":"nh4cl","b":"","cond":"加热","out":["nh3","hcl"],"eq":"NH₄Cl →(Δ) NH₃↑ + HCl↑","note":"受热分解，遇冷重新化合。"},{"a":"nh4hco3","b":"","cond":"加热","out":["nh3","co2","water"],"eq":"NH₄HCO₃ →(Δ) NH₃↑ + CO₂↑ + H₂O","note":"碳酸氢铵受热分解。"},{"a":"nh3","b":"o2","cond":"催化剂","out":["no","water"],"eq":"4NH₃ + 5O₂ →(催化剂,Δ) 4NO + 6H₂O","note":"氨的催化氧化，工业制硝酸第一步。"},{"a":"no","b":"o2","cond":"常温","out":["no2"],"eq":"2NO + O₂ → 2NO₂","note":"无色变红棕色。"},{"a":"no2","b":"water","cond":"常温","out":["hno3","no"],"eq":"3NO₂ + H₂O → 2HNO₃ + NO","note":"工业制硝酸，尾气需处理。","t":"其他"},{"a":"n2","b":"o2","cond":"通电","out":["no"],"eq":"N₂ + O₂ →(放电) 2NO","note":"雷雨闪电固氮的简化模型。"},{"a":"hno3","b":"naoh","cond":"常温","out":["nano3","water"],"eq":"HNO₃ + NaOH → NaNO₃ + H₂O","note":"中和反应。"},{"a":"hno3","b":"copper","cond":"加热","out":["cuno32","no2","water"],"eq":"Cu + 4HNO₃(浓) →(Δ) Cu(NO₃)₂ + 2NO₂↑ + 2H₂O","note":"浓硝酸强氧化性。"},{"a":"agno3","b":"halite","cond":"常温","out":["agcl","nano3"],"eq":"AgNO₃ + NaCl → AgCl↓ + NaNO₃","note":"白色沉淀，检验氯离子。"},{"a":"agno3","b":"hcl","cond":"常温","out":["agcl","hno3"],"eq":"AgNO₃ + HCl → AgCl↓ + HNO₃","note":"白色沉淀。"},{"a":"agcl","b":"","cond":"光照","out":["ag","cl2"],"eq":"2AgCl →(光照) 2Ag + Cl₂↑","note":"白色沉淀变黑，感光材料原理。"},{"a":"h2o2","b":"","cond":"催化剂","out":["water","o2"],"eq":"2H₂O₂ →(MnO₂) 2H₂O + O₂↑","note":"实验室制氧气。"},{"a":"kmno4","b":"","cond":"加热","out":["k2mno4","mno2","o2"],"eq":"2KMnO₄ →(Δ) K₂MnO₄ + MnO₂ + O₂↑","note":"紫黑色固体受热分解。"},{"a":"kclo3","b":"","cond":"加热","out":["kcl","o2"],"eq":"2KClO₃ →(MnO₂,Δ) 2KCl + 3O₂↑","note":"需二氧化锰催化。"},{"a":"s","b":"iron","cond":"加热","out":["fes"],"eq":"Fe + S →(Δ) FeS","note":"黑色硫化亚铁。"},{"a":"p","b":"o2","cond":"点燃","out":["p2o5"],"eq":"4P + 5O₂ →(点燃) 2P₂O₅","note":"白烟，放热。"},{"a":"p2o5","b":"water","cond":"常温","out":["h3po4"],"eq":"P₂O₅ + 3H₂O → 2H₃PO₄","note":"强吸水性。"},{"a":"ch4","b":"cl2","cond":"光照","out":["ch3cl","hcl"],"eq":"CH₄ + Cl₂ →(光照) CH₃Cl + HCl","note":"取代反应，需控制条件。"},{"a":"c2h5oh","b":"o2","cond":"点燃","out":["co2","water"],"eq":"C₂H₅OH + 3O₂ →(点燃) 2CO₂ + 3H₂O","note":"乙醇完全燃烧，淡蓝色火焰。"},{"a":"ch3cooh","b":"nahco3","cond":"常温","out":["ch3coona","water","co2"],"eq":"CH₃COOH + NaHCO₃ → CH₃COONa + H₂O + CO₂↑","note":"食醋与小苏打反应。"},{"a":"c6h12o6","b":"o2","cond":"催化剂","out":["co2","water"],"eq":"C₆H₁₂O₆ + 6O₂ →(酶) 6CO₂ + 6H₂O","note":"细胞呼吸的简化模型。"},{"a":"co2","b":"water","cond":"光照","out":["c6h12o6","o2"],"eq":"6CO₂ + 6H₂O →(光照,叶绿体) C₆H₁₂O₆ + 6O₂","note":"光合作用的简化模型，需叶绿体与光。"},{"a":"cac2","b":"water","cond":"常温","out":["c2h2","slaked"],"eq":"CaC₂ + 2H₂O → C₂H₂↑ + Ca(OH)₂","note":"电石制乙炔。"},{"a":"sio2","b":"hf","cond":"常温","out":["sif4","water"],"eq":"SiO₂ + 4HF → SiF₄↑ + 2H₂O","note":"氢氟酸腐蚀玻璃。"},{"a":"sand","b":"na2co3","c":"limestone","cond":"加热","out":["glass","co2"],"eq":"SiO₂ + Na₂CO₃ + CaCO₃ → Na₂O·CaO·6SiO₂ + 2CO₂","note":"工业玻璃的简化式；实际还会加入助熔剂、澄清剂，配比随玻璃种类变化。","t":"其他"},{"a":"so2","b":"o2","c":"water","cond":"催化剂","out":["h2so4"],"eq":"2SO₂ + O₂ + 2H₂O → 2H₂SO₄","note":"接触法制硫酸的简化总反应；工业上先用 V₂O₅ 催化 SO₂ 氧化，再用浓硫酸吸收 SO₃。","t":"化合"},{"a":"no2","b":"o2","c":"water","cond":"常温","out":["hno3"],"eq":"4NO₂ + O₂ + 2H₂O → 4HNO₃","note":"工业制硝酸的尾气吸收；NO₂ 有毒，需在密闭系统中处理。","t":"化合"},{"a":"nh3","b":"co2","c":"water","cond":"常温","out":["nh4hco3"],"eq":"NH₃ + CO₂ + H₂O → NH₄HCO₃","note":"碳化法生产碳酸氢铵；需要足量氨与水参与。","t":"化合"},{"a":"bacl2","b":"na2so4","cond":"常温","out":["baso4","halite"],"eq":"BaCl₂ + Na₂SO₄ → BaSO₄↓ + 2NaCl","note":"生成不溶于稀硝酸的白色沉淀，常用于检验硫酸根离子。","t":"复分解"},{"a":"so2","b":"slaked","cond":"常温","out":["caso3","water"],"eq":"SO₂ + Ca(OH)₂ → CaSO₃↓ + H₂O","note":"湿法脱硫的简化反应；亚硫酸钙可进一步被氧化为硫酸钙。","t":"复分解"},{"a":"halite","b":"water","cond":"通电","out":["naoh","h2","cl2"],"eq":"2NaCl + 2H₂O →(通电) 2NaOH + H₂↑ + Cl₂↑","note":"电解饱和食盐水（氯碱工业）；不属于四种基本反应类型，归为其他。","t":"其他"}];
 var GEN_GROUPS=[
  {id:'O',n:'氧化物',sym:'O',v:-2,prefix:'氧化',color:'#e05050'},
  {id:'Cl',n:'氯化物',sym:'Cl',v:-1,prefix:'氯化',color:'#8fe08f'},
@@ -1900,9 +1813,10 @@ function addGenMat(i){
     id='gen_'+it.formula.replace(/[^A-Za-z0-9]/g,'');
     MATS[id]={n:it.name,f:it.formula,block:0,color:it.g.color,st:'推演',props:'按常见化合价配平生成；未校验热力学稳定性',struct:'教学推演结构',where:'自动组合生成'};
   }
-  fillReactSelects(true);
-  document.getElementById('rA').value=id;
-  document.getElementById('rB').value='';
+  fillReactSelects();
+  resetBench([id,''],{});
+  document.getElementById('rCond').value='常温';
+  document.getElementById('rAmt').value='适量';
   setChemTab('react');
   toast('已加入反应台：'+it.name+'（'+it.formula+'）');
 }
@@ -2044,90 +1958,205 @@ function showMat(id){
       return '<div class="kv"><span><span class="el" style="background:'+elColor(x[0])+'"></span>'+x[0]+'</span><span>'+x[1]+'%</span></div>';
     }).join('');
   }
-  var rxs=RX.filter(function(r){return r.a===id||r.b===id||(r.out&&r.out.indexOf(id)>=0);}).slice(0,4);
+  var rxs=RX.filter(function(r){return rxIns(r).indexOf(id)>=0||(r.out&&r.out.indexOf(id)>=0);});
   document.getElementById('matDetail').innerHTML='<h3>'+m.n+' <span class="badge">'+m.f+'</span><span class="badge">'+m.st+'</span></h3>'+
     '<div class="kv"><span>物理性质</span><span>'+m.props+'</span></div>'+
     '<div class="kv"><span>微观结构</span><span>'+m.struct+'</span></div>'+
     '<div class="kv"><span>世界分布</span><span>'+m.where+'</span></div>'+compHTML+
-    (rxs.length?('<div class="catline">相关反应</div>'+rxs.map(function(r){return '<div class="kv"><span>'+r.eq+'</span><span>'+r.cond+'</span></div>';}).join('')):'');
+    (rxs.length?('<div class="catline">相关反应 · '+rxs.length+' 条（显示前 6 条）</div>'+rxs.slice(0,6).map(function(r){return '<div class="rxitem">'+rxTypeBadge(r)+'<b>'+r.eq+'</b><em>'+r.cond+'</em></div>';}).join('')):'');
+}
+function rxIns(r){return [r.a,r.b,r.c,r.d].filter(function(x){return !!x;});}
+function rxAmtOn(r){
+  if(r.amtOn)return r.amtOn;
+  if(r.a==='co2')return 'co2';
+  if(r.b==='o2')return 'o2';
+  return r.b||r.a;
+}
+var RX_TYPES={};
+function matElemental(id){
+  var m=MATS[id];if(!m)return false;
+  var f=(m.f||'').replace(/[₀-₉0-9()（）·.\[\]\s]/g,'');
+  var sy=f.match(/[A-Z][a-z]?/g)||[];
+  return sy.length===1;
+}
+function rxType(r){
+  if(r.t)return r.t;
+  if(r._t)return r._t;
+  var ins=rxIns(r),outs=r.out||[],t='其他';
+  if(ins.length===1&&outs.length>=2)t='分解';
+  else if(ins.length>=2&&outs.length===1)t='化合';
+  else{
+    var ie=0,oe=0,i;
+    for(i=0;i<ins.length;i++)if(matElemental(ins[i]))ie++;
+    for(i=0;i<outs.length;i++)if(matElemental(outs[i]))oe++;
+    if(ins.length===2&&outs.length===2&&ie===1&&oe===1)t='置换';
+    else if(ins.length===2&&ie===0&&oe===0&&outs.length>=2)t='复分解';
+  }
+  r._t=t;return t;
+}
+function rxTypeBadge(r){
+  var t=rxType(r);
+  var cls={'化合':'','分解':' t-d','置换':' t-z','复分解':' t-f','其他':' t-o'}[t]||' t-o';
+  return '<span class="rxtype'+cls+'">'+t+'</span>';
+}
+function rxOptionsHTML(selected){
+  var a='',b='',id,m,o,sel;
+  for(id in MATS){
+    m=MATS[id];sel=(String(selected)===String(id))?' selected':'';
+    o='<option value="'+id+'"'+sel+'>'+m.n+'（'+m.f+'）</option>';
+    if(m.block)a+=o;else b+=o;
+  }
+  return '<option value="">— 不选 —</option><optgroup label="世界中的物质">'+a+'</optgroup><optgroup label="反应体系中的物质">'+b+'</optgroup>';
+}
+function addBenchRow(id,amt){
+  var box=document.getElementById('rInputs');
+  if(!box||box.children.length>=4)return null;
+  var used={};
+  Array.prototype.forEach.call(box.children,function(r){var q=r.querySelector('.rsel');if(q)used[q.id]=1;});
+  var letter='A';
+  for(var li=0;li<4;li++){letter=String.fromCharCode(65+li);if(!used['r'+letter])break;}
+  var row=document.createElement('div');row.className='rxrow';
+  row.innerHTML='<select class="rsel" id="r'+letter+'" title="选择反应物">'+rxOptionsHTML(id||'')+'</select>'+
+    '<select class="ramt" title="该反应物的用量"><option>适量</option><option>少量</option><option>过量</option></select>'+
+    '<button class="rmv" type="button" title="移除">×</button>';
+  box.appendChild(row);
+  if(id)row.querySelector('.rsel').value=id;
+  if(amt)row.querySelector('.ramt').value=amt;
+  row.querySelector('.rmv').addEventListener('click',function(){
+    if(box.children.length<=1){toast('至少保留一种反应物');return;}
+    row.remove();
+  });
+  return row;
+}
+function resetBench(ids,amts){
+  var box=document.getElementById('rInputs');if(!box)return;
+  box.innerHTML='';
+  var n=Math.max(2,Math.min(4,(ids&&ids.length)||2));
+  for(var i=0;i<n;i++)addBenchRow(ids&&ids[i],amts&&ids&&ids[i]&&amts[ids[i]]);
+  var out=document.getElementById('rOut');
+  if(out)out.innerHTML='选择 1–4 种物质与条件；分解反应只需一种，化合/置换/复分解可选两种以上。';
 }
 function fillReactSelects(force){
-  var opts='';
-  var groupA='',groupB='';
-  for(var id in MATS){
-    var m=MATS[id];
-    var o='<option value="'+id+'">'+m.n+'（'+m.f+'）</option>';
-    if(m.block)groupA+=o;else groupB+=o;
-  }
-  opts='<optgroup label="世界中的物质">'+groupA+'</optgroup><optgroup label="反应体系中的物质">'+groupB+'</optgroup>';
-  var A=document.getElementById('rA'),Bx=document.getElementById('rB');
-  if(force||!A.options.length||A.options.length<10){
-    A.innerHTML=opts;Bx.innerHTML='<option value="">— 无（单一物质反应）—</option>'+opts;
-    A.value='limestone';Bx.value='';
+  var box=document.getElementById('rInputs');if(!box)return;
+  if(force||!box.children.length){resetBench(['',''],{});}
+  else{
+    var rows=box.querySelectorAll('.rxrow');
+    for(var i=0;i<rows.length;i++){
+      var sel=rows[i].querySelector('.rsel'),v=sel.value;
+      sel.innerHTML=rxOptionsHTML(v);
+      if(MATS[v])sel.value=v;
+    }
   }
 }
+function benchState(){
+  var box=document.getElementById('rInputs');
+  var rows=box?box.querySelectorAll('.rxrow'):[];
+  var ins=[],amts={};
+  for(var i=0;i<rows.length;i++){
+    var id=rows[i].querySelector('.rsel').value;
+    var amt=rows[i].querySelector('.ramt').value||'适量';
+    if(id&&ins.indexOf(id)<0){ins.push(id);amts[id]=amt;}
+  }
+  return {ins:ins,amts:amts,cond:document.getElementById('rCond').value};
+}
+function amountOK(r,st){
+  if(!r.amt)return true;
+  var on=rxAmtOn(r),chosen=st.amts[on]||'适量';
+  return chosen==='适量'||chosen===r.amt;
+}
 function runReaction(){
-  var a=document.getElementById('rA').value;
-  var b=document.getElementById('rB').value;
-  var cond=document.getElementById('rCond').value;
-  var amt=document.getElementById('rAmt').value;
-  var hit=null;
-  for(var i=0;i<RX.length;i++){
-    var r=RX[i];
-    if(r.cond!==cond)continue;
-    if(r.amt&&r.amt!==amt)continue;
-    var pairOK=(r.a===a&&((r.b||'')===(b||'')))||(r.a===b&&(r.b||'')===a&&!r.noReverse);
-    if(pairOK){hit=r;break;}
+  var st=benchState(),out=document.getElementById('rOut');
+  if(!st.ins.length){out.innerHTML='<h3>还没有选择反应物</h3><span class="mut">从上方下拉框选择物质；3 种以上反应可点「＋ 添加反应物」。</span>';return;}
+  var cands=[],condMiss=[];
+  RX.forEach(function(r){
+    var ri=rxIns(r);
+    if(ri.length!==st.ins.length)return;
+    if(!ri.every(function(id){return st.ins.indexOf(id)>=0;}))return;
+    if(r.cond!==st.cond){condMiss.push(r);return;}
+    if(!amountOK(r,st))return;
+    cands.push(r);
+  });
+  if(!cands.length){
+    var html='<h3>没有观察到明显反应</h3><span class="mut">在「'+st.cond+'」条件下，'+st.ins.map(function(id){return MATS[id]?MATS[id].n:id;}).join(' + ')+' 没有登记在案的直接反应。</span>';
+    if(condMiss.length){
+      var cs=[];condMiss.forEach(function(r){if(cs.indexOf(r.cond)<0)cs.push(r.cond);});
+      html+='<br><span class="mut">这组物质在「'+cs.join('、')+'」条件下有反应，可切换条件再试。</span>';
+    }else{
+      var subs=[];
+      RX.forEach(function(r){var ri=rxIns(r);if(ri.length<st.ins.length&&ri.every(function(id){return st.ins.indexOf(id)>=0;})&&r.cond===st.cond)subs.push(r);});
+      if(subs.length){
+        var names=subs.slice(0,3).map(function(r){return rxIns(r).map(function(id){return MATS[id]?MATS[id].n:id;}).join(' + ');});
+        html+='<br><span class="mut">这组里包含未登记的组合；可试试减少到：'+names.join('；')+'。</span>';
+      }else{
+        html+='<br><span class="mut">现实中的反应还取决于浓度、压强、催化剂与接触面积。</span>';
+      }
+    }
+    out.innerHTML=html;return;
   }
-  var out=document.getElementById('rOut');
-  if(!hit){
-    out.innerHTML='<h3>没有观察到明显反应</h3><span class="mut">在 '+cond+'、'+amt+' 条件下，'+(MATS[a]?MATS[a].n:a)+' 与 '+(MATS[b]?MATS[b].n:b)+' 没有登记在案的直接反应。</span><br><span class="mut">现实中的化学反应还取决于浓度、压强、催化剂与接触面积。</span>';
-    return;
+  var hit=cands[0];
+  if(cands.length>1){
+    for(var i=0;i<cands.length;i++){
+      if(!cands[i].amt)continue;
+      var on=rxAmtOn(cands[i]),ch=st.amts[on]||'适量';
+      if(ch!=='适量'&&ch===cands[i].amt){hit=cands[i];break;}
+    }
   }
-  var prods=hit.out.map(function(id){return MATS[id]||{n:id,f:''};});
+  var ins=rxIns(hit);
+  var prods=(hit.out||[]).map(function(id){return {id:id,m:MATS[id]||{n:id,f:'',block:0}};});
+  var onName=hit.amt?(MATS[rxAmtOn(hit)]?MATS[rxAmtOn(hit)].n:rxAmtOn(hit)):'';
   var html='<h3>发生反应：'+hit.eq+'</h3>'+
-    '<div class="kv"><span>反应物</span><span>'+(MATS[hit.a]?MATS[hit.a].n:hit.a)+(hit.b?(' + '+(MATS[hit.b]?MATS[hit.b].n:hit.b)):'')+'</span></div>'+
-    '<div class="kv"><span>条件</span><span>'+hit.cond+(hit.amt?(' · '+hit.amt):'')+'</span></div>'+
-    '<div class="kv"><span>生成物</span><span>'+prods.map(function(p){return p.n+'（'+p.f+'）';}).join('、')+'</span></div>'+
+    '<div class="kv"><span>类型</span><span>'+rxTypeBadge(hit)+'</span></div>'+
+    '<div class="kv"><span>反应物</span><span>'+ins.map(function(id){var a=st.amts[id];return (MATS[id]?MATS[id].n:id)+(a&&a!=='适量'?'（'+a+'）':'');}).join(' + ')+'</span></div>'+
+    '<div class="kv"><span>条件</span><span>'+hit.cond+(hit.amt?' · '+onName+' '+hit.amt:'')+'</span></div>'+
+    '<div class="kv"><span>生成物</span><span>'+prods.map(function(p){return p.m.n+'（'+p.m.f+'）';}).join('、')+'</span></div>'+
     (hit.note?'<div class="kv"><span>说明</span><span>'+hit.note+'</span></div>':'')+
-    (hit.order?'<div class="kv"><span>加入顺序</span><span>'+(b&&hit.a===b&&hit.b===a?('你把「'+MATS[b].n+'」加入「'+MATS[a].n+'」。'+hit.order):hit.order)+'</span></div>':'');
-  var placeable=hit.out.filter(function(id){return MATS[id]&&MATS[id].block;});
-  if(placeable.length){
-    html+='<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">'+placeable.map(function(id){
-      return '<button class="mbtn" data-place="'+id+'" style="border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);color:#eaf2ff;border-radius:8px;padding:8px 10px;font-size:12px">把 '+MATS[id].n+' 放入世界</button>';
-    }).join('')+'</div>';
+    (hit.order?'<div class="kv"><span>加入顺序</span><span>'+hit.order+'</span></div>':'');
+  if(cands.length>1&&hit.amt){
+    html+='<div class="mut" style="margin-top:6px">同一组反应物有 '+cands.length+' 条用量不同的记录；当前按「'+hit.amt+'」显示，可调整对应物质的用量查看另一条。</div>';
+  }
+  var place=prods.filter(function(p){return p.m.block;});
+  if(place.length){
+    html+='<div class="rrow">'+place.map(function(p){return '<button class="mini" data-place="'+p.id+'" type="button">将 '+p.m.n+' 放入世界</button>';}).join('')+'</div>';
   }
   out.innerHTML=html;
-  out.querySelectorAll('[data-place]').forEach(function(btn){
+  Array.prototype.forEach.call(out.querySelectorAll('[data-place]'),function(btn){
     btn.addEventListener('click',function(){placeSubstance(btn.getAttribute('data-place'));});
   });
 }
 function renderRxLib(){
-  var box=document.getElementById('rxLib');
-  if(!box)return;
+  var box=document.getElementById('rxLib');if(!box)return;
   var cond=document.getElementById('rxFilter').value;
+  var type=document.getElementById('rxType').value;
+  var nf=document.getElementById('rxN').value;
   var q=(document.getElementById('rxSearch').value||'').trim().toLowerCase();
   var rows=[];
   RX.forEach(function(r,i){
     if(cond&&r.cond!==cond)return;
-    var an=MATS[r.a]?MATS[r.a].n:r.a;
-    var bn=r.b?(MATS[r.b]?MATS[r.b].n:r.b):'';
-    var txt=(an+' '+bn+' '+r.eq+' '+(r.note||'')).toLowerCase();
-    if(q&&txt.indexOf(q)<0)return;
-    rows.push({i:i,r:r,an:an,bn:bn});
+    if(type&&rxType(r)!==type)return;
+    var n=rxIns(r).length;
+    if(nf==='1'&&n!==1)return;
+    if(nf==='2'&&n!==2)return;
+    if(nf==='3'&&n<3)return;
+    var names=rxIns(r).map(function(id){return MATS[id]?MATS[id].n:id;}).join(' ');
+    var outs=(r.out||[]).map(function(id){return MATS[id]?MATS[id].n:id;}).join(' ');
+    if(q&&(names+' '+outs+' '+r.eq+' '+(r.note||'')).toLowerCase().indexOf(q)<0)return;
+    rows.push({i:i,r:r});
   });
-  document.getElementById('rxCount').textContent='反应库 · '+RX.length+' 条（当前 '+rows.length+' 条）';
+  var tc={};RX.forEach(function(r){var t=rxType(r);tc[t]=(tc[t]||0)+1;});
+  document.getElementById('rxCount').textContent='反应库 · '+RX.length+' 条（当前 '+rows.length+' 条） · 化合 '+(tc['化合']||0)+' / 分解 '+(tc['分解']||0)+' / 置换 '+(tc['置换']||0)+' / 复分解 '+(tc['复分解']||0)+' / 其他 '+(tc['其他']||0);
   box.innerHTML=rows.map(function(x){
-    var prods=(x.r.out||[]).map(function(id){return MATS[id]?MATS[id].n:id;}).join(' + ');
-    return '<div class="rxitem" data-ri="'+x.i+'"><b>'+x.r.eq+'</b><em>'+x.r.cond+(x.r.amt?' · '+x.r.amt:'')+'</em><br>'+x.an+(x.bn?' + '+x.bn:'')+' → '+prods+'</div>';
+    var r=x.r;
+    return '<div class="rxitem" data-ri="'+x.i+'">'+rxTypeBadge(r)+'<span class="rxn">'+rxIns(r).length+' 种反应物</span><em>'+r.cond+(r.amt?' · '+(MATS[rxAmtOn(r)]?MATS[rxAmtOn(r)].n:rxAmtOn(r))+' '+r.amt:'')+'</em>'+
+      '<br><b>'+r.eq+'</b><br><span class="mut">'+rxIns(r).map(function(id){return MATS[id]?MATS[id].n:id;}).join(' + ')+' → '+(r.out||[]).map(function(id){return MATS[id]?MATS[id].n:id;}).join(' + ')+'</span></div>';
   }).join('')||'<div class="rxitem">没有匹配的反应</div>';
   box.onclick=function(ev){
     var row=ev.target.closest('[data-ri]');
     if(!row)return;
     var r=RX[+row.getAttribute('data-ri')];
     if(!r)return;
-    document.getElementById('rA').value=r.a;
-    document.getElementById('rB').value=r.b||'';
+    var amts={},on=r.amt?rxAmtOn(r):null;
+    rxIns(r).forEach(function(id){amts[id]=(id===on?r.amt:'适量');});
+    resetBench(rxIns(r),amts);
     document.getElementById('rCond').value=r.cond;
     document.getElementById('rAmt').value=r.amt||'适量';
     runReaction();
@@ -2260,13 +2289,19 @@ document.getElementById('chemBack').addEventListener('click',closeChem);
 Array.prototype.forEach.call(document.querySelectorAll('.ctabs button'),function(b){
   b.addEventListener('click',function(){setChemTab(b.getAttribute('data-ctab'));});
 });
-document.getElementById('rSwap').addEventListener('click',function(){
-  var a=document.getElementById('rA'),b=document.getElementById('rB');
-  var t=a.value;a.value=b.value;b.value=t;
-});
 document.getElementById('rRun').addEventListener('click',runReaction);
 document.getElementById('rxFilter').addEventListener('change',renderRxLib);
+document.getElementById('rxType').addEventListener('change',renderRxLib);
+document.getElementById('rxN').addEventListener('change',renderRxLib);
 document.getElementById('rxSearch').addEventListener('input',renderRxLib);
+document.getElementById('rAdd').addEventListener('click',function(){
+  if(document.getElementById('rInputs').children.length>=4){toast('最多 4 种反应物');return;}
+  addBenchRow('','适量');
+});
+document.getElementById('rAmt').addEventListener('change',function(){
+  var v=this.value;
+  Array.prototype.forEach.call(document.querySelectorAll('#rInputs .ramt'),function(x){x.value=v;});
+});
 
 /* ================= 时序 · 地域 · 生态 · 卦象 ================= */
 var RAD=Math.PI/180;
