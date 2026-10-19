@@ -5,16 +5,16 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <link rel="icon" href="data:,">
 <title>映射 + AI 世界</title>
-<meta name="version" content="world-v4.0.0">
+<meta name="version" content="world-v5.0.0">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:"PingFang SC","Microsoft YaHei",sans-serif;color:#fff;touch-action:none;user-select:none;-webkit-user-select:none}
 #gl{position:fixed;inset:0;width:100%;height:100%;display:block}
 #hud{position:fixed;inset:0;pointer-events:none}
 #topbar{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:calc(8px + env(safe-area-inset-top)) 10px 8px;background:linear-gradient(180deg,rgba(0,0,0,.6),rgba(0,0,0,0));pointer-events:auto;z-index:10}
-#topbar a{color:#fff;text-decoration:none;font-size:13px;background:rgba(255,255,255,.16);padding:7px 11px;border-radius:9px;backdrop-filter:blur(6px)}
-#topbar .tt{flex:1;text-align:center;font-size:15px;font-weight:600;text-shadow:0 1px 6px rgba(0,0,0,.8)}
-#topbar .tb{background:rgba(255,255,255,.16);border:none;color:#fff;font-size:13px;padding:7px 11px;border-radius:9px;backdrop-filter:blur(6px)}
+#topbar a{color:#fff;text-decoration:none;font-size:12px;background:rgba(255,255,255,.16);padding:6px 8px;border-radius:9px;backdrop-filter:blur(6px);white-space:nowrap}
+#topbar .tt{flex:1;min-width:0;text-align:center;font-size:14px;font-weight:600;text-shadow:0 1px 6px rgba(0,0,0,.8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#topbar .tb{background:rgba(255,255,255,.16);border:none;color:#fff;font-size:12px;padding:6px 9px;border-radius:9px;backdrop-filter:blur(6px);white-space:nowrap}
 #topbar .tb.on{background:#07c160}
 #hint{position:absolute;left:10px;top:calc(96px + env(safe-area-inset-top));font-size:11px;line-height:1.7;color:#d7e3f7;background:rgba(0,0,0,.4);padding:8px 10px;border-radius:10px;max-width:62vw;backdrop-filter:blur(4px)}
 #hint b{color:#8fe2b3}
@@ -23,7 +23,9 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
 #cross:before{left:7px;top:0;width:2px;height:16px}
 #cross:after{top:7px;left:0;height:2px;width:16px}
 #faunaLabels{position:absolute;inset:0;pointer-events:none;z-index:4}
-#faunaLabels .fl{position:absolute;transform:translate(-50%,-100%);font-size:10px;line-height:1;color:#fff;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.18);padding:3px 6px;border-radius:999px;white-space:nowrap;backdrop-filter:blur(4px);text-shadow:0 1px 3px rgba(0,0,0,.8)}
+#faunaLabels .fl{position:absolute;transform:translate(-50%,-100%);font-size:10px;line-height:1;color:#fff;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.18);padding:3px 6px;border-radius:999px;white-space:nowrap;backdrop-filter:blur(4px);text-shadow:0 1px 3px rgba(0,0,0,.8);pointer-events:auto;cursor:pointer}
+#faunaLabels .fl.sel{background:#8fe2b3;color:#08120c;border-color:#8fe2b3;font-weight:600}
+#species{position:fixed;inset:0;z-index:80;background:rgba(7,11,17,.97);backdrop-filter:blur(16px);display:flex;flex-direction:column;color:#dce7f7}
 #joy{position:absolute;left:calc(14px + env(safe-area-inset-left));bottom:calc(18px + env(safe-area-inset-bottom));width:118px;height:118px;border-radius:50%;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.25);pointer-events:auto;touch-action:none}
 #knob{position:absolute;left:50%;top:50%;width:50px;height:50px;margin:-25px 0 0 -25px;border-radius:50%;background:rgba(255,255,255,.35);border:1px solid rgba(255,255,255,.5)}
 #acts{position:absolute;right:calc(14px + env(safe-area-inset-right));bottom:calc(18px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(3,54px);gap:8px;pointer-events:auto}
@@ -173,6 +175,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
 .wdetail .badge{font-size:10px;padding:2px 7px;border-radius:999px;background:rgba(255,255,255,.12);font-weight:400}
 .wdetail .kv{display:flex;justify-content:space-between;gap:12px;border-bottom:1px dashed rgba(255,255,255,.08);padding:4px 0}
 .wdetail .kv span:last-child{text-align:right;color:#eaf2ff}
+.wdetail .kv span:first-child{flex-shrink:0;white-space:nowrap}
 .regionWrap{position:relative;margin:4px auto 0;max-width:430px}
 .regionWrap svg{width:100%;display:block}
 .regionDot{cursor:pointer}
@@ -244,6 +247,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
   <div id="topbar">
     <a href="/">‹ 首页</a>
     <div class="tt">映射 + AI 世界</div>
+    <button class="tb" id="btnSpecies">物种</button>
     <button class="tb" id="btnWorld">时序</button>
     <button class="tb" id="btnChem">化学</button>
     <button class="tb" id="btnAI">AI</button>
@@ -252,7 +256,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
       <div class="ck2"><span id="ckTerm">冬 · 小寒</span><b id="ckTemp">—</b><span id="ckLight">光 —</span></div>
     </div>
   </div>
-  <div id="hint">拖动画面看向四周 · 左下摇杆移动<br>对准方块点 <b>挖</b> / <b>放</b> · 点右上 <b>时序</b> 看昼夜节气 · <b>化学</b> 查元素与反应</div>
+  <div id="hint">拖动画面看向四周 · 左下摇杆移动<br>对准方块点 <b>挖</b> / <b>放</b> · 点击物种名称看属性<br>点右上 <b>时序</b> 看昼夜节气 · <b>化学</b> 查元素与反应</div>
   <div id="cross"></div>
   <div id="faunaLabels"></div>
   <div id="joy"><div id="knob"></div></div>
@@ -364,10 +368,10 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
       <div class="legend"><span><i style="background:#8fe2b3"></i>春</span><span><i style="background:#ff9c8a"></i>夏</span><span><i style="background:#ffc98a"></i>秋</span><span><i style="background:#8fd6ff"></i>冬</span><span style="color:#6f8199">竖线为二十四节气，白线为当前时刻</span></div>
       <div class="wsec">切换地域</div>
       <div class="regionChips" id="timeRegionChips"></div>
-      <div class="wrow"><span class="lab">3D 世界</span><button id="btnFauna" class="on" type="button">动物显示</button></div>
+      <div class="wrow"><span class="lab">3D 世界</span><button id="btnFauna" class="on" type="button">动物显示</button><button id="btnVox" class="on" type="button">精细微方块</button><button id="btnEcoFast" type="button">生态 +30 天</button></div>
       <div class="wsec">世界存档 · 自动保存</div>
       <div class="wrow"><button id="btnSave" type="button">保存</button><button id="btnLoad" type="button">读取</button><button id="btnWipe" type="button">重置世界</button><span class="lab" id="saveInfo">尚无存档</span></div>
-      <div class="note">存档保存在本机浏览器 localStorage：方块改动、玩家位置、地域、时间与速度、动物显隐。时间流动时每 15 秒自动保存一次；暂停或退出页面时也会保存。换手机或清缓存不会同步。</div>
+      <div class="note">存档保存在本机浏览器 localStorage：方块改动、玩家位置、地域、时间与速度、动物显隐、精细轮廓。时间流动时每 15 秒自动保存一次；暂停或退出页面时也会保存。换手机或清缓存不会同步。</div>
       <div class="note">时间从公元 0 年 1 月 1 日 01:00:01 起算，按天文纪年（有 0 年，0 年为闰年）。太阳位置用低精度天文公式；温度、辐照、光照为教学近似模型，不是气象预报。夜间光照由月光与星光组成。</div>
     </div>
     <div id="wpanel-terms" class="wpanel">
@@ -411,6 +415,14 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
       <div class="note">以《周易》六十四卦的“时位—发展”结构作教学映射：一年等分为 64 段，每段一卦；六爻对应当日六个时段；上下卦对应八个方位与地域。错卦、综卦、互卦用于展示阴阳互根与内在演化。不是占卜，也不预测现实事件。</div>
     </div>
   </div>
+</div>
+<div id="species" class="hidden">
+  <div class="whead">
+    <button class="wback" id="spBack" type="button">‹</button>
+    <div class="wtitle" id="spTitle">物种详情</div>
+    <div class="wsub" id="spType">点击世界中的名称</div>
+  </div>
+  <div class="wbody" id="spBody"></div>
 </div>
 <script>
 (function(){
@@ -605,10 +617,18 @@ var P_PT=prog(
 'void main(){vC=aCol;gl_PointSize=uSize;gl_Position=uMVP*vec4(aPos,1.0);}',
 'precision mediump float;varying vec3 vC;void main(){vec2 d=gl_PointCoord-vec2(0.5);float r=length(d);if(r>0.46)discard;float a=smoothstep(0.46,0.30,r);gl_FragColor=vec4(vC,0.85*a+0.15);}');
 
+/* 微方块轮廓：方形点，每点代表 1/100 个粗方块 */
+var P_VOX=prog(
+'attribute vec3 aPos;attribute vec3 aCol;uniform mat4 uMVP;uniform float uSize;varying vec3 vC;'+
+'void main(){vC=aCol;gl_PointSize=uSize;gl_Position=uMVP*vec4(aPos,1.0);}',
+'precision mediump float;varying vec3 vC;uniform float uDim;void main(){gl_FragColor=vec4(vC*uDim,1.0);}');
+
 var UB={mvp:gl.getUniformLocation(P_BLOCK,'uMVP'),eye:gl.getUniformLocation(P_BLOCK,'uEye'),sky:gl.getUniformLocation(P_BLOCK,'uSky'),dim:gl.getUniformLocation(P_BLOCK,'uDim'),alpha:gl.getUniformLocation(P_BLOCK,'uAlpha')};
 var UP={mvp:gl.getUniformLocation(P_PT,'uMVP'),size:gl.getUniformLocation(P_PT,'uSize')};
+var UVX={mvp:gl.getUniformLocation(P_VOX,'uMVP'),size:gl.getUniformLocation(P_VOX,'uSize'),dim:gl.getUniformLocation(P_VOX,'uDim')};
 var BLpos=gl.getAttribLocation(P_BLOCK,'aPos'),BLcol=gl.getAttribLocation(P_BLOCK,'aCol');
 var PTpos=gl.getAttribLocation(P_PT,'aPos'),PTcol=gl.getAttribLocation(P_PT,'aCol');
+var VXpos=gl.getAttribLocation(P_VOX,'aPos'),VXcol=gl.getAttribLocation(P_VOX,'aCol');
 
 /* ---------- 网格 ---------- */
 var FACES=[
@@ -670,7 +690,8 @@ var cubeVerts=(function(){
   return new Float32Array(v);
 })();
 var charBuf=gl.createBuffer();
-var charArr=new Float32Array(36*9*72);
+var charArr=new Float32Array(36*9*160);
+var voxBuf=gl.createBuffer(),voxArr=new Float32Array(6*16000),nVox=0;
 
 /* 将一个立方体部件（世界坐标）烘进角色缓冲 */
 function bakePart(arr,off,px,py,pz,ry,rx,rz,sx,sy,sz,col){
@@ -1018,7 +1039,7 @@ function loop(ts){
   var dt=Math.min(0.05,(ts-last)/1000||0.016);last=ts;
   updatePlayer(dt);
   updateEnv(dt);
-  updateFauna(dt);
+  updateAgents(dt);
   hudAcc+=dt;if(hudAcc>=0.25){hudAcc=0;updateHUD();}
   uiAcc+=dt;if(uiAcc>=0.6){uiAcc=0;refreshWorldUI();}
   if(speed>0){saveAcc+=dt;if(saveAcc>=15){saveAcc=0;saveWorld(false);}}
@@ -1059,16 +1080,17 @@ function loop(ts){
     gl.drawArrays(gl.TRIANGLES,0,mesh.nOpaque);
   }
 
-  // 角色（方块拼装，复用方块管线）
-  var t=ts/1000;
-  var npx=npc.x,npz=npc.z;
+  // 角色（方块拼装；精细微方块开启时动物/人改走点云轮廓）
   var off=0;
   if(thirdPerson)off=bakeChar(off,player.x,player.y,player.z,player.yaw,Math.sin((player.walk||0))*0.55,0);
-  off=bakeChar(off,npx,surfaceY(Math.floor(npx),Math.floor(npz)),npz,0.9,0,Math.sin(t*2)*0.35);
-  if(showFauna){
-    for(var fi=0;fi<fauna.length;fi++)if(fauna[fi].active)off=bakeAnimal(off,fauna[fi]);
+  for(var hi=0;hi<humans.length;hi++){
+    var hh2=humans[hi];
+    if(hh2.alive)off=bakeChar(off,hh2.x,surfaceY(Math.floor(hh2.x),Math.floor(hh2.z)),hh2.z,hh2.dir,0,0);
   }
+  if(showFauna)for(var fi=0;fi<fauna.length;fi++)if(fauna[fi].active&&fauna[fi].alive)off=bakeAnimal(off,fauna[fi]);
   if(off>0){
+    var calpha=fineVoxel?0.28:1;
+    if(calpha<1){gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);gl.depthMask(false);}
     gl.useProgram(P_BLOCK);
     gl.bindBuffer(gl.ARRAY_BUFFER,charBuf);
     gl.bufferData(gl.ARRAY_BUFFER,charArr.subarray(0,off),gl.DYNAMIC_DRAW);
@@ -1079,10 +1101,12 @@ function loop(ts){
     gl.uniform3f(UB.eye,eye[0],eye[1],eye[2]);
     gl.uniform3f(UB.sky,sky[0],sky[1],sky[2]);
     gl.uniform1f(UB.dim,dim);
-    gl.uniform1f(UB.alpha,1);
+    gl.uniform1f(UB.alpha,calpha);
     gl.drawArrays(gl.TRIANGLES,0,off/9);
+    if(calpha<1){gl.depthMask(true);gl.disable(gl.BLEND);}
   }
-  window.__dbg={p:[player.x,player.y,player.z],eye:eye,tp:thirdPerson,off:off,sim:sim,date:env.D,env:{alt:env.alt,temp:env.temp,light:env.light,solar:env.solar,weather:env.w.n,term:env.term.now?env.term.now.n:null,season:env.season.n,region:curRegion},fauna:{total:fauna.length,active:fauna.filter(function(a){return a.active;}).length,names:fauna.map(function(a){return a.def.n;}),show:showFauna}};
+  drawVoxels();
+  window.__dbg={p:[player.x,player.y,player.z],eye:eye,tp:thirdPerson,off:off,vox:nVox,sim:sim,date:env.D,env:{alt:env.alt,temp:env.temp,light:env.light,solar:env.solar,weather:env.w.n,term:env.term.now?env.term.now.n:null,season:env.season.n,region:curRegion},fauna:{total:fauna.length,active:fauna.filter(function(a){return a.active;}).length,names:fauna.map(function(a){return a.def.n;}),show:showFauna},agents:{animals:fauna.length,plants:flora.length,humans:humans.length}};
 
   // 水
   if(mesh.water&&mesh.nWater){
@@ -2169,6 +2193,64 @@ var FAUNA={
 };
 var fauna=[],showFauna=true;
 
+/* ---------- 24 色相环 / 民族 / 文化 ---------- */
+var HUE24=[
+ [0.91,0.30,0.24],[0.90,0.49,0.13],[0.95,0.77,0.06],[0.64,0.78,0.27],[0.18,0.80,0.44],[0.10,0.74,0.61],
+ [0.09,0.63,0.52],[0.20,0.60,0.86],[0.16,0.50,0.73],[0.36,0.43,0.88],[0.56,0.27,0.68],[0.61,0.35,0.71],
+ [0.83,0.37,0.63],[0.91,0.26,0.58],[0.99,0.47,0.66],[0.75,0.22,0.17],[0.83,0.33,0.00],[0.95,0.61,0.07],
+ [0.50,0.55,0.55],[0.58,0.65,0.65],[0.74,0.76,0.78],[0.93,0.94,0.95],[0.43,0.30,0.25],[0.24,0.15,0.14]
+];
+function hueColor(i,shade){
+  var c=HUE24[((i%24)+24)%24];shade=shade==null?1:shade;
+  return [Math.min(1,c[0]*shade),Math.min(1,c[1]*shade),Math.min(1,c[2]*shade)];
+}
+var ETHNIC56=['汉族','蒙古族','回族','藏族','维吾尔族','苗族','彝族','壮族','布依族','朝鲜族','满族','侗族','瑶族','白族','土家族','哈尼族','哈萨克族','傣族','黎族','傈僳族','佤族','畲族','高山族','拉祜族','水族','东乡族','纳西族','景颇族','柯尔克孜族','土族','达斡尔族','仫佬族','羌族','布朗族','撒拉族','毛南族','仡佬族','锡伯族','阿昌族','普米族','塔吉克族','怒族','乌孜别克族','俄罗斯族','鄂温克族','德昂族','保安族','裕固族','京族','塔塔尔族','独龙族','鄂伦春族','赫哲族','门巴族','珞巴族','基诺族'];
+var ETHNIC_DIST={
+ ne:[['汉族',85],['满族',7],['蒙古族',3],['朝鲜族',2],['达斡尔族',1],['鄂温克族',1],['鄂伦春族',0.5],['赫哲族',0.5]],
+ hb:[['汉族',96],['回族',2],['满族',1],['蒙古族',1]],
+ hd:[['汉族',98],['畲族',1],['回族',0.5],['高山族',0.5]],
+ hz:[['汉族',95],['土家族',2],['苗族',1],['侗族',1],['瑶族',0.5],['回族',0.5]],
+ hn:[['汉族',90],['壮族',5],['瑶族',2],['苗族',1],['黎族',1],['京族',0.5],['畲族',0.5]],
+ xn:[['汉族',65],['彝族',8],['苗族',7],['藏族',5],['壮族',3],['布依族',2],['白族',2],['哈尼族',2],['傣族',2],['傈僳族',1],['拉祜族',1],['佤族',1],['纳西族',0.5],['景颇族',0.5]],
+ xb:[['汉族',60],['回族',15],['维吾尔族',10],['哈萨克族',5],['柯尔克孜族',2],['东乡族',2],['撒拉族',1],['保安族',1],['裕固族',1],['塔吉克族',1],['乌孜别克族',0.5],['俄罗斯族',0.5],['塔塔尔族',1]],
+ qz:[['藏族',85],['汉族',10],['回族',2],['门巴族',1],['珞巴族',1],['其他',1]]
+};
+var REGION_CULTURE={
+ ne:'森林采集 · 渔猎 · 农耕',hb:'旱作农耕 · 商贸',hd:'稻作农耕 · 渔盐',hz:'稻作 · 湖泽渔猎',
+ hn:'稻作 · 梯田 · 海洋',xn:'山地梯田 · 畜牧 · 多民族',xb:'绿洲灌溉 · 游牧',qz:'高原畜牧 · 河谷农业'
+};
+var REGION_REL={
+ ne:{mutual:['红松与松鼠：松鼠埋藏松子，部分未食用种子长成幼树','鸟类啄食有蹄类体表寄生虫'],parasite:['蜱虫寄生在鹿类体表，吸血并传播疾病','菟丝子缠绕林下草本']},
+ hb:{mutual:['栎树与岩松鼠：坚果被埋藏后帮助栎树扩散','褐马鸡取食昆虫，减少虫害'],parasite:['蜱虫寄生在狍体表','寄生蜂将卵产在毛虫体内']},
+ hd:{mutual:['湿地芦苇与白鹭：芦苇提供巢材，白鹭粪便回补养分','螺虾清理藻类，为鱼类提供饵料'],parasite:['鱼虱寄生在鱼体表','菟丝子缠绕湿地草本']},
+ hz:{mutual:['水杉林调蓄洪水，为鱼类提供庇护','候鸟粪便为湿地补充氮磷'],parasite:['吸虫以螺为中间宿主','水蛭吸食鱼类与哺乳类血液']},
+ hn:{mutual:['榕树与果蝠：果蝠取食果实并传播种子','蚂蚁保护蚜虫，换取蜜露'],parasite:['榕小蜂与榕树的专性寄生/传粉关系','蜱虫寄生在猕猴体表']},
+ xn:{mutual:['竹子与大熊猫：竹林提供食物，熊猫活动促进竹鞭更新','鸟类啄食羚牛体表寄生虫'],parasite:['寄生蜂控制毛虫数量','竹鼠啃食竹根，影响竹林更新']},
+ xb:{mutual:['胡杨与地下水：河流补给维持走廊林','沙蜥捕食昆虫，减少虫害'],parasite:['蜱虫寄生在鹅喉羚体表','寄生植物锁阳依附梭梭根系']},
+ qz:{mutual:['鼠兔洞穴改善土壤通气，为植物提供微生境','黑颈鹤在湿地取食，粪便回补养分'],parasite:['蜱虫寄生在藏羚羊体表','高原鼠兔啃食草甸，过度时导致退化']}
+};
+var AGENT_TRAITS={
+ pred:{hp:170,atk:18,def:8,rec:2.2,life:2400,gest:8,speed:1.15,hue:[0,15,16]},
+ herb:{hp:110,atk:5,def:5,rec:2.8,life:1800,gest:6,speed:0.65,hue:[3,4,5,22,23]},
+ bird:{hp:60,atk:7,def:3,rec:3.5,life:1200,gest:4,speed:1.0,hue:[7,18,21]}
+};
+var agentSeq=0,flora=[],humans=[],selectedAgent=null,fineVoxel=true,speciesAcc=0,voxAcc=0;
+function stageOfAnimal(age,life){
+  var f=age/life;
+  if(f<0.15)return '幼年';if(f<0.30)return '少年';if(f<0.60)return '青年';if(f<0.85)return '中年';return '老年';
+}
+function stageOfHuman(y){
+  if(y<7)return '幼年';if(y<18)return '少年';if(y<41)return '青年';if(y<61)return '中年';return '老年';
+}
+function pickEthnic(region,seed,minorityOnly){
+  var dist=ETHNIC_DIST[region]||[['汉族',100]];
+  if(minorityOnly)dist=dist.filter(function(p){return p[0]!=='汉族'&&p[0]!=='其他';});
+  if(!dist.length)dist=[['汉族',100]];
+  var h=hash2(Math.floor(seed*10000)+7,region.length*31+5)*100,acc=0;
+  for(var i=0;i<dist.length;i++){acc+=dist[i][1];if(h<acc)return dist[i][0];}
+  return dist[0][0];
+}
+
 /* ---------- 环境计算：太阳高度 / 昼夜 / 温度 / 光照 ---------- */
 function mix3(a,b,t){return [a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];}
 function skyColor(alt,cloud){
@@ -2358,8 +2440,11 @@ function loadWorld(auto){
     if(typeof s.sim==='number'&&s.sim>=0)sim=s.sim;
     speed=(typeof s.speed==='number'&&s.speed>=0)?s.speed:60;
     if(typeof s.showFauna==='boolean')showFauna=s.showFauna;
+    if(typeof s.fineVoxel==='boolean')fineVoxel=s.fineVoxel;
     var bf=document.getElementById('btnFauna');
     if(bf)bf.classList.toggle('on',showFauna);
+    var bv=document.getElementById('btnVox');
+    if(bv)bv.classList.toggle('on',fineVoxel);
     if(s.sel&&B[s.sel])sel=s.sel;
     if(s.player){
       player.x=+s.player.x||player.x;player.y=+s.player.y||player.y;player.z=+s.player.z||player.z;
@@ -2373,7 +2458,7 @@ function loadWorld(auto){
     syncRegionChips();
     updateHUD();
     renderAll();
-    if(typeof initFauna==='function')initFauna();
+    if(typeof initAgents==='function')initAgents();
     saveInfoText('已读取存档 · '+fmtDate(env.D)+' '+fmtClock(env.D));
     if(!auto)toast('已读取存档：'+fmtDate(env.D)+' '+fmtClock(env.D));
     return true;
@@ -2394,7 +2479,7 @@ function wipeWorld(){
   npc=npcSpot(sp2.x,sp2.z,player.yaw);
   updateEnv(0);updateHUD();renderAll();
   if(atomMode){buildAtoms();updateAtomPanel();}
-  if(typeof initFauna==='function')initFauna();
+  if(typeof initAgents==='function')initAgents();
   saveInfoText('存档已清除 · 世界已重新生成');
   toast('已按「'+REGIONS[curRegion].n+'」重新生成世界');
 }
@@ -2540,6 +2625,7 @@ function renderRegionMap(){
 }
 function renderRegionDetail(){
   var R=REGIONS[curRegion],e=computeEnv(R,dateOf(sim));
+  var eth=(ETHNIC_DIST[curRegion]||[]).slice(0,5);
   document.getElementById('regionDetail').innerHTML='<h3>'+R.n+' <span class="badge">'+R.dir+' · '+R.trigram+'卦位</span></h3>'+
     '<div class="kv"><span>经纬度 / 海拔</span><span>'+R.lon.toFixed(1)+'°E · '+R.lat.toFixed(1)+'°N · '+R.alt+' m</span></div>'+
     '<div class="kv"><span>气候</span><span>'+R.climate+'</span></div>'+
@@ -2547,6 +2633,8 @@ function renderRegionDetail(){
     '<div class="kv"><span>植被 / 生境</span><span>'+R.biome+'</span></div>'+
     '<div class="kv"><span>生物多样性指数</span><span>'+Math.round(R.bio*100)+' / 100</span></div>'+
     '<div class="wbar"><i style="width:'+Math.round(R.bio*100)+'%"></i></div>'+
+    '<div class="kv"><span>主要民族（56 个民族，示意）</span><span>'+eth.map(function(x){return x[0]+' '+x[1]+'%';}).join(' · ')+'</span></div>'+
+    '<div class="kv"><span>文化形态</span><span>'+REGION_CULTURE[curRegion]+'</span></div>'+
     '<div class="kv"><span>此刻天气</span><span>'+weatherIcon(e.w.n)+' '+e.w.n+' · 云量 '+Math.round(e.w.cloud*100)+'%</span></div>'+
     '<div class="kv"><span>此刻气温 / 光照</span><span>'+e.temp.toFixed(1)+' °C · '+e.light.toFixed(2)+' · '+Math.round(e.solar)+' W/m²</span></div>'+
     '<div class="kv"><span>季节 / 节气</span><span>'+e.season.n+' · '+(env.term.now?env.term.now.n:'—')+'</span></div>'+
@@ -2578,7 +2666,7 @@ function applyRegionTerrain(){
   spawn={x:sp2.x,y:sp2.y,z:sp2.z};
   npc=npcSpot(sp2.x,sp2.z,player.yaw);
   if(atomMode){buildAtoms();updateAtomPanel();}
-  initFauna();
+  initAgents();
   closeWorld();
   toast('3D 世界已切到「'+REGIONS[curRegion].n+'」：'+REGIONS[curRegion].landform);
 }
@@ -2593,11 +2681,14 @@ function renderEco(){
     '<div class="wmetric"><div class="k">当前季节</div><div class="v">'+e.season.n+' <small>'+(env.term.now?env.term.now.n:'')+'</small></div></div>';
   var flist=FAUNA[curRegion]||[];
   var fnames=flist.filter(function(d){return !(se==='winter'&&d.winter==='hide');}).map(function(d){return d.n+(se==='winter'&&d.winter==='migrate'?'（迁徙）':'');});
+  var pop={};for(var pi=0;pi<fauna.length;pi++){if(fauna[pi].alive)pop[fauna[pi].type]=(pop[fauna[pi].type]||0)+1;}
+  var popText=Object.keys(pop).map(function(k){return k+' '+pop[k];}).join(' · ');
   document.getElementById('ecoSummary').innerHTML='<h3>'+R.n+' · '+R.biome+'</h3>'+
     '<div class="kv"><span>自然地貌</span><span>'+R.landform+'</span></div>'+
     '<div class="kv"><span>气候</span><span>'+R.climate+'</span></div>'+
     '<div class="kv"><span>当季物候</span><span>'+R.seasons[se]+'</span></div>'+
     '<div class="kv"><span>3D 世界中的动物</span><span>'+(worldRegion!==curRegion?'切换到该地域后可见：':'')+(showFauna?fnames.join('、'):'已隐藏（时序面板可打开）')+'</span></div>'+
+    '<div class="kv"><span>3D 种群数量</span><span>'+(worldRegion!==curRegion?'当前地形：':'')+(popText||'—')+' · 人类 '+humans.filter(function(h){return h.alive;}).length+'</span></div>'+
     '<div class="wbar"><i style="width:'+Math.round(R.bio*100)+'%"></i></div>';
   document.getElementById('ecoPlants').innerHTML=R.plants.map(function(p){
     return '<div class="spcard"><div class="n">'+p[0]+'</div><div class="r">'+p[2]+'</div><span class="t">'+p[1]+'</span></div>';
@@ -2610,97 +2701,462 @@ function renderEco(){
   }).join('');
   document.getElementById('ecoRel').innerHTML=
     '<div class="relBox"><h4>相生 · 促进与供养</h4>'+R.sheng.map(function(s){return '· '+s;}).join('<br>')+'</div>'+
-    '<div class="relBox ke"><h4>相克 · 捕食与限制</h4>'+R.ke.map(function(s){return '· '+s;}).join('<br>')+'</div>';
+    '<div class="relBox ke"><h4>相克 · 捕食与限制</h4>'+R.ke.map(function(s){return '· '+s;}).join('<br>')+'</div>'+
+    '<div class="relBox"><h4>互利共生</h4>'+((REGION_REL[curRegion]||{mutual:[]}).mutual||[]).map(function(s){return '· '+s;}).join('<br>')+'</div>'+
+    '<div class="relBox ke"><h4>寄生关系</h4>'+((REGION_REL[curRegion]||{parasite:[]}).parasite||[]).map(function(s){return '· '+s;}).join('<br>')+'</div>';
 }
 
 /* ---------- 动物迁徙 / 3D 可视化 ---------- */
+/* ---------- 微方块轮廓：每个粗方块约 100 个微方块 ---------- */
+var VOX_PER_BLOCK=100;
+function vrnd(seed,i){return hash2(Math.floor(seed*99991)+i*37,i*131+17);}
+function pushBoxVox(arr,cx,cy,cz,w,h,d,n,hue,shade,seed){
+  for(var i=0;i<n;i++){
+    var f=i%6,u=vrnd(seed,i*3+1),v=vrnd(seed,i*3+2);
+    var px=cx,py=cy,pz=cz;
+    if(f===0){px=cx+w/2;py=cy+(u-0.5)*h;pz=cz+(v-0.5)*d;}
+    else if(f===1){px=cx-w/2;py=cy+(u-0.5)*h;pz=cz+(v-0.5)*d;}
+    else if(f===2){py=cy+h/2;px=cx+(u-0.5)*w;pz=cz+(v-0.5)*d;}
+    else if(f===3){py=cy-h/2;px=cx+(u-0.5)*w;pz=cz+(v-0.5)*d;}
+    else if(f===4){pz=cz+d/2;px=cx+(u-0.5)*w;py=cy+(v-0.5)*h;}
+    else{pz=cz-d/2;px=cx+(u-0.5)*w;py=cy+(v-0.5)*h;}
+    var c=hueColor(hue,shade*(0.88+0.24*vrnd(seed,i*3+3)));
+    arr.push(px,py,pz,c[0],c[1],c[2]);
+  }
+}
+function makeAnimalVox(def,size,hue){
+  var v=[],s=size||0.7,seed=def.n.length*97+def.kind.length*13;
+  if(def.kind==='bird'){
+    pushBoxVox(v,0,0.55*s,0,0.50*s,0.38*s,0.70*s,100,hue,1,seed);
+    pushBoxVox(v,0,0.78*s,0.50*s,0.26*s,0.26*s,0.26*s,80,hue+2,1.08,seed+1);
+    pushBoxVox(v,-0.35*s,0.55*s,0,0.16*s,0.10*s,0.50*s,60,hue+1,0.8,seed+2);
+    pushBoxVox(v,0.35*s,0.55*s,0,0.16*s,0.10*s,0.50*s,60,hue+1,0.8,seed+3);
+    pushBoxVox(v,0,0.55*s,-0.55*s,0.18*s,0.10*s,0.35*s,50,hue+1,0.72,seed+4);
+  }else{
+    pushBoxVox(v,0,0.55*s,0,0.55*s,0.42*s,0.35*s,100,hue,1,seed);
+    pushBoxVox(v,0,0.82*s,0.55*s,0.30*s,0.30*s,0.30*s,100,hue+2,1.1,seed+1);
+    pushBoxVox(v,0,0.58*s,-0.55*s,0.12*s,0.12*s,0.38*s,60,hue+1,0.75,seed+2);
+    var lx=0.20*s,lz=0.14*s;
+    [[-lx,-lz],[lx,-lz],[-lx,lz],[lx,lz]].forEach(function(p,k){
+      pushBoxVox(v,p[0],0.22*s,p[1],0.12*s,0.42*s,0.12*s,45,hue+1,0.68,seed+3+k);
+    });
+  }
+  return v;
+}
+function makePlantVox(hue,flowerHue,stage){
+  var v=[],seed=hue*31+flowerHue;
+  pushBoxVox(v,0,0.50,0,0.08,1.00,0.08,80,hue,0.9,seed);
+  pushBoxVox(v,-0.22,0.55,0,0.35,0.07,0.18,60,hue+1,0.95,seed+1);
+  pushBoxVox(v,0.22,0.78,0,0.35,0.07,0.18,60,hue+1,1.0,seed+2);
+  pushBoxVox(v,0,0.42,0.18,0.30,0.07,0.18,50,hue-1,0.85,seed+3);
+  if(stage==='开花'||stage==='结果'||stage==='成熟')pushBoxVox(v,0,1.05,0,0.22,0.18,0.22,90,flowerHue,1.0,seed+4);
+  return v;
+}
+function makeHumanVox(sex,stage,hue){
+  var sc=stage==='幼年'?0.55:(stage==='少年'?0.80:(stage==='老年'?0.94:1));
+  var shoulder=(sex==='男'?0.54:0.46)*sc,seed=(sex==='男'?7:11)+stage.length*3;
+  var v=[];
+  pushBoxVox(v,0,1.05*sc,0,shoulder,0.62*sc,0.28*sc,100,hue,1,seed);
+  pushBoxVox(v,0,1.58*sc,0,0.32*sc,0.32*sc,0.32*sc,100,17,0.72,seed+1);
+  pushBoxVox(v,0,1.78*sc,0,0.36*sc,0.10*sc,0.36*sc,50,23,0.7,seed+2);
+  pushBoxVox(v,-0.32*sc,1.05*sc,0,0.14*sc,0.55*sc,0.14*sc,60,hue,0.9,seed+3);
+  pushBoxVox(v,0.32*sc,1.05*sc,0,0.14*sc,0.55*sc,0.14*sc,60,hue,0.9,seed+4);
+  pushBoxVox(v,-0.13*sc,0.35*sc,0,0.16*sc,0.70*sc,0.16*sc,60,23,0.8,seed+5);
+  pushBoxVox(v,0.13*sc,0.35*sc,0,0.16*sc,0.70*sc,0.16*sc,60,23,0.8,seed+6);
+  return v;
+}
+function makeAnimal(def,index){
+  var t=AGENT_TRAITS[def.kind]||AGENT_TRAITS.herb;
+  var h=hash2(index*17+3,def.n.length*29+7);
+  var repro=def.repro||(def.n==='沙蜥'?'asexual':'sexual');
+  var sex=repro==='asexual'?'—':(index%2===0?'雄':'雌');
+  var life=Math.round(t.life*(0.85+h*0.30));
+  var age=life*(0.25+h*0.45);
+  var maxHp=Math.round(t.hp*(0.85+h*0.30));
+  var hue=t.hue[index%t.hue.length];
+  var a={id:'a'+(++agentSeq),kind:'animal',type:def.n,def:def,sex:sex,repro:repro,
+    ageDays:age,lifespanDays:life,stage:stageOfAnimal(age,life),hp:maxHp,maxHp:maxHp,
+    attack:Math.round(t.atk*(0.8+h*0.4)),defense:Math.round(t.def*(0.8+h*0.4)),
+    recovery:+(t.rec*(0.8+h*0.4)).toFixed(1),energy:60+Math.round(h*35),state:'休息',drive:'生存',
+    hue:hue,size:def.size||0.7,x:0,z:0,dir:Math.random()*6.28,t:Math.random()*10,active:true,
+    seed:index*97+13,alive:true,respawn:0,cooldown:0,gestation:0,pregnant:false,children:0,
+    parasiteLoad:h>0.72?0.6:0.15,mutual:false};
+  a.vox=makeAnimalVox(def,a.size,hue);
+  a.voxCount=a.vox.length/6;
+  return a;
+}
 function initFauna(){
   var list=FAUNA[curRegion]||FAUNA.hb;
   fauna=[];
   var fw=Math.atan2(-Math.cos(player.yaw),-Math.sin(player.yaw));
-  var offs=[0,0.35,-0.35,Math.PI],dists=[4,5.5,7,8.5];
   for(var i=0;i<list.length;i++){
-    var ang=fw+offs[i%offs.length]+(i>=offs.length?(Math.random()-0.5)*1.2:0);
-    var r=dists[i%dists.length]+(i>=dists.length?Math.random()*4:0);
-    var x=player.x+Math.cos(ang)*r,z=player.z+Math.sin(ang)*r;
-    x=Math.max(3,Math.min(WX-4,x));z=Math.max(3,Math.min(WZ-4,z));
-    fauna.push({def:list[i],x:x,z:z,dir:Math.random()*6.28,t:Math.random()*10,active:true,seed:i*97+13});
+    for(var p=0;p<2;p++){
+      var a=makeAnimal(list[i],i*2+p);
+      var ang=fw+i*0.9+(p?0.06:0);
+      var r=4+i*0.7+(p?0.9:0);
+      a.x=Math.max(3,Math.min(WX-4,player.x+Math.cos(ang)*r));
+      a.z=Math.max(3,Math.min(WZ-4,player.z+Math.sin(ang)*r));
+      fauna.push(a);
+    }
   }
 }
-function updateFauna(dt){
-  if(!env||!fauna.length)return;
+function initFlora(){
+  var list=(REGIONS[curRegion]||REGIONS.hb).plants;
+  flora=[];
+  var fw=Math.atan2(-Math.cos(player.yaw),-Math.sin(player.yaw));
+  for(var i=0;i<4;i++){
+    var p=list[i%list.length],h=hash2(i*53+11,curRegion.length*19+5);
+    var ang=fw+[-0.8,0.7,1.8,-1.9][i%4],r=3.5+i*1.6;
+    var x=Math.max(3,Math.min(WX-4,player.x+Math.cos(ang)*r));
+    var z=Math.max(3,Math.min(WZ-4,player.z+Math.sin(ang)*r));
+    var a={id:'p'+(++agentSeq),kind:'plant',type:p[0],def:{n:p[0]},sex:'—',
+      repro:(i%2===0?'sexual':'asexual'),stage:'幼苗',growth:0.15+h*0.2,ageDays:0,
+      lifespanDays:Math.round(180+h*220),growthDays:Math.round(25+h*40),hp:70,maxHp:90,
+      hue:3+(i%4),flowerHue:[2,12,14,0][i%4],flowerSeason:(i%2?'summer':'spring'),fruitSeason:(i%2?'autumn':'summer'),x:x,z:z,dir:Math.random()*6.28,t:Math.random()*5,
+      alive:true,cooldown:0,seeds:0,state:'生长',drive:'生存'};
+    a.vox=makePlantVox(a.hue,a.flowerHue,a.stage);
+    a.voxCount=a.vox.length/6;
+    flora.push(a);
+  }
+}
+function initHumans(){
+  humans=[];
+  var fw=Math.atan2(-Math.cos(player.yaw),-Math.sin(player.yaw));
+  var ages=[9,25,38,57],hues=[9,13,10,16];
+  for(var i=0;i<4;i++){
+    var sex=(i%2===0?'男':'女');
+    var age=ages[i]+Math.round((hash2(i*31+7,5)-0.5)*4);
+    var h=hash2(i*71+3,13);
+    var a={id:'h'+(++agentSeq),kind:'human',type:'人类',sex:sex,ageYears:age,stage:stageOfHuman(age),
+      strength:Math.round(32+h*58+(sex==='男'?5:0)),hp:0,maxHp:0,energy:65+Math.round(h*30),
+      state:'劳作',drive:'生存',ethnic:pickEthnic(curRegion,h,i===3&&['ne','hn','xn','xb','qz'].indexOf(curRegion)>=0),culture:REGION_CULTURE[curRegion]||'农耕',
+      x:0,z:0,dir:Math.random()*6.28,t:Math.random()*6,alive:true,cooldown:0,gestation:0,
+      pregnant:false,children:0,hue:hues[i%hues.length],attack:0,defense:0,recovery:2.5};
+    a.maxHp=50+a.strength;a.hp=a.maxHp;
+    a.attack=Math.round(a.strength/8);a.defense=Math.round(a.strength/10);a.recovery=1+a.strength/35;
+    var ang=fw+[0,0.08,-0.08,1.8][i%4],r=[7,6,6.5,9][i%4];
+    a.x=Math.max(3,Math.min(WX-4,player.x+Math.cos(ang)*r));
+    a.z=Math.max(3,Math.min(WZ-4,player.z+Math.sin(ang)*r));
+    a.vox=makeHumanVox(a.sex,a.stage,a.hue);
+    a.voxCount=a.vox.length/6;
+    humans.push(a);
+  }
+  npc={x:humans[0].x,z:humans[0].z};
+}
+function initAgents(){initFauna();initFlora();initHumans();}
+function countType(name){
+  var n=0;
+  for(var i=0;i<fauna.length;i++)if(fauna[i].type===name&&fauna[i].alive)n++;
+  return n;
+}
+function spawnAnimalChild(p){
+  if(fauna.filter(function(a){return a.alive;}).length>=12)return null;
+  var c=makeAnimal(p.def,agentSeq+3);
+  c.ageDays=0;c.stage='幼年';c.energy=70;c.hp=c.maxHp*0.6;
+  c.x=Math.max(3,Math.min(WX-4,p.x+(Math.random()-0.5)*1.5));
+  c.z=Math.max(3,Math.min(WZ-4,p.z+(Math.random()-0.5)*1.5));
+  c.dir=Math.random()*6.28;c.cooldown=40;
+  fauna.push(c);return c;
+}
+function spawnPlant(p){
+  if(flora.filter(function(a){return a.alive;}).length>=8)return null;
+  var c={id:'p'+(++agentSeq),kind:'plant',type:p.type,def:p.def,sex:'—',repro:p.repro,
+    stage:'种子',growth:0.05,ageDays:0,lifespanDays:p.lifespanDays,growthDays:p.growthDays,
+    hp:40,maxHp:p.maxHp,hue:p.hue,flowerHue:p.flowerHue,flowerSeason:p.flowerSeason,fruitSeason:p.fruitSeason,
+    x:Math.max(3,Math.min(WX-4,p.x+(Math.random()-0.5)*3)),
+    z:Math.max(3,Math.min(WZ-4,p.z+(Math.random()-0.5)*3)),
+    dir:Math.random()*6.28,t:Math.random()*4,alive:true,cooldown:50,seeds:0,state:'种子',drive:'生存'};
+  c.vox=makePlantVox(c.hue,c.flowerHue,c.stage);c.voxCount=c.vox.length/6;
+  flora.push(c);return c;
+}
+function spawnHumanChild(p){
+  if(humans.filter(function(a){return a.alive;}).length>=8)return null;
+  var sex=Math.random()<0.5?'男':'女',h=Math.random();
+  var c={id:'h'+(++agentSeq),kind:'human',type:'人类',sex:sex,ageYears:0,stage:'幼年',
+    strength:Math.round(12+h*10),hp:0,maxHp:0,energy:70,state:'幼年',drive:'生存',
+    ethnic:pickEthnic(curRegion,h),culture:REGION_CULTURE[curRegion]||'农耕',
+    x:Math.max(3,Math.min(WX-4,p.x+(Math.random()-0.5)*1.5)),
+    z:Math.max(3,Math.min(WZ-4,p.z+(Math.random()-0.5)*1.5)),
+    dir:Math.random()*6.28,t:Math.random()*4,alive:true,cooldown:0,gestation:0,pregnant:false,
+    children:0,hue:p.hue,attack:2,defense:2,recovery:2};
+  c.maxHp=50+c.strength;c.hp=c.maxHp;
+  c.vox=makeHumanVox(c.sex,c.stage,c.hue);c.voxCount=c.vox.length/6;
+  humans.push(c);return c;
+}
+function updateFauna(dt,bio){
+  if(!env)return;
   var winter=env.season.key==='winter';
   for(var i=0;i<fauna.length;i++){
-    var a=fauna[i],def=a.def;
-    a.active=!(winter&&def.winter==='hide');
-    if(!a.active)continue;
-    a.t+=dt;
-    if(winter&&def.winter==='migrate'&&def.kind!=='bird'){a.z+=dt*0.6;if(a.z>WZ-5)a.z=5;}
-    if(def.kind==='bird'){
-      if(winter&&def.winter==='migrate'){
-        a.z+=dt*0.9;if(a.z>WZ-5)a.z=5;
-        a.x+=Math.sin(a.t*0.8)*dt*1.1;
-      }else{
-        a.x+=Math.cos(a.t*0.5+a.seed)*dt*0.8;
-        a.z+=Math.sin(a.t*0.4+a.seed)*dt*0.8;
-      }
-    }else if(def.kind==='pred'){
-      var target=null,td=999;
-      for(var j=0;j<fauna.length;j++){
-        var b=fauna[j];
-        if(b.def.kind!=='herb'||!b.active)continue;
-        var d=Math.hypot(b.x-a.x,b.z-a.z);
-        if(d<td){td=d;target=b;}
-      }
-      if(target&&td<12){
-        a.x+=(target.x-a.x)/Math.max(0.1,td)*dt*1.15;
-        a.z+=(target.z-a.z)/Math.max(0.1,td)*dt*1.15;
-      }else{
-        a.dir+=(hash2(Math.floor(a.t*10),a.seed)-0.5)*dt*3.0;
-        a.x+=Math.cos(a.dir)*dt*0.7;a.z+=Math.sin(a.dir)*dt*0.7;
-      }
-    }else{
-      var flee=null,fd=99;
-      for(var k=0;k<fauna.length;k++){
-        var p=fauna[k];
-        if(p.def.kind!=='pred'||!p.active)continue;
-        var dd=Math.hypot(p.x-a.x,p.z-a.z);
-        if(dd<fd){fd=dd;flee=p;}
-      }
-      if(flee&&fd<8){
-        a.x-=(flee.x-a.x)/Math.max(0.1,fd)*dt*1.2;
-        a.z-=(flee.z-a.z)/Math.max(0.1,fd)*dt*1.2;
-      }else{
-        a.dir+=(hash2(Math.floor(a.t*7)+11,a.seed)-0.5)*dt*3.5;
-        a.x+=Math.cos(a.dir)*dt*0.6;a.z+=Math.sin(a.dir)*dt*0.6;
+    var a=fauna[i];
+    if(!a.alive){
+      a.respawn-=(bio||0);
+      if(a.respawn<=0&&countType(a.type)<6){a.alive=true;a.hp=a.maxHp;a.ageDays=0;a.energy=70;a.respawn=0;a.cooldown=20;}
+      continue;
+    }
+    a.cooldown=Math.max(0,a.cooldown-(bio||0));
+    a.ageDays+=(bio||0);
+    a.stage=stageOfAnimal(a.ageDays,a.lifespanDays);
+    if(a.ageDays>=a.lifespanDays){a.alive=false;a.respawn=10;continue;}
+    a.energy=Math.max(0,Math.min(100,a.energy-dt*1.1));
+    if(a.energy>35)a.hp=Math.min(a.maxHp,a.hp+a.recovery*dt);
+    if(a.parasiteLoad)a.hp-=a.parasiteLoad*dt*0.35;
+    if(a.def.kind!=='bird'&&a.parasiteLoad>0){
+      for(var cb=0;cb<fauna.length;cb++){
+        var bird=fauna[cb];
+        if(!bird.alive||bird.def.kind!=='bird')continue;
+        if(Math.hypot(bird.x-a.x,Math.abs(bird.z-a.z))<4){
+          a.parasiteLoad=Math.max(0,a.parasiteLoad-dt*0.12);
+          bird.energy=Math.min(100,bird.energy+dt*1.6);
+          bird.state='清洁共生';
+        }
       }
     }
-    a.x=Math.max(3,Math.min(WX-4,a.x));
-    a.z=Math.max(3,Math.min(WZ-4,a.z));
-    if(def.kind!=='bird'&&surfaceY(Math.floor(a.x),Math.floor(a.z))<=SEA+1){
+    if(a.hp<=0){a.alive=false;a.respawn=8;continue;}
+    a.active=!(winter&&a.def.winter==='hide');
+    if(!a.active){a.state='隐匿';a.drive='生存';continue;}
+    a.t+=dt;
+    a.state='休息';
+    var harsh=(env.temp<-8||env.temp>35||env.w.precip>0);
+    if(harsh)a.state=env.temp<-8?'避寒':(env.temp>35?'避暑':(env.w.n==='雨'?'避雨':'避雪'));
+    var adult=(a.stage==='青年'||a.stage==='中年');
+    if(!harsh&&a.repro==='sexual'&&a.sex==='雌'&&!a.pregnant&&a.cooldown<=0&&a.energy>55&&adult){
+      for(var j=0;j<fauna.length;j++){
+        var b=fauna[j];
+        if(b===a||!b.alive||b.type!==a.type||b.sex!=='雄'||b.def.winter==='hide'&&winter)continue;
+        if(Math.hypot(b.x-a.x,b.z-a.z)<3&&b.energy>45){
+          a.pregnant=true;a.gestation=a.def.gest||6;a.cooldown=60;a.state='求偶';break;
+        }
+      }
+    }else if(!harsh&&a.repro==='asexual'&&a.cooldown<=0&&a.energy>60&&adult&&countType(a.type)<6){
+      spawnAnimalChild(a);a.cooldown=50;a.state='繁殖';
+    }
+    if(a.pregnant){
+      a.gestation-=(bio||0);
+      if(a.gestation<=0){spawnAnimalChild(a);a.pregnant=false;a.children++;a.cooldown=50;}
+    }
+    var prey=null,pd=99;
+    if(a.def.kind==='pred'){
+      for(var k=0;k<fauna.length;k++){
+        var q=fauna[k];
+        if(q===a||!q.alive||q.def.kind!=='herb'||!q.active)continue;
+        var d=Math.hypot(q.x-a.x,q.z-a.z);
+        if(d<pd){pd=d;prey=q;}
+      }
+      if(prey&&pd<1.4){
+        prey.hp-=Math.max(1,a.attack-prey.defense*0.5)*dt*1.8;a.energy=Math.min(100,a.energy+dt*5);a.state='捕食';
+        if(prey.hp<=0){prey.alive=false;prey.respawn=12;a.energy=Math.min(100,a.energy+25);}
+      }else if(prey&&pd<12){
+        a.x+=(prey.x-a.x)/Math.max(0.1,pd)*dt*1.0;
+        a.z+=(prey.z-a.z)/Math.max(0.1,pd)*dt*1.0;
+      }else{
+        a.dir+=(hash2(Math.floor(a.t*10),a.seed)-0.5)*dt*3.0;
+        a.x+=Math.cos(a.dir)*dt*0.55;a.z+=Math.sin(a.dir)*dt*0.55;
+      }
+    }else if(a.def.kind==='herb'){
+      var foe=null,fd=99;
+      for(var m=0;m<fauna.length;m++){
+        var p2=fauna[m];
+        if(!p2.alive||p2.def.kind!=='pred'||!p2.active)continue;
+        var dd=Math.hypot(p2.x-a.x,p2.z-a.z);
+        if(dd<fd){fd=dd;foe=p2;}
+      }
+      if(foe&&fd<8){
+        a.x-=(foe.x-a.x)/Math.max(0.1,fd)*dt*1.1;
+        a.z-=(foe.z-a.z)/Math.max(0.1,fd)*dt*1.1;a.state='逃避';
+      }else{
+        var food=null,ff=99;
+        for(var n=0;n<flora.length;n++){
+          var pl=flora[n];
+          if(!pl.alive)continue;
+          var fp=Math.hypot(pl.x-a.x,pl.z-a.z);
+          if(fp<ff){ff=fp;food=pl;}
+        }
+        if(food&&ff<1.2){
+          food.hp-=dt*5;a.energy=Math.min(100,a.energy+dt*6);a.state='进食';
+          if(food.hp<=0)food.alive=false;
+        }else if(food&&ff<14){
+          a.x+=(food.x-a.x)/Math.max(0.1,ff)*dt*0.45;
+          a.z+=(food.z-a.z)/Math.max(0.1,ff)*dt*0.45;
+        }else{
+          a.dir+=(hash2(Math.floor(a.t*7)+11,a.seed)-0.5)*dt*3.2;
+          a.x+=Math.cos(a.dir)*dt*0.45;a.z+=Math.sin(a.dir)*dt*0.45;
+        }
+      }
+    }else{
+      if(winter&&a.def.winter==='migrate'){a.z+=dt*0.8;if(a.z>WZ-5)a.z=5;a.state='迁徙';}
+      else{a.x+=Math.cos(a.t*0.5+a.seed)*dt*0.7;a.z+=Math.sin(a.t*0.4+a.seed)*dt*0.7;}
+    }
+    a.x=Math.max(3,Math.min(WX-4,a.x));a.z=Math.max(3,Math.min(WZ-4,a.z));
+    if(a.def.kind!=='bird'&&surfaceY(Math.floor(a.x),Math.floor(a.z))<=SEA+1){
       a.x+=Math.sin(a.t*2.7)*dt*2;a.z+=Math.cos(a.t*2.3)*dt*2;
       a.x=Math.max(3,Math.min(WX-4,a.x));a.z=Math.max(3,Math.min(WZ-4,a.z));
     }
+    if(a.state!=='捕食'&&a.state!=='进食'&&a.state!=='逃避'&&a.state!=='求偶'&&a.state!=='迁徙'){
+      if(a.energy<35)a.state='觅食';else if(a.pregnant)a.state='育幼';else a.state='休息';
+    }
+    a.drive=(a.hp<35||a.energy<30)?'生存':(a.cooldown<=0&&adult&&a.energy>55?'繁衍':'社交');
+    if(harsh){a.state=env.temp<-8?'避寒':(env.temp>35?'避暑':(env.w.n==='雨'?'避雨':'避雪'));a.drive='生存';}
   }
+}
+function updateFlora(dt,bio){
+  if(!env)return;
+  for(var i=0;i<flora.length;i++){
+    var a=flora[i];
+    if(!a.alive)continue;
+    a.ageDays+=(bio||0);
+    var old=a.stage;
+    var seasonOk=env.season.key!=='winter'&&env.temp>2;
+    a.growth=Math.min(1,a.growth+(bio||0)/a.growthDays*(seasonOk?1:0.12));
+    if(a.growth<0.12)a.stage='种子';
+    else if(a.growth<0.40)a.stage='幼苗';
+    else if(a.growth<0.70)a.stage='开花';
+    else if(a.growth<0.92)a.stage='结果';
+    else a.stage='成熟';
+    if(a.ageDays>a.lifespanDays*0.98)a.stage='枯萎';
+    a.state=seasonOk?('生长 · '+a.stage):('休眠 · '+a.stage);
+    if(a.stage!==old){a.vox=makePlantVox(a.hue,a.flowerHue,a.stage);a.voxCount=a.vox.length/6;}
+    if(a.hp<a.maxHp)a.hp=Math.min(a.maxHp,a.hp+0.5*dt);
+    a.cooldown=Math.max(0,a.cooldown-(bio||0));
+    if(a.stage==='结果'&&a.cooldown<=0&&seasonOk){
+      spawnPlant(a);a.cooldown=70;a.seeds++;
+    }
+    if(a.hp<=0 || a.ageDays>=a.lifespanDays){a.alive=false;}
+  }
+}
+function updateHumans(dt,bio){
+  if(!env)return;
+  for(var i=0;i<humans.length;i++){
+    var a=humans[i];
+    if(!a.alive)continue;
+    a.ageYears+=(bio||0)/365;
+    var old=a.stage;a.stage=stageOfHuman(a.ageYears);
+    if(a.stage!==old){a.vox=makeHumanVox(a.sex,a.stage,a.hue);a.voxCount=a.vox.length/6;}
+    if(a.ageYears>85){a.alive=false;continue;}
+    a.energy=Math.max(0,Math.min(100,a.energy-dt*0.45));
+    a.hp=Math.min(a.maxHp,a.hp+a.recovery*dt+(a.energy>40?0.3:0));
+    a.cooldown=Math.max(0,a.cooldown-(bio||0));
+    a.state=a.ageYears<18?'成长':(a.energy>30?'劳作':'休息');
+    var harshH=(env.temp<-5||env.temp>35||env.w.precip>0);
+    if(harshH)a.state=env.temp<-5?'避寒':(env.temp>35?'避暑':(env.w.n==='雨'?'避雨':'避雪'));
+    var adult=(a.ageYears>=18&&a.ageYears<=55);
+    var near=null,nd=99;
+    for(var j=0;j<humans.length;j++){
+      var b=humans[j];
+      if(b===a||!b.alive)continue;
+      var d=Math.hypot(b.x-a.x,b.z-a.z);
+      if(d<nd){nd=d;near=b;}
+    }
+    if(near&&nd<3.5){
+      if(a.sex==='女'&&near.sex==='男'&&adult&&near.ageYears>=18&&near.ageYears<=60&&!a.pregnant&&a.cooldown<=0&&a.energy>55&&!harshH&&humans.filter(function(x){return x.alive;}).length<8){
+        a.pregnant=true;a.gestation=30;a.cooldown=120;a.state='求偶';
+      }else if(a.energy>40){
+        a.state='交谈';a.hp=Math.min(a.maxHp,a.hp+0.5*dt);
+      }else if(a.energy<20){
+        a.state='争执';a.hp-=dt*1.2;
+      }
+    }
+    if(a.pregnant){
+      a.gestation-=(bio||0);
+      if(a.gestation<=0){spawnHumanChild(a);a.pregnant=false;a.children++;a.cooldown=120;}
+    }
+    a.dir+=(hash2(Math.floor(a.t*5)+3,a.strength)-0.5)*dt*1.8;
+    a.x+=Math.cos(a.dir)*dt*0.35;a.z+=Math.sin(a.dir)*dt*0.35;
+    a.x=Math.max(3,Math.min(WX-4,a.x));a.z=Math.max(3,Math.min(WZ-4,a.z));
+    if(surfaceY(Math.floor(a.x),Math.floor(a.z))<=SEA+1){
+      a.x+=Math.sin(a.t*2.1)*dt*1.5;a.z+=Math.cos(a.t*1.7)*dt*1.5;
+    }
+    a.t+=dt;
+    if(!a.state||a.state==='劳作'||a.state==='休息')a.state=a.energy>30?'劳作':'休息';
+    a.drive=(a.hp<35||a.energy<25)?'生存':(a.pregnant||a.cooldown<=0&&adult?'繁衍':'社交');
+    if(harshH){a.state=env.temp<-5?'避寒':(env.temp>35?'避暑':(env.w.n==='雨'?'避雨':'避雪'));a.drive='生存';}
+    if(a.hp<=0)a.alive=false;
+  }
+}
+function updateAgents(dt){
+  if(!env)return;
+  var bio=speed>0?Math.min(0.05,dt*speed/86400*60):0;
+  updateFauna(dt,bio);
+  updateFlora(dt,bio);
+  updateHumans(dt,bio);
+}
+function fastForward(days){
+  var n=Math.max(1,Math.ceil(days/10)),d=days/n;
+  for(var i=0;i<n;i++){updateFauna(0.05,d);updateFlora(0.05,d);updateHumans(0.05,d);}
+  updateEnv(0);
+  if(selectedAgent)renderSpecies();
+  return {animals:fauna.length,plants:flora.length,humans:humans.length};
+}
+function buildVoxBuffer(){
+  var o=0,cap=voxArr.length;
+  function add(a,yOff,scale){
+    if(!a.alive||!a.vox)return;
+    var gy=surfaceY(Math.floor(a.x),Math.floor(a.z));
+    var y0=gy+yOff;
+    var ca=Math.cos(a.dir||0),sa=Math.sin(a.dir||0);
+    var v=a.vox,boost=selectedAgent===a.id?1.3:1;
+    for(var i=0;i<v.length;i+=6){
+      if(o+6>cap)return;
+      var lx=v[i],ly=v[i+1],lz=v[i+2];
+      voxArr[o++]=a.x+lx*ca-lz*sa;
+      voxArr[o++]=y0+ly*scale;
+      voxArr[o++]=a.z+lx*sa+lz*ca;
+      voxArr[o++]=Math.min(1,v[i+3]*boost);
+      voxArr[o++]=Math.min(1,v[i+4]*boost);
+      voxArr[o++]=Math.min(1,v[i+5]*boost);
+    }
+  }
+  if(fineVoxel&&showFauna){
+    for(var i=0;i<fauna.length;i++){var a=fauna[i];if(a.alive&&a.active)add(a,a.def.kind==='bird'?4.5:0.02,1);}
+  }
+  for(var j=0;j<flora.length;j++){var p=flora[j];if(p.alive)add(p,0,0.45+0.55*p.growth);}
+  if(fineVoxel)for(var k=0;k<humans.length;k++){var h=humans[k];if(h.alive)add(h,0.02,1);}
+  nVox=o/6;
+}
+function drawVoxels(){
+  buildVoxBuffer();
+  if(!nVox)return;
+  gl.useProgram(P_VOX);
+  gl.bindBuffer(gl.ARRAY_BUFFER,voxBuf);
+  gl.bufferData(gl.ARRAY_BUFFER,voxArr.subarray(0,nVox*6),gl.DYNAMIC_DRAW);
+  gl.vertexAttribPointer(VXpos,3,gl.FLOAT,false,24,0);
+  gl.vertexAttribPointer(VXcol,3,gl.FLOAT,false,24,12);
+  gl.enableVertexAttribArray(VXpos);gl.enableVertexAttribArray(VXcol);
+  gl.uniformMatrix4fv(UVX.mvp,false,MVP);
+  gl.uniform1f(UVX.size,Math.max(2.2,Math.min(5,(devicePixelRatio||1)*2.3)));
+  gl.uniform1f(UVX.dim,atomMode?0.8:env.dim);
+  gl.disable(gl.BLEND);
+  gl.depthMask(true);
+  gl.enable(gl.DEPTH_TEST);
+  gl.drawArrays(gl.POINTS,0,nVox);
 }
 function updateFaunaLabels(){
   var box=document.getElementById('faunaLabels');
   if(!box)return;
-  if(!showFauna||!fauna.length){box.innerHTML='';return;}
   var html='';
-  for(var i=0;i<fauna.length;i++){
-    var a=fauna[i];
-    if(!a.active)continue;
+  function add(a,labelY){
+    if(!a.alive)return;
+    if(a.kind==='animal'&&(!a.active||!showFauna))return;
     var gy=surfaceY(Math.floor(a.x),Math.floor(a.z));
-    var y=a.def.kind==='bird'?gy+5.2:gy+1.25*a.def.size;
+    var y=gy+labelY;
     var cw=MVP[3]*a.x+MVP[7]*y+MVP[11]*a.z+MVP[15];
-    if(cw<=0.01)continue;
+    if(cw<=0.01)return;
     var cx=MVP[0]*a.x+MVP[4]*y+MVP[8]*a.z+MVP[12];
     var cy=MVP[1]*a.x+MVP[5]*y+MVP[9]*a.z+MVP[13];
     var sx=(cx/cw*0.5+0.5)*innerWidth,sy=(1-(cy/cw*0.5+0.5))*innerHeight;
-    if(sx<10||sx>innerWidth-10||sy<10||sy>innerHeight-10)continue;
-    var tag=a.def.n+(env&&env.season.key==='winter'&&a.def.winter==='migrate'?' · 迁徙':'');
-    html+='<div class="fl" style="left:'+sx.toFixed(0)+'px;top:'+sy.toFixed(0)+'px">'+tag+'</div>';
+    if(sx<10||sx>innerWidth-10||sy<10||sy>innerHeight-10)return;
+    var extra='';
+    if(a.kind==='animal'&&env&&env.season.key==='winter'&&a.def.winter==='migrate')extra=' · 迁徙';
+    if(a.kind==='animal'&&a.pregnant)extra+=' · 孕';
+    if(a.kind==='human')extra=' · '+a.stage;
+    if(a.kind==='plant')extra=' · '+a.stage;
+    html+='<div class="fl'+(selectedAgent===a.id?' sel':'')+'" data-agent="'+a.id+'" style="left:'+sx.toFixed(0)+'px;top:'+sy.toFixed(0)+'px">'+a.type+extra+'</div>';
+  }
+  for(var i=0;i<fauna.length;i++)add(fauna[i],fauna[i].def.kind==='bird'?5.2:1.25*fauna[i].size);
+  for(var j=0;j<humans.length;j++)add(humans[j],1.95);
+  for(var k=0;k<flora.length;k++){
+    var p=flora[k];
+    if(!p.alive)continue;
+    if(Math.hypot(p.x-player.x,p.z-player.z)<20)add(p,0.55+0.9*p.growth);
   }
   box.innerHTML=html;
 }
@@ -2728,6 +3184,107 @@ function bakeAnimal(off,a){
     off=bakePart(charArr,off,a.x-lx,y+0.22*s-step,a.z-lz,a.dir,0,0,0.12*s,0.42*s,0.12*s,dark);
   }
   return off;
+}
+
+/* ---------- 物种详情 ---------- */
+function findAgent(id){
+  for(var i=0;i<fauna.length;i++)if(fauna[i].id===id)return fauna[i];
+  for(var j=0;j<flora.length;j++)if(flora[j].id===id)return flora[j];
+  for(var k=0;k<humans.length;k++)if(humans[k].id===id)return humans[k];
+  return null;
+}
+function openSpeciesList(){
+  selectedAgent=null;
+  document.getElementById('species').classList.remove('hidden');
+  document.getElementById('spTitle').textContent='物种列表';
+  document.getElementById('spType').textContent='动物 / 植物 / 人 · 点击条目查看属性';
+  var h='';
+  function group(title,arr,kind){
+    if(!arr.length)return;
+    h+='<div class="catline">'+title+'（'+arr.length+'）</div><div class="mgrid">'+arr.map(function(a){
+      var c=hueColor(a.hue||0,1),rgb='rgb('+Math.round(c[0]*255)+','+Math.round(c[1]*255)+','+Math.round(c[2]*255)+')';
+      var sub=kind==='animal'?(a.sex+' · '+a.stage+' · '+a.state):(kind==='plant'?(a.stage+' · '+Math.round(a.growth*100)+'%'):(a.sex+' · '+a.stage+' · '+a.ethnic));
+      return '<div class="mcard" data-agent="'+a.id+'"><span class="sw" style="background:'+rgb+'"></span><div><div class="mn">'+a.type+(a.alive?'':'（死亡）')+'</div><div class="mf">'+sub+'</div></div></div>';
+    }).join('')+'</div>';
+  }
+  group('动物',fauna,'animal');group('植物',flora,'plant');group('人类',humans,'human');
+  document.getElementById('spBody').innerHTML=h;
+}
+function openSpecies(id){
+  var a=findAgent(id);
+  if(!a)return;
+  selectedAgent=id;
+  document.getElementById('species').classList.remove('hidden');
+  renderSpecies();
+}
+function closeSpecies(){
+  selectedAgent=null;
+  document.getElementById('species').classList.add('hidden');
+}
+function speciesBar(v,max,cls){
+  return '<div class="wbar'+(cls?' '+cls:'')+'"><i style="width:'+Math.max(0,Math.min(100,Math.round(v/max*100)))+'%"></i></div>';
+}
+function renderSpecies(){
+  var a=findAgent(selectedAgent);
+  var body=document.getElementById('spBody');
+  if(!a){body.innerHTML='<div class="wdetail">目标已离开或死亡。</div>';return;}
+  document.getElementById('spTitle').textContent=a.type;
+  document.getElementById('spType').textContent=(a.kind==='animal'?'动物 · 行为主体':(a.kind==='plant'?'植物 · 生产者':'人类 · 社会主体'))+(a.alive?'':' · 已死亡');
+  var kindName=(a.kind==='animal'?'动物':(a.kind==='plant'?'植物':'人类'));
+  var kindBadge=(kindName!==a.type?'<span class="badge">'+kindName+'</span>':'');
+  var h='<div class="wdetail"><h3>'+a.type+' '+kindBadge+'<span class="badge">'+(a.alive?'存活':'死亡')+'</span></h3>';
+  if(a.kind==='animal'){
+    var t=AGENT_TRAITS[a.def.kind]||AGENT_TRAITS.herb;
+    h+='<div class="kv"><span>性别 / 繁殖</span><span>'+a.sex+' · '+(a.repro==='sexual'?'有性繁殖':'无性繁殖')+'</span></div>'+
+      '<div class="kv"><span>年龄 / 阶段</span><span>'+(a.ageDays/365).toFixed(1)+' 岁 · '+a.stage+'</span></div>'+
+      '<div class="kv"><span>状态 / 第一驱动</span><span>'+a.state+' · '+a.drive+'</span></div>'+
+      '<div class="kv"><span>HP</span><span>'+Math.round(a.hp)+' / '+a.maxHp+'</span></div>'+speciesBar(Math.max(0,a.hp),a.maxHp)+
+      '<div class="kv"><span>能量</span><span>'+Math.round(a.energy)+' / 100</span></div>'+speciesBar(a.energy,100,'night')+
+      '<div class="wgrid" style="margin-top:8px">'+
+        '<div class="wmetric"><div class="k">攻击力</div><div class="v">'+a.attack+'</div></div>'+
+        '<div class="wmetric"><div class="k">防御力</div><div class="v">'+a.defense+'</div></div>'+
+        '<div class="wmetric"><div class="k">回复</div><div class="v">'+a.recovery.toFixed(1)+' <small>/s</small></div></div>'+
+        '<div class="wmetric"><div class="k">寿命</div><div class="v">'+(a.lifespanDays/365).toFixed(1)+' <small>岁</small></div></div>'+
+      '</div>'+
+      '<div class="kv"><span>食性 / 迁徙</span><span>'+(a.def.kind==='pred'?'肉食':(a.def.kind==='herb'?'植食':'杂食'))+' · '+(a.def.winter==='migrate'?'迁徙':(a.def.winter==='hide'?'冬眠/隐匿':'常驻'))+'</span></div>'+
+      '<div class="kv"><span>参数区间</span><span>HP '+Math.round(a.maxHp*0.85)+'–'+Math.round(a.maxHp*1.15)+' · 攻击 '+Math.max(1,Math.round(a.attack*0.8))+'–'+Math.round(a.attack*1.2)+' · 寿命 '+(a.lifespanDays*0.85/365).toFixed(1)+'–'+(a.lifespanDays*1.15/365).toFixed(1)+' 岁</span></div>'+
+      '<div class="kv"><span>繁殖 / 后代</span><span>'+(a.pregnant?('怀孕中 · 剩余 '+Math.max(0,a.gestation).toFixed(1)+' 天'):('冷却 '+a.cooldown.toFixed(1)+' 天'))+' · 已有 '+a.children+' 胎</span></div>'+
+      '<div class="kv"><span>体表寄生负荷</span><span>'+a.parasiteLoad.toFixed(2)+'</span></div>';
+  }else if(a.kind==='plant'){
+    h+='<div class="kv"><span>生长阶段</span><span>'+a.stage+'</span></div>'+
+      '<div class="kv"><span>生长进度</span><span>'+Math.round(a.growth*100)+'%</span></div>'+speciesBar(a.growth,1)+
+      '<div class="kv"><span>年龄 / 寿命</span><span>'+a.ageDays.toFixed(0)+' / '+a.lifespanDays+' 游戏日</span></div>'+
+      '<div class="kv"><span>繁殖方式</span><span>'+(a.repro==='sexual'?'有性（开花结果/种子）':'无性（分蘖/匍匐茎）')+'</span></div>'+
+      '<div class="kv"><span>种子 / 扩散</span><span>'+a.seeds+' 次 · 冷却 '+a.cooldown.toFixed(1)+' 天</span></div>'+
+      '<div class="kv"><span>开花 / 结果季</span><span>'+({spring:'春',summer:'夏',autumn:'秋',winter:'冬'}[a.flowerSeason]||'—')+' / '+({spring:'春',summer:'夏',autumn:'秋',winter:'冬'}[a.fruitSeason]||'—')+'</span></div>'+
+      '<div class="kv"><span>状态</span><span>'+a.state+'</span></div>'+
+      '<div class="kv"><span>HP</span><span>'+Math.round(a.hp)+' / '+a.maxHp+'</span></div>'+speciesBar(Math.max(0,a.hp),a.maxHp)+
+      '<div class="kv"><span>生境</span><span>'+REGIONS[curRegion].biome+'</span></div>'+
+      '<div class="kv"><span>参数区间</span><span>生长周期 '+Math.round(a.growthDays*0.85)+'–'+Math.round(a.growthDays*1.15)+' 天 · 寿命 '+Math.round(a.lifespanDays*0.85)+'–'+Math.round(a.lifespanDays*1.15)+' 天</span></div>';
+  }else{
+    h+='<div class="kv"><span>性别 / 年龄</span><span>'+a.sex+' · '+a.ageYears.toFixed(1)+' 岁 · '+a.stage+'</span></div>'+
+      '<div class="kv"><span>民族 / 文化</span><span>'+a.ethnic+' · '+a.culture+'</span></div>'+
+      '<div class="kv"><span>状态 / 第一驱动</span><span>'+a.state+' · '+a.drive+'</span></div>'+
+      '<div class="kv"><span>HP</span><span>'+Math.round(a.hp)+' / '+a.maxHp+'</span></div>'+speciesBar(Math.max(0,a.hp),a.maxHp)+
+      '<div class="kv"><span>能量</span><span>'+Math.round(a.energy)+' / 100</span></div>'+speciesBar(a.energy,100,'night')+
+      '<div class="wgrid" style="margin-top:8px">'+
+        '<div class="wmetric"><div class="k">身体素质</div><div class="v">'+a.strength+'</div></div>'+
+        '<div class="wmetric"><div class="k">攻击 / 防御</div><div class="v">'+a.attack+' / '+a.defense+'</div></div>'+
+        '<div class="wmetric"><div class="k">回复</div><div class="v">'+a.recovery.toFixed(1)+' <small>/s</small></div></div>'+
+        '<div class="wmetric"><div class="k">子女</div><div class="v">'+a.children+'</div></div>'+
+      '</div>'+
+      '<div class="kv"><span>生育</span><span>'+(a.pregnant?('怀孕 · 剩余 '+Math.max(0,a.gestation).toFixed(1)+' 天'):('冷却 '+a.cooldown.toFixed(1)+' 天'))+'</span></div>'+
+      '<div class="kv"><span>参数区间</span><span>身体素质 20–95 · 年龄段 幼年→少年→青年→中年→老年</span></div>';
+  }
+  var rel=REGION_REL[curRegion]||{mutual:[],parasite:[]};
+  h+='<div class="catline">互利共生</div><div class="mut" style="font-size:11px;line-height:1.8">'+rel.mutual.map(function(x){return '· '+x;}).join('<br>')+'</div>'+
+    '<div class="catline">寄生关系</div><div class="mut" style="font-size:11px;line-height:1.8">'+rel.parasite.map(function(x){return '· '+x;}).join('<br>')+'</div>'+
+    '<div class="kv" style="margin-top:6px"><span>精细轮廓</span><span>'+a.voxCount+' 个微方块采样点 · 每个粗方块约 '+VOX_PER_BLOCK+' · 24 色相 H'+(a.hue||0)+'</span></div>'+
+    '<div class="note">行为优先级：生存（HP/能量/逃避）→ 繁衍（求偶/怀孕/育幼）→ 社交/休息。参数为教学模拟，不是真实种群动力学。</div></div>';
+  body.innerHTML=h;
+}
+function refreshSpecies(){
+  if(selectedAgent&&!document.getElementById('species').classList.contains('hidden'))renderSpecies();
 }
 
 /* ---------- 六十四卦 ---------- */
@@ -2929,6 +3486,7 @@ function renderAll(){
   renderTimeDyn();renderTerms();renderRegionDetail();renderCmpTable();renderEco();renderHexDetail();
 }
 function refreshWorldUI(){
+  refreshSpecies();
   if(document.getElementById('world').classList.contains('hidden'))return;
   updateHUD();
   if(worldTab==='time')renderTimeDyn();
@@ -2940,6 +3498,11 @@ function refreshWorldUI(){
 function bindWorldUI(){
   buildRegionChips();
   document.getElementById('btnWorld').addEventListener('click',function(){openWorld('time');});
+  document.getElementById('btnSpecies').addEventListener('click',openSpeciesList);
+  document.getElementById('spBody').addEventListener('click',function(e){
+    var el=e.target.closest('[data-agent]');
+    if(el)openSpecies(el.getAttribute('data-agent'));
+  });
   document.getElementById('clockChip').addEventListener('click',function(){openWorld('time');});
   document.getElementById('worldBack').addEventListener('click',closeWorld);
   Array.prototype.forEach.call(document.querySelectorAll('.wtabs button'),function(b){
@@ -2950,8 +3513,24 @@ function bindWorldUI(){
     showFauna=!showFauna;
     this.classList.toggle('on',showFauna);
     if(showFauna&&!fauna.length)initFauna();
+    if(!flora.length)initFlora();
+    if(!humans.length)initHumans();
     toast(showFauna?'3D 世界：显示代表动物':'3D 世界：隐藏动物');
   });
+  document.getElementById('btnVox').addEventListener('click',function(){
+    fineVoxel=!fineVoxel;
+    this.classList.toggle('on',fineVoxel);
+    toast(fineVoxel?'精细微方块：每个粗方块约 100 个微方块 · 24 色相':'已切回粗方块轮廓');
+  });
+  document.getElementById('btnEcoFast').addEventListener('click',function(){
+    var c=fastForward(30);
+    toast('生态快进 30 天（不改变日历）：动物 '+c.animals+' · 植物 '+c.plants+' · 人 '+c.humans);
+  });
+  document.getElementById('faunaLabels').addEventListener('click',function(e){
+    var el=e.target.closest('[data-agent]');
+    if(el)openSpecies(el.getAttribute('data-agent'));
+  });
+  document.getElementById('spBack').addEventListener('click',closeSpecies);
   document.getElementById('btnSave').addEventListener('click',function(){saveWorld(true);});
   document.getElementById('btnLoad').addEventListener('click',function(){if(!loadWorld(false))toast('没有可读取的存档');});
   var bw=document.getElementById('btnWipe');
@@ -3015,7 +3594,7 @@ buildRegionChips();
 bindWorldUI();
 updateHUD();
 var restored=loadWorld(true);
-if(!restored)initFauna();
+if(!restored)initAgents();
 if(restored){
   setTimeout(function(){toast('已恢复上次存档：'+fmtDate(env.D)+' '+fmtClock(env.D));},1200);
 }else{
@@ -3036,7 +3615,11 @@ window.__world={
     return {r:r,counts:c,info:phaseInfo};
   },
   applyTerrain:function(){applyRegionTerrain();},
-  faunaList:function(){return fauna.map(function(a){return {n:a.def.n,x:a.x,z:a.z,active:a.active};});},
+  faunaList:function(){return fauna.map(function(a){return {id:a.id,n:a.type,x:a.x,z:a.z,active:a.active,alive:a.alive};});},
+  agents:function(){return {fauna:fauna.map(function(a){return {id:a.id,type:a.type,sex:a.sex,stage:a.stage,state:a.state,hp:a.hp,pregnant:a.pregnant,alive:a.alive};}),flora:flora.map(function(a){return {id:a.id,type:a.type,stage:a.stage,growth:a.growth,alive:a.alive};}),humans:humans.map(function(a){return {id:a.id,sex:a.sex,age:a.ageYears,stage:a.stage,ethnic:a.ethnic,state:a.state,energy:a.energy,cooldown:a.cooldown,pregnant:a.pregnant,alive:a.alive};})};},
+  openSpecies:function(id){openSpecies(id);},
+  openList:function(){openSpeciesList();},
+  fastForward:function(d){return fastForward(d||30);},
   lookAt:function(x,z){player.yaw=Math.atan2(-(x-player.x),-(z-player.z));player.pitch=0;}
 };
 requestAnimationFrame(function(t){last=t;loop(t);});
