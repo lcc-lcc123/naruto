@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <link rel="icon" href="data:,">
 <title>映射 + AI 世界</title>
-<meta name="version" content="world-v8.2.0">
+<meta name="version" content="world-v8.3.0">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:"PingFang SC","Microsoft YaHei",sans-serif;color:#fff;touch-action:none;user-select:none;-webkit-user-select:none}
@@ -6521,6 +6521,525 @@ window.__world={
 requestAnimationFrame(function(t){last=t;loop(t);});
 setTimeout(function(){document.getElementById('hint').style.opacity='0';document.getElementById('hint').style.transition='opacity 1.2s';},9000);
 })();
+</script>
+<script>
+(function () {
+  'use strict';
+
+  /* ================= 数据：材料 / 零件 / 系统 / 产品 ================= */
+  var M = {
+    /* 原料 */
+    iron: { n: '铁', c: '金属', raw: 1, p: [7.87, 250, 4, 2, 4, 4, 1], d: '炼钢和铸件的基体。' },
+    coal: { n: '煤', c: '原料', raw: 1, p: [1.4, 20, 2, 2, 1, 3, 1], d: '还原剂与能源。' },
+    limestone: { n: '石灰石', c: '原料', raw: 1, p: [2.7, 60, 3, 4, 1, 3, 1], d: '炼钢造渣、玻璃与水泥原料。' },
+    al: { n: '铝', c: '金属', raw: 1, p: [2.7, 110, 2.5, 4, 5, 3, 2], d: '轻金属，易氧化形成致密氧化膜。' },
+    copper: { n: '铜', c: '金属', raw: 1, p: [8.96, 220, 3, 4, 5, 4, 3], d: '导电导热优良。' },
+    mg: { n: '镁', c: '金属', raw: 1, p: [1.74, 90, 2, 3, 4, 2, 3], d: '最轻的工程金属之一。' },
+    ti: { n: '钛', c: '金属', raw: 1, p: [4.5, 400, 4, 5, 2, 5, 4], d: '耐蚀、耐高温、比强度高。' },
+    zinc: { n: '锌', c: '金属', raw: 1, p: [7.14, 150, 2.5, 3, 4, 3, 2], d: '镀锌防锈与合金元素。' },
+    chromium: { n: '铬', c: '金属', raw: 1, p: [7.2, 300, 5, 5, 4, 4, 3], d: '提高钢的硬度与耐蚀性。' },
+    vanadium: { n: '钒', c: '金属', raw: 1, p: [6.1, 350, 5, 5, 3, 5, 4], d: '细化晶粒，提高钢与钛合金强度。' },
+    sand: { n: '石英砂', c: '原料', raw: 1, p: [2.65, 60, 6, 5, 1, 4, 1], d: '玻璃与硅材料的主要原料。' },
+    clay: { n: '黏土', c: '原料', raw: 1, p: [2.6, 30, 2, 4, 1, 3, 1], d: '陶瓷坯体原料。' },
+    feldspar: { n: '长石', c: '原料', raw: 1, p: [2.6, 50, 6, 4, 1, 4, 1], d: '陶瓷熔剂。' },
+    quartz: { n: '石英', c: '原料', raw: 1, p: [2.65, 80, 7, 5, 1, 4, 1], d: '高纯硅与陶瓷原料。' },
+    crude_oil: { n: '原油', c: '原料', raw: 1, p: [0.85, 5, 0, 3, 0, 1, 2], d: '烃类混合物，塑料、橡胶、纤维与燃料之源。' },
+    rubber_raw: { n: '天然橡胶', c: '原料', raw: 1, p: [0.95, 20, 1, 4, 1, 2, 1], d: '高弹性天然高分子。' },
+    sulfur: { n: '硫', c: '原料', raw: 1, p: [2.07, 10, 2, 3, 0, 2, 1], d: '硫化与硫酸工业原料。' },
+    carbon_black: { n: '炭黑', c: '原料', raw: 1, p: [1.8, 20, 2, 5, 3, 3, 1], d: '橡胶补强剂。' },
+    wood: { n: '木材', c: '原料', raw: 1, p: [0.6, 80, 2, 3, 1, 2, 1], d: '天然纤维复合材料。' },
+    leather: { n: '皮革', c: '原料', raw: 1, p: [0.9, 25, 1, 4, 1, 2, 2], d: '座椅与内饰面料。' },
+    cotton: { n: '棉纤维', c: '原料', raw: 1, p: [1.5, 30, 1, 4, 1, 2, 1], d: '天然纺织纤维。' },
+    silicon: { n: '硅', c: '原料', raw: 1, p: [2.33, 120, 6, 5, 3, 5, 3], d: '半导体与光伏基础材料。' },
+    neodymium: { n: '钕', c: '金属', raw: 1, p: [7.0, 200, 4, 2, 4, 3, 5], d: '稀土永磁元素。' },
+    boron: { n: '硼', c: '原料', raw: 1, p: [2.34, 30, 9, 5, 1, 5, 4], d: '钕铁硼永磁与硼硅玻璃原料。' },
+    nickel: { n: '镍', c: '金属', raw: 1, p: [8.9, 300, 4, 4, 4, 4, 3], d: '不锈钢与三元正极材料。' },
+    cobalt: { n: '钴', c: '金属', raw: 1, p: [8.9, 350, 4, 4, 4, 4, 5], d: '三元正极与高温合金。' },
+    manganese: { n: '锰', c: '金属', raw: 1, p: [7.3, 250, 4, 3, 4, 3, 2], d: '钢的脱氧与合金元素。' },
+    lithium: { n: '锂', c: '金属', raw: 1, p: [0.53, 10, 0.5, 1, 5, 2, 4], d: '最轻金属，锂电池核心。' },
+    graphite: { n: '石墨', c: '原料', raw: 1, p: [2.2, 50, 1.5, 5, 5, 5, 2], d: '锂电池负极与润滑材料。' },
+    ethylene_glycol: { n: '乙二醇', c: '原料', raw: 1, p: [1.11, 10, 0, 5, 1, 2, 2], d: '防冻液与聚酯原料。' },
+    resin_epoxy: { n: '环氧树脂', c: '原料', raw: 1, p: [1.2, 60, 2, 5, 1, 3, 3], d: '复合材料基体与结构胶。' },
+    pigment: { n: '颜料', c: '原料', raw: 1, p: [2.5, 10, 2, 5, 1, 3, 2], d: '涂料着色与防护。' },
+    sodium_azide: { n: '叠氮化钠', c: '原料', raw: 1, p: [1.85, 20, 2, 3, 1, 2, 2], d: '安全气囊产气剂。' },
+    nitrogen: { n: '氮气', c: '原料', raw: 1, p: [1.25, 5, 0, 5, 0, 1, 1], d: '合成纤维与惰性保护气。' },
+    water: { n: '水', c: '原料', raw: 1, p: [1.0, 5, 0, 5, 1, 2, 0], d: '冷却液与工艺介质。' },
+    refrigerant: { n: '制冷剂 R134a', c: '高分子', raw: 1, p: [1.2, 5, 0, 5, 1, 2, 3], d: '空调制冷剂，需密闭回收。' },
+
+    /* 工程材料 */
+    steel: { n: '钢', t: '材料', c: '金属', p: [7.85, 500, 5, 3, 4, 4, 2], d: '铁碳合金，车身骨架与底盘主力材料。' },
+    hs_steel: { n: '高强度钢', t: '材料', c: '金属', p: [7.8, 1200, 6, 4, 4, 4, 3], d: '防撞梁与安全结构用钢。' },
+    al_alloy: { n: '铝合金', t: '材料', c: '金属', p: [2.8, 310, 3, 4, 5, 4, 3], d: '轻量化车身、轮毂与电池壳体。' },
+    mg_alloy: { n: '镁合金', t: '材料', c: '金属', p: [1.8, 250, 3, 4, 4, 3, 4], d: '更轻的座椅骨架与方向盘骨架。' },
+    ti_alloy: { n: '钛合金', t: '材料', c: '金属', p: [4.5, 900, 5, 5, 3, 5, 5], d: '高端排气与紧固件，耐高温耐蚀。' },
+    glass: { n: '玻璃', t: '材料', c: '无机非金属', p: [2.5, 70, 5, 5, 1, 4, 1], d: '硅酸盐透明材料。' },
+    tempered_glass: { n: '钢化玻璃', t: '材料', c: '无机非金属', p: [2.5, 120, 5, 5, 1, 5, 2], d: '淬火提高强度，破碎成小颗粒。' },
+    pp: { n: '聚丙烯 PP', t: '材料', c: '高分子', p: [0.9, 35, 1, 5, 1, 2, 1], d: '保险杠、内饰板与线束绝缘。' },
+    abs: { n: 'ABS', t: '材料', c: '高分子', p: [1.05, 45, 2, 5, 1, 2, 2], d: '仪表盘与内饰件。' },
+    pc: { n: '聚碳酸酯 PC', t: '材料', c: '高分子', p: [1.2, 65, 2.5, 5, 1, 3, 3], d: '车灯透镜与透明件。' },
+    rubber_v: { n: '硫化橡胶', t: '材料', c: '高分子', p: [1.2, 25, 1.5, 5, 1, 2, 1], d: '轮胎与密封条。' },
+    carbon_fiber: { n: '碳纤维', t: '材料', c: '复合材料', p: [1.8, 3500, 7, 5, 3, 5, 5], d: '轻质高强增强纤维。' },
+    composite_cf: { n: '碳纤维复合材料', t: '材料', c: '复合材料', p: [1.6, 1500, 6, 5, 1, 4, 5], d: '碳纤维 + 环氧树脂，超跑车身与尾翼。' },
+    ceramic: { n: '陶瓷', t: '材料', c: '无机非金属', p: [3.2, 300, 8, 5, 1, 5, 2], d: '耐高温、耐磨，用于制动盘与传感器。' },
+    pcb: { n: '覆铜板 PCB', t: '材料', c: '复合材料', p: [1.8, 120, 3, 4, 2, 4, 3], d: '环氧树脂 + 玻璃纤维 + 铜箔。' },
+    chip: { n: '芯片', t: '材料', c: '无机非金属', p: [2.3, 200, 6, 5, 5, 4, 5], d: '硅基半导体，ECU 与传感器核心。' },
+    ndfeb: { n: '钕铁硼', t: '材料', c: '金属', p: [7.5, 80, 4, 3, 4, 4, 5], d: '稀土永磁体，电机转子。' },
+    cathode: { n: '三元正极', t: '材料', c: '金属', p: [4.8, 150, 3, 3, 2, 4, 5], d: '镍钴锰酸锂正极材料。' },
+    electrolyte: { n: '电解液', t: '材料', c: '高分子', p: [1.2, 10, 1, 2, 3, 2, 4], d: '锂盐与有机溶剂，离子导体。' },
+    separator: { n: '电池隔膜', t: '材料', c: '高分子', p: [0.9, 30, 1, 5, 1, 2, 2], d: 'PP/PE 微孔膜，隔离正负极。' },
+    foam: { n: '聚氨酯泡沫', t: '材料', c: '高分子', p: [0.05, 2, 0.5, 5, 1, 1, 1], d: '座椅缓冲与隔音。' },
+    nylon: { n: '尼龙', t: '材料', c: '高分子', p: [1.15, 80, 2, 5, 1, 3, 3], d: '安全气囊织物与耐磨件。' },
+    polyester: { n: '聚酯纤维', t: '材料', c: '高分子', p: [1.38, 80, 2, 5, 1, 3, 2], d: '安全带与织物。' },
+    paint: { n: '涂料', t: '材料', c: '高分子', p: [1.2, 20, 1, 5, 1, 2, 2], d: '树脂、颜料与溶剂，防锈美观。' },
+    adhesive: { n: '结构胶', t: '材料', c: '高分子', p: [1.1, 30, 1, 5, 1, 2, 2], d: '玻璃粘接与车身密封。' },
+    coolant: { n: '冷却液', t: '材料', c: '高分子', p: [1.1, 5, 0, 4, 2, 3, 2], d: '乙二醇水溶液，防冻与散热。' },
+    lubricant: { n: '润滑油', t: '材料', c: '高分子', p: [0.9, 5, 0, 4, 1, 3, 2], d: '基础油 + 添加剂，减磨抗氧化。' },
+    gasoline: { n: '汽油', t: '材料', c: '高分子', p: [0.75, 5, 0, 4, 0, 2, 3], d: '烃类混合物，燃油车燃料。' },
+
+    /* 零件 */
+    hammer_head: { n: '锤头', t: '零件', c: '金属' },
+    hammer_handle: { n: '锤柄', t: '零件', c: '原料' },
+    hammer: { n: '锤子', t: '产品', c: '产品' },
+    bed_frame: { n: '床架', t: '零件', c: '原料' },
+    bed_board: { n: '床板', t: '零件', c: '原料' },
+    bed: { n: '木床', t: '产品', c: '产品' },
+    engine_block: { n: '发动机缸体', t: '零件', c: '金属' },
+    piston: { n: '活塞', t: '零件', c: '金属' },
+    engine: { n: '发动机', t: '零件', c: '金属' },
+    gearbox: { n: '变速箱', t: '零件', c: '金属' },
+    frame: { n: '车架', t: '零件', c: '金属' },
+    panel: { n: '车身覆盖件', t: '零件', c: '金属' },
+    window: { n: '车窗', t: '零件', c: '无机非金属' },
+    tire: { n: '轮胎', t: '零件', c: '高分子' },
+    wheel: { n: '车轮', t: '零件', c: '金属' },
+    battery_cell: { n: '电芯', t: '零件', c: '金属' },
+    battery_pack: { n: '电池包', t: '零件', c: '金属' },
+    motor: { n: '电机', t: '零件', c: '金属' },
+    ecu: { n: 'ECU', t: '零件', c: '复合材料' },
+    wiring: { n: '线束', t: '零件', c: '金属' },
+    airbag: { n: '安全气囊', t: '零件', c: '高分子' },
+    seatbelt: { n: '安全带', t: '零件', c: '高分子' },
+    crash_beam: { n: '防撞梁', t: '零件', c: '金属' },
+    brake_disc: { n: '制动盘', t: '零件', c: '无机非金属' },
+    seat: { n: '座椅', t: '零件', c: '高分子' },
+    light: { n: '灯具', t: '零件', c: '高分子' },
+    bumper: { n: '保险杠', t: '零件', c: '高分子' },
+    dashboard: { n: '仪表盘', t: '零件', c: '高分子' },
+    exhaust: { n: '排气系统', t: '零件', c: '金属' },
+    seat_frame: { n: '座椅骨架', t: '零件', c: '金属' },
+    ac_unit: { n: '空调总成', t: '零件', c: '高分子' },
+
+    /* 系统与整车 */
+    body_sys: { n: '车身系统', t: '系统', c: '产品' },
+    power_sys: { n: '动力系统', t: '系统', c: '产品' },
+    control_sys: { n: '控制系统', t: '系统', c: '产品' },
+    safety_sys: { n: '安全系统', t: '系统', c: '产品' },
+    interior_sys: { n: '内饰系统', t: '系统', c: '产品' },
+    car: { n: '汽车', t: '产品', c: '产品' }
+  };
+
+  var R = {
+    steel: { k: '化学变化', cond: '1500 °C · 还原', ins: [['iron', 2], ['coal', 1], ['limestone', 1]], note: '高炉/转炉炼钢：降低含碳量并造渣除杂。' },
+    hs_steel: { k: '化学变化', cond: '1600 °C · 合金化', ins: [['steel', 2], ['chromium', 1], ['vanadium', 1]], note: '微合金化与控轧控冷提高强度。' },
+    al_alloy: { k: '化学变化', cond: '700 °C · 熔炼', ins: [['al', 2], ['copper', 1], ['mg', 1]], note: '熔炼合金化，形成轻质高强铝合金。' },
+    mg_alloy: { k: '化学变化', cond: '650 °C · 熔炼', ins: [['mg', 2], ['al', 1], ['zinc', 1]], note: '镁基合金，密度更低。' },
+    ti_alloy: { k: '化学变化', cond: '1600 °C · 真空熔炼', ins: [['ti', 2], ['al', 1], ['vanadium', 1]], note: '钛合金比强度高、耐蚀耐热。' },
+    glass: { k: '化学变化', cond: '1500 °C · 熔融', ins: [['sand', 3], ['limestone', 1], ['coal', 1]], note: '硅酸盐熔融，冷却形成非晶态玻璃。' },
+    tempered_glass: { k: '物理变化', cond: '600 °C · 急冷', ins: [['glass', 2]], note: '淬火产生压应力，提高强度。' },
+    pp: { k: '化学变化', cond: '催化剂 · 聚合', ins: [['crude_oil', 2]], note: '丙烯聚合得到聚丙烯。' },
+    abs: { k: '化学变化', cond: '聚合', ins: [['crude_oil', 3]], note: '丙烯腈-丁二烯-苯乙烯共聚物。' },
+    pc: { k: '化学变化', cond: '缩聚', ins: [['crude_oil', 3]], note: '双酚 A 与光气缩聚，透明耐冲击。' },
+    rubber_v: { k: '化学变化', cond: '150 °C · 硫化', ins: [['rubber_raw', 2], ['sulfur', 1]], note: '硫桥交联，弹性与强度提高。' },
+    carbon_fiber: { k: '化学变化', cond: '1000 °C · 碳化', ins: [['crude_oil', 3]], note: 'PAN 原丝经预氧化、碳化得到碳纤维。' },
+    composite_cf: { k: '化学变化', cond: '固化 · 加压', ins: [['carbon_fiber', 2], ['resin_epoxy', 1]], note: '纤维增强树脂基复合材料。' },
+    ceramic: { k: '化学变化', cond: '1200 °C · 烧结', ins: [['clay', 2], ['feldspar', 1], ['quartz', 1]], note: '坯体致密化，耐高温耐磨。' },
+    pcb: { k: '装配', cond: '层压 · 蚀刻', ins: [['resin_epoxy', 1], ['copper', 1], ['glass', 1]], note: '覆铜板经蚀刻形成电路。' },
+    chip: { k: '化学变化', cond: '光刻 · 掺杂', ins: [['silicon', 2], ['copper', 1]], note: '硅片经光刻、掺杂、互连形成芯片。' },
+    ndfeb: { k: '化学变化', cond: '冶金 · 烧结', ins: [['neodymium', 1], ['iron', 2], ['boron', 1]], note: '稀土永磁，磁能积高。' },
+    cathode: { k: '化学变化', cond: '共沉淀 · 烧结', ins: [['nickel', 1], ['cobalt', 1], ['manganese', 1], ['lithium', 1]], note: '镍钴锰三元正极材料。' },
+    electrolyte: { k: '化学变化', cond: '配液 · 除水', ins: [['lithium', 1], ['ethylene_glycol', 1]], note: '锂盐溶于有机溶剂，离子导电。' },
+    separator: { k: '物理变化', cond: '拉伸 · 成孔', ins: [['pp', 1]], note: '微孔膜隔离正负极，允许锂离子通过。' },
+    foam: { k: '化学变化', cond: '发泡', ins: [['crude_oil', 2], ['resin_epoxy', 1]], note: '聚氨酯软泡，缓冲隔音。' },
+    nylon: { k: '化学变化', cond: '缩聚', ins: [['crude_oil', 2], ['nitrogen', 1]], note: '尼龙纤维强度高、耐磨。' },
+    polyester: { k: '化学变化', cond: '缩聚', ins: [['crude_oil', 2], ['ethylene_glycol', 1]], note: '聚酯纤维用于安全带与织物。' },
+    paint: { k: '物理变化', cond: '常温 · 分散', ins: [['resin_epoxy', 1], ['pigment', 2], ['crude_oil', 1]], note: '树脂、颜料、溶剂混合，形成防护涂层。' },
+    adhesive: { k: '化学变化', cond: '常温 · 固化', ins: [['resin_epoxy', 1], ['crude_oil', 1]], note: '结构胶粘接玻璃与车身接缝。' },
+    coolant: { k: '物理变化', cond: '常温 · 混合', ins: [['ethylene_glycol', 2], ['water', 1]], note: '乙二醇水溶液，防冻散热。' },
+    lubricant: { k: '化学变化', cond: '精炼 · 调配', ins: [['crude_oil', 2], ['sulfur', 1]], note: '基础油加添加剂，减磨抗氧化。' },
+    gasoline: { k: '物理变化', cond: '分馏', ins: [['crude_oil', 3]], note: '原油分馏得到汽油馏分。' },
+
+    hammer_head: { k: '物理变化', cond: '锻造 · 淬火', ins: [['steel', 1]], note: '钢坯锻打成锤头。' },
+    hammer_handle: { k: '物理变化', cond: '切削 · 打磨', ins: [['wood', 2]], note: '木材加工成锤柄。' },
+    hammer: { k: '装配', cond: '常温 · 装配', ins: [['hammer_head', 1], ['hammer_handle', 1]], note: '锤头与锤柄过盈装配。' },
+    bed_frame: { k: '装配', cond: '常温 · 连接', ins: [['wood', 3], ['steel', 1]], note: '木架加钢连接件。' },
+    bed_board: { k: '物理变化', cond: '切割 · 刨光', ins: [['wood', 4]], note: '木板裁切成床板。' },
+    bed: { k: '装配', cond: '常温 · 装配', ins: [['bed_frame', 1], ['bed_board', 2]], note: '床架与床板组装。' },
+    engine_block: { k: '装配', cond: '铸造 · 精加工', ins: [['al_alloy', 2], ['steel', 1]], note: '铝合金缸体加钢缸套。' },
+    piston: { k: '物理变化', cond: '精加工', ins: [['steel', 2], ['al_alloy', 1]], note: '活塞与活塞环。' },
+    engine: { k: '装配', cond: '装配 · 调试', ins: [['engine_block', 1], ['piston', 4], ['steel', 2]], note: '缸体、活塞、曲轴与配气机构。' },
+    gearbox: { k: '装配', cond: '装配 · 调试', ins: [['steel', 3], ['al_alloy', 1]], note: '齿轮组与壳体。' },
+    frame: { k: '装配', cond: '焊接 · 装配', ins: [['steel', 4], ['al_alloy', 2]], note: '钢铝混合车架，兼顾强度与轻量化。' },
+    panel: { k: '物理变化', cond: '冲压 · 成型', ins: [['al_alloy', 2], ['pp', 1]], note: '铝合金覆盖件与塑料内衬。' },
+    window: { k: '装配', cond: '夹层 · 密封', ins: [['tempered_glass', 2], ['adhesive', 1]], note: '钢化玻璃与结构胶。' },
+    tire: { k: '装配', cond: '硫化 · 成型', ins: [['rubber_v', 2], ['carbon_black', 1], ['steel', 1]], note: '橡胶胎体、炭黑补强与钢丝带束层。' },
+    wheel: { k: '装配', cond: '装配 · 动平衡', ins: [['al_alloy', 2], ['tire', 1]], note: '铝合金轮毂与轮胎。' },
+    battery_cell: { k: '装配', cond: '干燥 · 封装', ins: [['cathode', 1], ['graphite', 2], ['electrolyte', 1], ['separator', 1]], note: '正极、负极、电解液与隔膜。' },
+    battery_pack: { k: '装配', cond: '模组 · 封装', ins: [['battery_cell', 4], ['al_alloy', 2], ['pcb', 1]], note: '电芯模组、铝合金壳体与 BMS。' },
+    motor: { k: '装配', cond: '绕线 · 装配', ins: [['ndfeb', 1], ['copper', 2], ['steel', 2]], note: '永磁体、铜绕组与硅钢/钢定子。' },
+    ecu: { k: '装配', cond: '贴片 · 测试', ins: [['pcb', 2], ['chip', 2], ['copper', 1]], note: '电路板、芯片与连接器。' },
+    wiring: { k: '装配', cond: '压接 · 包覆', ins: [['copper', 2], ['pp', 1]], note: '铜芯导线与塑料绝缘层。' },
+    airbag: { k: '装配', cond: '折叠 · 封装', ins: [['nylon', 2], ['sodium_azide', 1]], note: '尼龙气囊袋与产气剂。' },
+    seatbelt: { k: '装配', cond: '织带 · 装配', ins: [['polyester', 3], ['steel', 1]], note: '聚酯织带与钢制锁扣。' },
+    crash_beam: { k: '物理变化', cond: '冲压 · 热处理', ins: [['hs_steel', 2]], note: '高强度钢防撞梁。' },
+    brake_disc: { k: '装配', cond: '烧结 · 精加工', ins: [['ceramic', 2], ['steel', 1]], note: '陶瓷增强制动盘，耐高温耐磨。' },
+    seat: { k: '装配', cond: '发泡 · 包覆', ins: [['seat_frame', 1], ['foam', 2], ['leather', 1]], note: '镁合金骨架、聚氨酯泡沫与皮革。' },
+    light: { k: '装配', cond: '封装', ins: [['chip', 1], ['pc', 2]], note: 'LED 芯片与聚碳酸酯透镜。' },
+    bumper: { k: '装配', cond: '注塑 · 装配', ins: [['pp', 2], ['steel', 1]], note: '塑料保险杠蒙皮与钢制加强件。' },
+    dashboard: { k: '装配', cond: '注塑 · 装配', ins: [['abs', 2], ['chip', 1]], note: 'ABS 仪表板与显示芯片。' },
+    exhaust: { k: '装配', cond: '焊接 · 装配', ins: [['ti_alloy', 2], ['steel', 1]], note: '钛合金排气，耐高温、轻量化。' },
+    seat_frame: { k: '物理变化', cond: '压铸 · 精加工', ins: [['mg_alloy', 2]], note: '镁合金座椅骨架，比钢轻。' },
+    ac_unit: { k: '装配', cond: '装配 · 检漏', ins: [['copper', 2], ['al_alloy', 1], ['refrigerant', 1], ['pp', 1]], note: '铜管、铝换热器、制冷剂与塑料风道。' },
+
+    body_sys: { k: '装配', cond: '焊装 · 涂装', ins: [['frame', 1], ['panel', 4], ['bumper', 2], ['window', 1], ['paint', 2]], note: '车架、覆盖件、保险杠、车窗与涂装。' },
+    power_sys: { k: '装配', cond: '总装 · 调试', ins: [['engine', 1], ['battery_pack', 1], ['motor', 1], ['gearbox', 1], ['exhaust', 1], ['wheel', 4], ['coolant', 2], ['lubricant', 2], ['gasoline', 20]], note: '油电混合动力：发动机、电池、电机、变速箱、排气与车轮。' },
+    control_sys: { k: '装配', cond: '布线 · 标定', ins: [['ecu', 1], ['wiring', 4]], note: 'ECU 与整车线束。' },
+    safety_sys: { k: '装配', cond: '装配 · 检测', ins: [['airbag', 4], ['seatbelt', 4], ['crash_beam', 2], ['brake_disc', 2]], note: '气囊、安全带、防撞梁与制动盘。' },
+    interior_sys: { k: '装配', cond: '内饰 · 装配', ins: [['seat', 4], ['dashboard', 1], ['ac_unit', 1], ['light', 4]], note: '座椅、仪表盘、空调与灯具。' },
+    car: { k: '装配', cond: '总装线', ins: [['body_sys', 1], ['power_sys', 1], ['control_sys', 1], ['safety_sys', 1], ['interior_sys', 1]], note: '车身、动力、控制、安全、内饰五大系统总装。' }
+  };
+
+  var PRODUCTS = ['car', 'hammer', 'bed', 'al_alloy', 'composite_cf'];
+  var PD = {
+    car: { w: 1500, str: 4, safe: 5, comfort: 4, cost: 4, cx: 5, d: '用钢铁、铝合金、塑料、橡胶、玻璃、电池材料、电子器件等，把车身、动力、控制、安全、内饰五大系统搭出来。' },
+    hammer: { w: 1.2, str: 4, cost: 1, cx: 1, d: '钢制锤头 + 木制锤柄，最基础的多材料装配产品。' },
+    bed: { w: 35, str: 3, comfort: 4, cost: 2, cx: 2, d: '木床架、床板与少量钢连接件。' },
+    al_alloy: { w: 2.8, str: 4, cost: 3, cx: 3, d: '铝 + 铜 + 镁熔炼合金化，轻量化材料样板。' },
+    composite_cf: { w: 1.6, str: 5, cost: 5, cx: 4, d: '碳纤维增强环氧树脂，轻质高强复合材料样板。' }
+  };
+
+  /* ================= 库存 ================= */
+  var RAW = Object.keys(M).filter(function (id) { return M[id].raw; });
+  var stock = {};
+  Object.keys(M).forEach(function (id) { stock[id] = M[id].raw ? 999 : 0; });
+  try {
+    var saved = JSON.parse(localStorage.getItem('craftStockV2') || '{}');
+    Object.keys(saved).forEach(function (id) { if (id in stock && !M[id].raw) stock[id] = Math.max(0, +saved[id] || 0); });
+  } catch (e) {}
+  function saveStock() {
+    try {
+      var o = {};
+      Object.keys(stock).forEach(function (id) { if (!M[id].raw) o[id] = stock[id]; });
+      localStorage.setItem('craftStockV2', JSON.stringify(o));
+    } catch (e) {}
+  }
+  function resetStock() {
+    Object.keys(M).forEach(function (id) { stock[id] = M[id].raw ? 999 : 0; });
+    saveStock();
+  }
+  function refillRaw() {
+    RAW.forEach(function (id) { stock[id] = 999; });
+    saveStock();
+  }
+
+  /* ================= 样式 ================= */
+  var style = document.createElement('style');
+  style.textContent = `
+#craft{position:fixed;inset:0;z-index:72;background:radial-gradient(circle at 50% 0,#17243a 0,#080d15 60%);color:#dce7f7;display:flex;flex-direction:column;pointer-events:auto}
+#craft.hidden{display:none}
+.cfhead{display:flex;align-items:center;gap:8px;padding:calc(10px + env(safe-area-inset-top)) 10px 8px;border-bottom:1px solid rgba(255,255,255,.08)}
+.cfhead .cfback{background:none;border:none;color:#dce7f7;font-size:26px;width:34px;padding:0;line-height:1}
+.cfhead .cftitle{font-size:15px;font-weight:700;letter-spacing:.5px}
+.cfhead .cfsub{font-size:10px;color:#7e8ea6;margin-top:1px}
+.cfhead .cfstock{margin-left:auto;font-size:10px;color:#8fe2b3;text-align:right;white-space:nowrap}
+.cftabs{display:flex;gap:8px;padding:8px 12px;overflow-x:auto;border-bottom:1px solid rgba(255,255,255,.06)}
+.cftabs button{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);color:#b9c8dc;border-radius:999px;padding:7px 15px;font-size:12px;white-space:nowrap;touch-action:none}
+.cftabs button.on{background:#e9f2ff;color:#0b1420;border-color:#e9f2ff;font-weight:700}
+.cfbody{flex:1;min-height:0;overflow-y:auto;padding:10px 12px calc(28px + env(safe-area-inset-bottom))}
+.cfintro{font-size:11px;line-height:1.7;color:#8fa6c4;margin-bottom:8px}
+.cfrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0}
+.cfbtn{background:rgba(143,226,179,.14);border:1px solid rgba(143,226,179,.4);color:#8fe2b3;border-radius:9px;padding:8px 12px;font-size:12px;touch-action:none}
+.cfbtn.main{background:#e9f2ff;color:#0b1420;border-color:#e9f2ff;font-weight:700}
+.cfbtn.warn{background:rgba(255,209,102,.12);border-color:rgba(255,209,102,.4);color:#ffd166}
+.cfgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cfcard{border:1px solid rgba(255,255,255,.12);border-radius:12px;background:rgba(255,255,255,.04);padding:10px;touch-action:none}
+.cfcard b{font-size:13px}
+.cfcard .cfmeta{font-size:10px;color:#8fa6c4;margin-top:3px;line-height:1.5}
+.cfcard .cfprops{font-size:10px;color:#b9c8dc;margin-top:6px;line-height:1.6}
+.cfcard .cfgo{margin-top:8px;width:100%;background:rgba(120,180,255,.14);border:1px solid rgba(120,180,255,.35);color:#9cc6ff;border-radius:8px;padding:7px;font-size:11px;touch-action:none}
+.cfdetail h3{font-size:16px;margin:4px 0 6px}
+.cfdetail .cfdesc{font-size:11px;line-height:1.7;color:#9aa8bd;margin-bottom:8px}
+.cfkv{display:flex;justify-content:space-between;gap:10px;border-bottom:1px dashed rgba(255,255,255,.08);padding:7px 0;font-size:12px}
+.cfkv>span:first-child{color:#8fa6c4}
+.cfkv>span:last-child{text-align:right}
+.cfprop{display:flex;align-items:center;gap:6px;font-size:10px;margin:5px 0}
+.cfprop>span:first-child{width:58px;color:#8fa6c4;flex:0 0 58px}
+.cfprop .cfbar{flex:1;height:6px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden}
+.cfprop .cfbar i{display:block;height:100%;background:linear-gradient(90deg,#78b4ff,#8fe2b3);border-radius:99px}
+.cfprop b{width:44px;text-align:right;font-weight:500;color:#c9d8ea;flex:0 0 44px}
+.cfnode{margin:4px 0 4px 9px;border-left:1px solid rgba(255,255,255,.08);padding-left:8px}
+.cfnode>summary{list-style:none;display:flex;align-items:center;gap:5px;flex-wrap:wrap;padding:5px 0;cursor:pointer;font-size:12px}
+.cfnode>summary::-webkit-details-marker{display:none}
+.cfnode>summary:before{content:'▸';color:#6f8098;font-size:10px;width:10px}
+.cfnode[open]>summary:before{content:'▾'}
+.cfleaf{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin:4px 0 4px 9px;padding:5px 0;border-left:1px solid rgba(255,255,255,.06);padding-left:18px;font-size:12px}
+.cficon{font-size:14px}
+.cfq{font-size:10px;color:#ffd166}
+.cfok{font-size:10px;color:#8fe2b3}
+.cfmiss{font-size:10px;color:#ffb3b3}
+.cfbadge{font-size:9px;line-height:1.6;border-radius:99px;padding:0 6px;border:1px solid rgba(255,255,255,.18);color:#9aa8bd;white-space:nowrap}
+.cfbadge.k-chem{border-color:rgba(255,209,102,.4);color:#ffd166}
+.cfbadge.k-phys{border-color:rgba(120,180,255,.4);color:#9cc6ff}
+.cfbadge.k-asm{border-color:rgba(143,226,179,.4);color:#8fe2b3}
+.cfmake{margin-left:2px;background:rgba(143,226,179,.16);border:1px solid rgba(143,226,179,.4);color:#8fe2b3;border-radius:7px;padding:2px 7px;font-size:10px;touch-action:none}
+.cfkids{margin-left:5px}
+.cflog{margin-top:10px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:rgba(0,0,0,.25);padding:10px;font-size:11px;color:#a9bad0;line-height:1.7}
+.cflog b{color:#8fe2b3}
+.cfchips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.cfchips span{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:2px 7px;font-size:10px;color:#c9d8ea}
+.cfproc{border:1px solid rgba(255,255,255,.1);border-radius:10px;background:rgba(255,255,255,.035);padding:9px;margin:7px 0;font-size:11px;line-height:1.6}
+.cfproc b{font-size:12px}
+.cfproc .cfcond{color:#8fa6c4;font-size:10px}
+.cfproc .cfio{color:#b9c8dc;margin-top:3px}
+.cfproc .cfexec{margin-top:7px;background:rgba(120,180,255,.12);border:1px solid rgba(120,180,255,.3);color:#9cc6ff;border-radius:8px;padding:6px 10px;font-size:11px;touch-action:none}
+#cfToast{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom));top:auto;transform:translateX(-50%);z-index:90;background:rgba(0,0,0,.85);border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:8px 14px;font-size:12px;color:#fff;opacity:0;transition:opacity .2s;pointer-events:none;max-width:80vw;text-align:center}
+#cfToast.on{opacity:1}
+@media(max-width:520px){.cfgrid{grid-template-columns:1fr}}
+`;
+  document.head.appendChild(style);
+
+  /* ================= 面板 ================= */
+  var wrap = document.createElement('div');
+  wrap.id = 'craft';
+  wrap.className = 'hidden';
+  wrap.innerHTML = `<div class="cfhead"><button class="cfback" id="cfBack" type="button">‹</button><div><div class="cftitle">制造工坊</div><div class="cfsub">材料 · 物理/化学变化 · 多级装配</div></div><div class="cfstock" id="cfStock"></div></div>
+  <div class="cftabs"><button data-cftab="prod" class="on" type="button">产品</button><button data-cftab="mat" type="button">材料</button><button data-cftab="proc" type="button">工艺</button></div>
+  <div class="cfbody"><div id="cfProd"></div><div id="cfMat" class="hidden"></div><div id="cfProc" class="hidden"></div></div>
+  <div id="cfToast"></div>`;
+  document.body.appendChild(wrap);
+
+  var topbar = document.getElementById('topbar');
+  var aiBtn = document.getElementById('btnAI');
+  var craftBtn = document.createElement('button');
+  craftBtn.id = 'btnCraft'; craftBtn.type = 'button'; craftBtn.textContent = '制造'; craftBtn.className = 'tb';
+  if (topbar) { if (aiBtn) topbar.insertBefore(craftBtn, aiBtn); else topbar.appendChild(craftBtn); }
+  craftBtn.addEventListener('click', function () { openCraft('prod'); });
+
+  var tab = 'prod', curProduct = null, curMat = null, procFilter = '全部';
+  var lastLog = [], lastLogProduct = null;
+
+  function cfToast(msg) {
+    var t = document.getElementById('cfToast'); if (!t) return;
+    t.textContent = msg; t.classList.add('on');
+    clearTimeout(t._t); t._t = setTimeout(function () { t.classList.remove('on'); }, 1700);
+  }
+  function iconOf(id) {
+    if (id === 'car') return '🚗'; if (id === 'hammer') return '🔨'; if (id === 'bed') return '🛏️';
+    var m = M[id] || {};
+    if (m.t === '系统') return '🧩'; if (m.t === '零件') return '⚙️'; if (m.c === '金属') return '🔩';
+    if (m.c === '复合材料') return '🧵'; if (m.c === '高分子') return '🧪'; if (m.c === '无机非金属') return '🧱';
+    if (m.c === '原料') return '⛏️'; return '📦';
+  }
+  function kindCls(k) { return k === '化学变化' ? 'k-chem' : (k === '物理变化' ? 'k-phys' : 'k-asm'); }
+  function badge(k) { return '<span class="cfbadge ' + kindCls(k) + '">' + k + '</span>'; }
+  function propRows(p) {
+    var labels = ['密度 g/cm³', '强度 MPa', '硬度', '耐蚀', '导电', '耐热', '成本'];
+    var max = [10, 3500, 10, 5, 5, 5, 5];
+    return p.map(function (v, i) {
+      return '<div class="cfprop"><span>' + labels[i] + '</span><span class="cfbar"><i style="width:' + Math.min(100, v / max[i] * 100) + '%"></i></span><b>' + v + '</b></div>';
+    }).join('');
+  }
+  function stockLine() {
+    var s = document.getElementById('cfStock'); if (!s) return;
+    var low = RAW.filter(function (id) { return stock[id] < 50; }).length;
+    var goods = (stock.car || 0) + (stock.hammer || 0) + (stock.bed || 0);
+    s.innerHTML = (low ? '原料偏紧 ' + low + ' 种' : '原料充足') + '<br>成品 ' + goods + ' 件';
+  }
+  function treeHTML(id, qty, depth) {
+    var m = M[id]; if (!m) return '';
+    var have = stock[id] || 0, r = R[id], ok = have >= qty;
+    var st = ok ? '<span class="cfok">✓ ' + have + '</span>' : '<span class="cfmiss">库存 ' + have + ' / 需 ' + qty + '</span>';
+    var head = '<span class="cficon">' + iconOf(id) + '</span><b>' + m.n + '</b><span class="cfq">×' + qty + '</span>' + st + (r ? badge(r.k) : '<span class="cfbadge">原料</span>') + (r ? '<button class="cfmake" data-make="' + id + '" type="button">制造</button>' : '');
+    if (!r) return '<div class="cfleaf">' + head + '</div>';
+    return '<details class="cfnode"' + (depth < 1 ? ' open' : '') + '><summary>' + head + '</summary><div class="cfkids">' + r.ins.map(function (x) { return treeHTML(x[0], x[1], depth + 1); }).join('') + '</div></details>';
+  }
+  function recipeInputsHTML(r) {
+    return r.ins.map(function (x) { return (M[x[0]] ? M[x[0]].n : x[0]) + ' ×' + x[1]; }).join(' + ');
+  }
+  function canCraft(r) {
+    return r.ins.every(function (x) { return (stock[x[0]] || 0) >= x[1]; });
+  }
+  function craftOne(id) {
+    var r = R[id]; if (!r) { cfToast('这是原料，不需要制造'); return false; }
+    if (!canCraft(r)) {
+      var miss = r.ins.filter(function (x) { return (stock[x[0]] || 0) < x[1]; }).map(function (x) { return (M[x[0]] ? M[x[0]].n : x[0]) + ' 缺 ' + (x[1] - (stock[x[0]] || 0)); });
+      cfToast('缺少：' + miss.slice(0, 3).join('、'));
+      return false;
+    }
+    r.ins.forEach(function (x) { stock[x[0]] -= x[1]; });
+    stock[id] = (stock[id] || 0) + 1;
+    saveStock(); lastLog = []; lastLogProduct = null;
+    cfToast('已制造 ' + M[id].n + ' ×1');
+    refresh();
+    return true;
+  }
+  function ensure(id, qty, log, stack) {
+    var have = stock[id] || 0;
+    if (have >= qty) return true;
+    var r = R[id]; if (!r || stack[id]) return false;
+    var need = qty - have;
+    stack[id] = 1;
+    for (var i = 0; i < r.ins.length; i++) {
+      var x = r.ins[i];
+      if (!ensure(x[0], x[1] * need, log, stack)) { delete stack[id]; return false; }
+    }
+    for (var j = 0; j < r.ins.length; j++) {
+      if ((stock[r.ins[j][0]] || 0) < r.ins[j][1] * need) { delete stack[id]; return false; }
+    }
+    for (var k = 0; k < r.ins.length; k++) stock[r.ins[k][0]] -= r.ins[k][1] * need;
+    stock[id] = have + need;
+    log.push({ id: id, n: need });
+    delete stack[id];
+    return true;
+  }
+  function oneClick(id) {
+    lastLog = []; lastLogProduct = id;
+    var ok = ensure(id, 1, lastLog, {});
+    saveStock();
+    refresh();
+    if (ok) cfToast('制造完成：' + M[id].n); else cfToast('原料不足，制造未完成');
+    renderLog();
+  }
+  function renderLog() {
+    var box = document.getElementById('cfLog'); if (!box) return;
+    if (!lastLog.length) { box.innerHTML = ''; return; }
+    var g = {};
+    lastLog.forEach(function (x) { g[x.id] = (g[x.id] || 0) + x.n; });
+    var chips = Object.keys(g).map(function (id) { return '<span>' + (M[id] ? M[id].n : id) + ' ×' + g[id] + '</span>'; }).join('');
+    var steps = lastLog.length;
+    box.innerHTML = '<div><b>制造完成</b> · 共 ' + steps + ' 道工序</div><div class="cfchips">' + chips + '</div>';
+  }
+  function refresh() {
+    stockLine();
+    if (tab === 'prod') { if (curProduct) renderProductDetail(curProduct); else renderProductList(); }
+    else if (tab === 'mat') { if (curMat) renderMatDetail(curMat); else renderMatList(); }
+    else renderProcList();
+  }
+  function renderProductList() {
+    curProduct = null;
+    var el = document.getElementById('cfProd');
+    el.innerHTML = '<div class="cfintro">从原料出发，经物理变化、化学变化与装配，逐级做出零件、系统，最后总装成产品。点产品查看完整制造树；可逐步制造，也可一键递归制造。</div>' +
+      '<div class="cfrow"><button class="cfbtn" data-cfreset="1" type="button">补满原料</button><span class="cfintro" style="margin:0">原料库存 999/种</span></div>' +
+      '<div class="cfgrid">' + PRODUCTS.map(function (id) {
+        var p = PD[id] || {};
+        return '<div class="cfcard"><b>' + iconOf(id) + ' ' + M[id].n + '</b><div class="cfmeta">' + (p.d || '') + '</div><div class="cfprops">' + (p.w ? '重量 ' + p.w + ' kg · ' : '') + (p.str ? '强度 ' + p.str + '/5 · ' : '') + (p.cx ? '复杂度 ' + p.cx + '/5' : '') + '</div><button class="cfgo" data-open="' + id + '" type="button">查看制造树</button></div>';
+      }).join('') + '</div>';
+  }
+  function renderProductDetail(id) {
+    var m = M[id], p = PD[id] || {}, el = document.getElementById('cfProd');
+    var recipe = R[id];
+    el.innerHTML = '<div class="cfdetail"><div class="cfrow"><button class="cfbtn" data-cfback="1" type="button">‹ 返回产品</button><button class="cfbtn main" data-cfall="' + id + '" type="button">一键制造</button><button class="cfbtn warn" data-cfreset="1" type="button">补满原料</button></div>' +
+      '<h3>' + iconOf(id) + ' ' + m.n + '</h3><div class="cfdesc">' + (p.d || m.d || '') + '</div>' +
+      '<div class="cfkv"><span>类型</span><span>' + (m.t || '产品') + '</span></div>' +
+      (p.w ? '<div class="cfkv"><span>重量</span><span>' + p.w + ' kg</span></div>' : '') +
+      (p.str ? '<div class="cfkv"><span>结构强度</span><span>' + p.str + ' / 5</span></div>' : '') +
+      (p.safe ? '<div class="cfkv"><span>安全性</span><span>' + p.safe + ' / 5</span></div>' : '') +
+      (p.comfort ? '<div class="cfkv"><span>舒适性</span><span>' + p.comfort + ' / 5</span></div>' : '') +
+      (p.cost ? '<div class="cfkv"><span>成本</span><span>' + p.cost + ' / 5</span></div>' : '') +
+      (p.cx ? '<div class="cfkv"><span>制造复杂度</span><span>' + p.cx + ' / 5</span></div>' : '') +
+      (recipe ? '<div class="cfkv"><span>总装工艺</span><span>' + badge(recipe.k) + ' ' + recipe.cond + '</span></div>' : '') +
+      '<div class="cfintro" style="margin-top:10px">制造树（括号为每件用量；库存不足可先展开子节点逐级制造）</div><div class="cftree">' + treeHTML(id, 1, 0) + '</div>' +
+      '<div class="cflog" id="cfLog"></div></div>';
+    renderLog();
+  }
+  function renderMatList() {
+    curMat = null;
+    var cats = ['原料', '金属', '无机非金属', '高分子', '复合材料'];
+    var ids = Object.keys(M).filter(function (id) { return M[id].raw || M[id].t === '材料'; });
+    var html = '<div class="cfintro">材料库按物理性质（密度、强度、硬度、耐蚀、导电、耐热）与成本标注。点材料查看性质、生产配方和用途。</div>';
+    cats.forEach(function (c) {
+      var list = ids.filter(function (id) { return M[id].c === c; });
+      if (!list.length) return;
+      html += '<div class="cfkv"><span>' + c + '</span><span>' + list.length + ' 种</span></div><div class="cfgrid">' + list.map(function (id) {
+        var m = M[id], p = m.p || [0, 0, 0, 0, 0, 0, 0];
+        return '<div class="cfcard" data-mat="' + id + '"><b>' + iconOf(id) + ' ' + m.n + '</b><div class="cfmeta">' + (m.raw ? '原料' : '工程材料') + '</div><div class="cfprops">密度 ' + p[0] + ' · 强度 ' + p[1] + ' MPa<br>耐蚀 ' + p[3] + '/5 · 成本 ' + p[6] + '/5</div></div>';
+      }).join('') + '</div>';
+    });
+    document.getElementById('cfMat').innerHTML = html;
+  }
+  function renderMatDetail(id) {
+    var m = M[id], p = m.p || [0, 0, 0, 0, 0, 0, 0], r = R[id];
+    var uses = Object.keys(R).filter(function (k) { return R[k].ins.some(function (x) { return x[0] === id; }); });
+    var html = '<div class="cfdetail"><div class="cfrow"><button class="cfbtn" data-cfmatback="1" type="button">‹ 返回材料</button>' + (r ? '<button class="cfbtn main" data-exec="' + id + '" type="button">制造一次</button>' : '') + '</div><h3>' + iconOf(id) + ' ' + m.n + '</h3><div class="cfdesc">' + (m.d || '') + '</div><div class="cfintro">物理性质</div>' + propRows(p) + '<div class="cfintro">化学性质 / 工艺</div>';
+    if (r) {
+      html += '<div class="cfkv"><span>生产配方</span><span>' + badge(r.k) + ' ' + r.cond + '</span></div><div class="cfkv"><span>反应/工艺</span><span>' + recipeInputsHTML(r) + ' → ' + m.n + '</span></div>' + (r.note ? '<div class="cfdesc">' + r.note + '</div>' : '');
+    } else html += '<div class="cfkv"><span>来源</span><span>天然原料，无需制造</span></div>';
+    html += '<div class="cfkv"><span>用于</span><span>' + (uses.length ? uses.slice(0, 8).map(function (k) { return M[k] ? M[k].n : k; }).join('、') : '暂无') + '</span></div>';
+    document.getElementById('cfMat').innerHTML = html;
+  }
+  function renderProcList() {
+    var kinds = ['全部', '物理变化', '化学变化', '装配'];
+    var ids = Object.keys(R).filter(function (id) { return procFilter === '全部' || R[id].k === procFilter; });
+    var html = '<div class="cfintro">工艺库按变化类型筛选。物理变化不生成新物质（切割、锻造、混合）；化学变化生成新物质（冶炼、聚合、硫化）；装配把零件组合成系统。</div><div class="cfrow">' + kinds.map(function (k) {
+      return '<button class="cfbtn' + (procFilter === k ? ' main' : '') + '" data-proc="' + k + '" type="button">' + k + '</button>';
+    }).join('') + '</div>';
+    html += ids.map(function (id) {
+      var r = R[id], m = M[id];
+      return '<div class="cfproc"><div><b>' + iconOf(id) + ' ' + m.n + '</b> ' + badge(r.k) + '</div><div class="cfio">' + recipeInputsHTML(r) + ' → ' + m.n + ' ×1</div><div class="cfcond">' + r.cond + (r.note ? ' · ' + r.note : '') + '</div><button class="cfexec" data-exec="' + id + '" type="button">执行一次</button></div>';
+    }).join('');
+    document.getElementById('cfProc').innerHTML = html;
+  }
+
+  function openCraft(t) { wrap.classList.remove('hidden'); tab = t || 'prod'; setTab(tab); }
+  function closeCraft() { wrap.classList.add('hidden'); }
+  function setTab(t) {
+    tab = t;
+    Array.prototype.forEach.call(wrap.querySelectorAll('[data-cftab]'), function (b) { b.classList.toggle('on', b.getAttribute('data-cftab') === t); });
+    document.getElementById('cfProd').classList.toggle('hidden', t !== 'prod');
+    document.getElementById('cfMat').classList.toggle('hidden', t !== 'mat');
+    document.getElementById('cfProc').classList.toggle('hidden', t !== 'proc');
+    if (t === 'prod') { curProduct ? renderProductDetail(curProduct) : renderProductList(); }
+    else if (t === 'mat') { curMat ? renderMatDetail(curMat) : renderMatList(); }
+    else renderProcList();
+    stockLine();
+  }
+
+  wrap.addEventListener('click', function (e) {
+    var t = e.target;
+    var tabBtn = t.closest('[data-cftab]');
+    if (tabBtn) { setTab(tabBtn.getAttribute('data-cftab')); return; }
+    var mk = t.closest('[data-make]');
+    if (mk) { e.preventDefault(); e.stopPropagation(); craftOne(mk.getAttribute('data-make')); return; }
+    var ex = t.closest('[data-exec]');
+    if (ex) { e.preventDefault(); e.stopPropagation(); craftOne(ex.getAttribute('data-exec')); return; }
+    var op = t.closest('[data-open]');
+    if (op) { curProduct = op.getAttribute('data-open'); setTab('prod'); return; }
+    var mt = t.closest('[data-mat]');
+    if (mt) { curMat = mt.getAttribute('data-mat'); setTab('mat'); return; }
+    var pr = t.closest('[data-proc]');
+    if (pr) { procFilter = pr.getAttribute('data-proc'); renderProcList(); return; }
+    var cf = t.closest('[data-cfall]');
+    if (cf) { oneClick(cf.getAttribute('data-cfall')); return; }
+    var rs = t.closest('[data-cfreset]');
+    if (rs) { refillRaw(); lastLog = []; lastLogProduct = null; refresh(); cfToast('原料已补满'); return; }
+    var bk = t.closest('[data-cfback]');
+    if (bk) { curProduct = null; lastLog = []; renderProductList(); return; }
+    var mb = t.closest('[data-cfmatback]');
+    if (mb) { curMat = null; renderMatList(); return; }
+  });
+  document.getElementById('cfBack').addEventListener('click', closeCraft);
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !wrap.classList.contains('hidden')) closeCraft(); });
+
+  window.__craft = {
+    open: openCraft, close: closeCraft,
+    products: PRODUCTS.slice(),
+    materials: M, recipes: R,
+    stock: function () { var o = {}; Object.keys(stock).forEach(function (k) { o[k] = stock[k]; }); return o; },
+    craft: craftOne, make: oneClick, reset: resetStock, refill: refillRaw,
+    canCraft: function (id) { return !!R[id] && canCraft(R[id]); },
+    tab: setTab
+  };
+})();
+
 </script>
 </body>
 </html>
