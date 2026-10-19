@@ -5,12 +5,13 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <link rel="icon" href="data:,">
 <title>映射 + AI 世界</title>
+<meta name="version" content="world-v4.0.0">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:"PingFang SC","Microsoft YaHei",sans-serif;color:#fff;touch-action:none;user-select:none;-webkit-user-select:none}
 #gl{position:fixed;inset:0;width:100%;height:100%;display:block}
 #hud{position:fixed;inset:0;pointer-events:none}
-#topbar{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:calc(8px + env(safe-area-inset-top)) 10px 8px;background:linear-gradient(180deg,rgba(0,0,0,.6),rgba(0,0,0,0));pointer-events:auto}
+#topbar{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:calc(8px + env(safe-area-inset-top)) 10px 8px;background:linear-gradient(180deg,rgba(0,0,0,.6),rgba(0,0,0,0));pointer-events:auto;z-index:10}
 #topbar a{color:#fff;text-decoration:none;font-size:13px;background:rgba(255,255,255,.16);padding:7px 11px;border-radius:9px;backdrop-filter:blur(6px)}
 #topbar .tt{flex:1;text-align:center;font-size:15px;font-weight:600;text-shadow:0 1px 6px rgba(0,0,0,.8)}
 #topbar .tb{background:rgba(255,255,255,.16);border:none;color:#fff;font-size:13px;padding:7px 11px;border-radius:9px;backdrop-filter:blur(6px)}
@@ -21,6 +22,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
 #cross:before,#cross:after{content:'';position:absolute;background:rgba(255,255,255,.85);box-shadow:0 0 3px rgba(0,0,0,.7)}
 #cross:before{left:7px;top:0;width:2px;height:16px}
 #cross:after{top:7px;left:0;height:2px;width:16px}
+#faunaLabels{position:absolute;inset:0;pointer-events:none;z-index:4}
+#faunaLabels .fl{position:absolute;transform:translate(-50%,-100%);font-size:10px;line-height:1;color:#fff;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.18);padding:3px 6px;border-radius:999px;white-space:nowrap;backdrop-filter:blur(4px);text-shadow:0 1px 3px rgba(0,0,0,.8)}
 #joy{position:absolute;left:calc(14px + env(safe-area-inset-left));bottom:calc(18px + env(safe-area-inset-bottom));width:118px;height:118px;border-radius:50%;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.25);pointer-events:auto;touch-action:none}
 #knob{position:absolute;left:50%;top:50%;width:50px;height:50px;margin:-25px 0 0 -25px;border-radius:50%;background:rgba(255,255,255,.35);border:1px solid rgba(255,255,255,.5)}
 #acts{position:absolute;right:calc(14px + env(safe-area-inset-right));bottom:calc(18px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(3,54px);gap:8px;pointer-events:auto}
@@ -76,7 +79,9 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
 .detail .kv span:last-child{color:#eaf2ff;text-align:right}
 .detail .bar{height:7px;border-radius:4px;background:rgba(255,255,255,.08);overflow:hidden;margin:4px 0 2px}
 .detail .bar i{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,#5fd0a0,#8fd6ff)}
-.detail .mut{color:#8ea1ba}\n.detail .el{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:-1px}\n.mbtn{cursor:pointer}
+.detail .mut{color:#8ea1ba}
+.detail .el{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+.mbtn{cursor:pointer}
 .mgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px}
 .mcard{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);cursor:pointer}
 .mcard .sw{width:26px;height:26px;border-radius:6px;flex-shrink:0;box-shadow:inset 0 0 0 1px rgba(255,255,255,.15)}
@@ -88,6 +93,13 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
 .rrow .swap{width:42px;height:38px;border-radius:9px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:#dce7f7;font-size:16px;flex-shrink:0}
 .rrow .run{flex:1;height:40px;border:none;border-radius:9px;background:#dce7f7;color:#0a1018;font-weight:600;font-size:14px}
 .rrow .run:active{opacity:.85}
+#rxSearch{flex:1;min-width:0;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);color:#eaf2ff;border-radius:9px;padding:8px 10px;font-size:12px;outline:none}
+#rxSearch::placeholder{color:#6f8199}
+.rxlib{max-height:340px;overflow-y:auto;border:1px solid rgba(255,255,255,.08);border-radius:10px;margin-top:6px;background:rgba(255,255,255,.02)}
+.rxitem{padding:7px 9px;border-bottom:1px dashed rgba(255,255,255,.07);font-size:11px;line-height:1.55;cursor:pointer;color:#c3d3e8}
+.rxitem:active{background:rgba(143,226,179,.08)}
+.rxitem b{color:#eaf2ff;font-weight:500}
+.rxitem em{color:#7e8ea6;font-style:normal;font-size:10px;margin-left:6px}
 .catline{font-size:11px;color:#7e8ea6;margin:14px 0 6px;letter-spacing:.06em}
 .abund .arow{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:11px;color:#b9c8dd}
 .abund .arow .sym{width:26px;color:#eaf2ff;font-weight:600}
@@ -132,6 +144,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
 .wrow button{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.13);color:#c3d3e8;border-radius:8px;padding:7px 10px;font-size:12px}
 .wrow button.on{background:#8fe2b3;color:#08120c;border-color:#8fe2b3;font-weight:600}
 .wrow .lab{font-size:11px;color:#7e8ea6;margin-right:2px}
+#saveInfo{font-size:10px;color:#8ea1ba}
+#btnWipe{border-color:rgba(255,150,120,.28);color:#ffb0a0}
 .wsec{font-size:11px;color:#7e8ea6;letter-spacing:.08em;margin:14px 0 6px}
 .wgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
 .wmetric{background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.09);border-radius:10px;padding:9px 10px}
@@ -190,7 +204,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
 .hexLines .ln{height:4px;border-radius:2px;background:#dce7f7;margin:4px 0;display:flex;gap:5px}
 .hexLines .ln.yin{background:transparent}
 .hexLines .ln.yin i{display:block;height:4px;border-radius:2px;background:#dce7f7;flex:1}
-.hexNow .hn{font-size:19px;font-weight:700;color:#fff}\n.hexNow .badge{font-size:10px;padding:2px 7px;border-radius:999px;background:rgba(255,255,255,.12);font-weight:400;color:#c3d3e8;vertical-align:2px}
+.hexNow .hn{font-size:19px;font-weight:700;color:#fff}
+.hexNow .badge{font-size:10px;padding:2px 7px;border-radius:999px;background:rgba(255,255,255,.12);font-weight:400;color:#c3d3e8;vertical-align:2px}
 .hexNow .hm{font-size:11px;color:#8ea1ba;margin-top:2px;line-height:1.7}
 .hexGrid{display:grid;grid-template-columns:repeat(8,1fr);gap:4px;margin-top:6px}
 .hcell{aspect-ratio:1;border-radius:6px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:9px;color:#9fb3d8;line-height:1.1;cursor:pointer;padding:1px}
@@ -239,6 +254,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
   </div>
   <div id="hint">拖动画面看向四周 · 左下摇杆移动<br>对准方块点 <b>挖</b> / <b>放</b> · 点右上 <b>时序</b> 看昼夜节气 · <b>化学</b> 查元素与反应</div>
   <div id="cross"></div>
+  <div id="faunaLabels"></div>
   <div id="joy"><div id="knob"></div></div>
   <div id="acts">
     <button class="jump" data-act="jump">跳</button>
@@ -274,6 +290,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
       <button data-ctab="mats" type="button">物质库</button>
       <button data-ctab="react" type="button">反应台</button>
       <button data-ctab="dist" type="button">元素分布</button>
+      <button data-ctab="gen" type="button">自动组合</button>
     </div>
     <div class="cbody">
       <div id="cpanel-table" class="cpanel">
@@ -287,17 +304,27 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
       <div id="cpanel-react" class="cpanel hidden">
         <div class="rrow"><select id="rA"></select><button class="swap" id="rSwap" type="button">⇄</button><select id="rB"></select></div>
         <div class="rrow">
-          <select id="rCond"><option>常温</option><option>加热</option><option>点燃</option><option>通电</option><option>催化剂</option></select>
+          <select id="rCond"><option>常温</option><option>加热</option><option>点燃</option><option>通电</option><option>催化剂</option><option>光照</option></select>
           <select id="rAmt"><option>适量</option><option>少量</option><option>过量</option></select>
         </div>
         <div class="rrow"><button class="run" id="rRun" type="button">进行反应</button></div>
         <div class="detail" id="rOut">选择两种物质、条件与用量，查看产物。现实反应还受浓度、压强、催化剂与加入顺序影响。</div>
+        <div class="catline" id="rxCount">反应库</div>
+        <div class="rrow"><select id="rxFilter"><option value="">全部条件</option><option>常温</option><option>加热</option><option>点燃</option><option>通电</option><option>催化剂</option><option>光照</option></select><input id="rxSearch" placeholder="搜索物质 / 方程式"></div>
+        <div id="rxLib" class="rxlib"></div>
       </div>
       <div id="cpanel-dist" class="cpanel hidden">
         <div class="catline">地壳元素丰度（质量 ppm）</div>
         <div class="abund" id="abund"></div>
         <div class="catline">当前世界中的矿物分布（生成规则）</div>
         <div id="dist"></div>
+      </div>
+      <div id="cpanel-gen" class="cpanel hidden">
+        <div class="rrow"><select id="genEl"></select><select id="genType"></select></div>
+        <div class="rrow"><button class="run" id="genRun" type="button">按化合价生成</button></div>
+        <div class="catline" id="genHint">选择中心元素与阴离子基团，按化合价配平生成化学式。</div>
+        <div class="mgrid" id="genList"></div>
+        <div class="detail" id="genDetail">生成结果用于教学推演：只按常见化合价配平，未校验热力学稳定性、溶解性与实际存在形式。</div>
       </div>
     </div>
   </div>
@@ -337,6 +364,10 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
       <div class="legend"><span><i style="background:#8fe2b3"></i>春</span><span><i style="background:#ff9c8a"></i>夏</span><span><i style="background:#ffc98a"></i>秋</span><span><i style="background:#8fd6ff"></i>冬</span><span style="color:#6f8199">竖线为二十四节气，白线为当前时刻</span></div>
       <div class="wsec">切换地域</div>
       <div class="regionChips" id="timeRegionChips"></div>
+      <div class="wrow"><span class="lab">3D 世界</span><button id="btnFauna" class="on" type="button">动物显示</button></div>
+      <div class="wsec">世界存档 · 自动保存</div>
+      <div class="wrow"><button id="btnSave" type="button">保存</button><button id="btnLoad" type="button">读取</button><button id="btnWipe" type="button">重置世界</button><span class="lab" id="saveInfo">尚无存档</span></div>
+      <div class="note">存档保存在本机浏览器 localStorage：方块改动、玩家位置、地域、时间与速度、动物显隐。时间流动时每 15 秒自动保存一次；暂停或退出页面时也会保存。换手机或清缓存不会同步。</div>
       <div class="note">时间从公元 0 年 1 月 1 日 01:00:01 起算，按天文纪年（有 0 年，0 年为闰年）。太阳位置用低精度天文公式；温度、辐照、光照为教学近似模型，不是气象预报。夜间光照由月光与星光组成。</div>
     </div>
     <div id="wpanel-terms" class="wpanel">
@@ -366,7 +397,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
       <div class="chain" id="ecoChain"></div>
       <div class="wsec">相生相克</div>
       <div class="relGrid" id="ecoRel"></div>
-      <div class="note">物种为地域代表种，分布为教学示意；食物链省略了多数杂食、寄生与分解环节。相生＝促进/供养，相克＝捕食/竞争/环境限制。</div>
+      <div class="note">物种为地域代表种，分布为教学示意；食物链省略了多数杂食、寄生与分解环节。相生＝促进/供养，相克＝捕食/竞争/环境限制。3D 世界中可见 4 种代表动物，冬季部分迁徙或隐匿。</div>
     </div>
     <div id="wpanel-hex" class="wpanel">
       <div class="hexNow" id="hexNow"></div>
@@ -421,9 +452,10 @@ var B={
   16:{n:'铜',col:[0.72,0.45,0.28],f:'Cu',atoms:[['Cu','#d08a4a',0.45,0.45,0.45],['Cu','#d08a4a',0.65,0.6,0.55]]},
   17:{n:'铁',col:[0.55,0.57,0.60],f:'Fe',atoms:[['Fe','#c98a5a',0.45,0.45,0.45],['Fe','#c98a5a',0.65,0.6,0.55]]},
   18:{n:'雪块',col:[0.92,0.95,1.0],f:'H₂O（固态）',atoms:[['O','#e05050',0.5,0.5,0.5],['H','#f2f6ff',0.32,0.66,0.62],['H','#f2f6ff',0.68,0.66,0.62]]},
-  19:{n:'红壤块',col:[0.55,0.26,0.18],f:'铁铝氧化物 + 黏土矿物',atoms:[['Fe','#c98a5a',0.45,0.45,0.45],['Al','#b9c0cc',0.68,0.55,0.5],['O','#e05050',0.4,0.7,0.62]]}
+  19:{n:'红壤块',col:[0.55,0.26,0.18],f:'铁铝氧化物 + 黏土矿物',atoms:[['Fe','#c98a5a',0.45,0.45,0.45],['Al','#b9c0cc',0.68,0.55,0.5],['O','#e05050',0.4,0.7,0.62]]},
+  20:{n:'冰',col:[0.66,0.84,0.94],f:'H₂O（固态）',atoms:[['O','#e05050',0.5,0.5,0.5],['H','#f2f6ff',0.32,0.66,0.62],['H','#f2f6ff',0.68,0.66,0.62]]}
 };
-var BLOCK_MAT={1:'soil',2:'soil',3:'granite',4:'sand',5:'water',6:'wood',7:'leaves',8:'plank',9:'hematite',10:'coal',11:'limestone',12:'halite',13:'glass',14:'quicklime',15:'slaked',16:'copper',17:'iron',18:'snow',19:'redsoil'};
+var BLOCK_MAT={1:'soil',2:'soil',3:'granite',4:'sand',5:'water',6:'wood',7:'leaves',8:'plank',9:'hematite',10:'coal',11:'limestone',12:'halite',13:'glass',14:'quicklime',15:'slaked',16:'copper',17:'iron',18:'snow',19:'redsoil',20:'ice'};
 function solid(t){return t!==0&&t!==5;}
 var blocks=new Uint8Array(WX*WY*WZ);
 function idx(x,y,z){return x+WX*(z+WZ*y);}
@@ -638,7 +670,7 @@ var cubeVerts=(function(){
   return new Float32Array(v);
 })();
 var charBuf=gl.createBuffer();
-var charArr=new Float32Array(36*9*24);
+var charArr=new Float32Array(36*9*72);
 
 /* 将一个立方体部件（世界坐标）烘进角色缓冲 */
 function bakePart(arr,off,px,py,pz,ry,rx,rz,sx,sy,sz,col){
@@ -890,6 +922,9 @@ function surfaceY(x,z){
   for(var y=WY-1;y>=0;y--){var b=getB(x,y,z);if(b&&b!==5)return y+1;}
   return SEA+1;
 }
+function npcSpot(px,pz,yaw){
+  return {x:px+Math.sin(yaw)*7-Math.cos(yaw)*3.5,z:pz+Math.cos(yaw)*7+Math.sin(yaw)*3.5};
+}
 function pickSpawn(){
   var cx=WX>>1,cz=WZ>>1;
   for(var r=0;r<18;r++){
@@ -983,8 +1018,11 @@ function loop(ts){
   var dt=Math.min(0.05,(ts-last)/1000||0.016);last=ts;
   updatePlayer(dt);
   updateEnv(dt);
+  updateFauna(dt);
   hudAcc+=dt;if(hudAcc>=0.25){hudAcc=0;updateHUD();}
   uiAcc+=dt;if(uiAcc>=0.6){uiAcc=0;refreshWorldUI();}
+  if(speed>0){saveAcc+=dt;if(saveAcc>=15){saveAcc=0;saveWorld(false);}}
+  if(speed>0){phaseAcc+=dt;if(phaseAcc>=6){phaseAcc=0;phaseTick();}}
   var eye,lookYaw=player.yaw,pitch=player.pitch;
   if(thirdPerson){
     var sy=Math.sin(player.yaw),cy=Math.cos(player.yaw);
@@ -998,6 +1036,7 @@ function loop(ts){
   }
   var view=mView(eye,lookYaw,pitch);
   var mv=mMul(proj,view,VP);MVP.set(mv);
+  labelAcc+=dt;if(labelAcc>=0.12){labelAcc=0;updateFaunaLabels();}
   var sky=env.sky;
   gl.clearColor(sky[0],sky[1],sky[2],1);
   gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
@@ -1026,6 +1065,9 @@ function loop(ts){
   var off=0;
   if(thirdPerson)off=bakeChar(off,player.x,player.y,player.z,player.yaw,Math.sin((player.walk||0))*0.55,0);
   off=bakeChar(off,npx,surfaceY(Math.floor(npx),Math.floor(npz)),npz,0.9,0,Math.sin(t*2)*0.35);
+  if(showFauna){
+    for(var fi=0;fi<fauna.length;fi++)if(fauna[fi].active)off=bakeAnimal(off,fauna[fi]);
+  }
   if(off>0){
     gl.useProgram(P_BLOCK);
     gl.bindBuffer(gl.ARRAY_BUFFER,charBuf);
@@ -1040,7 +1082,7 @@ function loop(ts){
     gl.uniform1f(UB.alpha,1);
     gl.drawArrays(gl.TRIANGLES,0,off/9);
   }
-  window.__dbg={p:[player.x,player.y,player.z],eye:eye,tp:thirdPerson,off:off,sim:sim,date:env.D,env:{alt:env.alt,temp:env.temp,light:env.light,solar:env.solar,weather:env.w.n,term:env.term.now?env.term.now.n:null,season:env.season.n,region:curRegion}};
+  window.__dbg={p:[player.x,player.y,player.z],eye:eye,tp:thirdPerson,off:off,sim:sim,date:env.D,env:{alt:env.alt,temp:env.temp,light:env.light,solar:env.solar,weather:env.w.n,term:env.term.now?env.term.now.n:null,season:env.season.n,region:curRegion},fauna:{total:fauna.length,active:fauna.filter(function(a){return a.active;}).length,names:fauna.map(function(a){return a.def.n;}),show:showFauna}};
 
   // 水
   if(mesh.water&&mesh.nWater){
@@ -1232,6 +1274,7 @@ var MATS={
  iron:{n:'铁',f:'Fe',block:17,color:'#8c8f95',st:'固',props:'密度 7.87 g/cm³，熔点 1538 °C，铁磁性',struct:'体心立方金属晶体',where:'还原氧化铁产物：可放置'},
  snow:{n:'积雪',f:'H2O',block:18,color:'#eef4ff',st:'固',props:'密度约 0.1–0.4 g/cm³（新雪），反射率高，融化吸热',struct:'冰晶六方骨架与孔隙的混合物',where:'高寒山地与冬季地表：可放置'},
  redsoil:{n:'红壤',f:'—',block:19,color:'#8c422e',st:'固（混合物）',props:'酸性、黏重、富铁铝氧化物，易板结',struct:'高岭石黏土 + 赤铁矿胶结的团粒',where:'华南湿热丘陵地表：可放置',comp:{O:48,Si:26,Al:13,Fe:8,K:2,Mg:1,H:2}},
+ ice:{n:'冰',f:'H2O',block:20,color:'#a8d8ee',st:'固',props:'密度 0.917 g/cm³，0 °C 融化，表面滑',struct:'六方冰晶，氢键网络',where:'寒冷地域水面冬季结冰；温度回升后融化'},
  o2:{n:'氧气',f:'O2',block:0,color:'#9fc7ff',st:'气',props:'密度 1.43 g/L，助燃，无色无味',struct:'双原子分子 O=O'},
  h2:{n:'氢气',f:'H2',block:0,color:'#cfe0ff',st:'气',props:'密度 0.089 g/L，易燃易爆',struct:'双原子分子 H–H'},
  co2:{n:'二氧化碳',f:'CO2',block:0,color:'#b9c4d6',st:'气',props:'密度 1.98 g/L，溶于水生成碳酸',struct:'直线形分子 O=C=O'},
@@ -1259,7 +1302,71 @@ var MATS={
  al2o3:{n:'氧化铝',f:'Al2O3',block:0,color:'#e8e8e8',st:'固',props:'熔点 2072 °C，硬度高',struct:'刚玉型结构'},
  cuoh2:{n:'氢氧化铜',f:'Cu(OH)2',block:0,color:'#4a9fd8',st:'固',props:'蓝色沉淀，受热分解',struct:'层状结构'},
  rust:{n:'铁锈',f:'Fe2O3',block:0,color:'#8a4a32',st:'固',props:'疏松多孔，不保护内部金属',struct:'FeO₆ 八面体共棱，含水'},
- dilute:{n:'稀硫酸',f:'H2SO4',block:0,color:'#dfe8dc',st:'液（溶液）',props:'强酸，稀释时放热',struct:'H⁺ 与 SO₄²⁻ 水合离子'}
+ dilute:{n:'稀硫酸',f:'H2SO4',block:0,color:'#dfe8dc',st:'液（溶液）',props:'强酸，稀释时放热',struct:'H⁺ 与 SO₄²⁻ 水合离子'},
+ na:{n:'钠',f:'Na',block:0,color:'#e6b85c',st:'固',props:'银白色软金属，遇水剧烈反应',struct:'体心立方金属晶体'},
+ k:{n:'钾',f:'K',block:0,color:'#d8c8a8',st:'固',props:'银白色软金属，遇水剧烈反应',struct:'体心立方金属晶体'},
+ c:{n:'碳',f:'C',block:0,color:'#2a2a2a',st:'固',props:'石墨/木炭，常用还原剂',struct:'层状石墨或非晶碳'},
+ p:{n:'磷',f:'P',block:0,color:'#e8c8a8',st:'固',props:'白磷易燃，红磷较稳定',struct:'P₄ 四面体（白磷）'},
+ cl2:{n:'氯气',f:'Cl2',block:0,color:'#c8e8a8',st:'气',props:'黄绿色刺激性气体，强氧化性，有毒',struct:'双原子分子 Cl–Cl'},
+ na2sio3:{n:'硅酸钠',f:'Na2SiO3',block:0,color:'#e8f0ec',st:'固/液',props:'水玻璃主要成分，黏稠碱性溶液',struct:'Na⁺ 与 SiO₃²⁻ 链状硅氧四面体'},
+ naalo2:{n:'偏铝酸钠',f:'NaAlO2',block:0,color:'#e8ece8',st:'固/液',props:'强碱性，遇酸生成氢氧化铝',struct:'Na⁺ 与 AlO₂⁻'},
+ cuno32:{n:'硝酸铜',f:'Cu(NO3)2',block:0,color:'#4a8ab0',st:'固/液',props:'蓝色晶体，强氧化性，易潮解',struct:'Cu²⁺ 与 NO₃⁻'},
+ fecl2:{n:'氯化亚铁',f:'FeCl2',block:0,color:'#a8c8b8',st:'固',props:'浅绿色晶体，易溶于水，易被氧化',struct:'Fe²⁺ 与 Cl⁻ 离子晶体'},
+ fecl3:{n:'氯化铁',f:'FeCl3',block:0,color:'#b07a3a',st:'固',props:'棕黄色固体，易潮解，溶液呈黄色',struct:'Fe³⁺ 与 Cl⁻ 离子晶体'},
+ cucl2:{n:'氯化铜',f:'CuCl2',block:0,color:'#3a8a6a',st:'固',props:'绿色晶体，溶于水呈蓝绿色',struct:'Cu²⁺ 与 Cl⁻ 离子晶体'},
+ alcl3:{n:'氯化铝',f:'AlCl3',block:0,color:'#d8d8d0',st:'固',props:'白色固体，遇水水解',struct:'AlCl₃ 共价层状结构'},
+ mgcl2:{n:'氯化镁',f:'MgCl2',block:0,color:'#e0e4e8',st:'固',props:'易潮解，苦卤主要成分',struct:'Mg²⁺ 与 Cl⁻ 离子晶体'},
+ zncl2:{n:'氯化锌',f:'ZnCl2',block:0,color:'#e8e8e0',st:'固',props:'易潮解，水溶液呈酸性',struct:'Zn²⁺ 与 Cl⁻ 离子晶体'},
+ naclo:{n:'次氯酸钠',f:'NaClO',block:0,color:'#d8f0d8',st:'固/液',props:'强氧化性，漂白剂有效成分',struct:'Na⁺ 与 ClO⁻ 离子晶体'},
+ hclo:{n:'次氯酸',f:'HClO',block:0,color:'#c8e8c8',st:'液（溶液）',props:'弱酸，见光分解，强氧化性',struct:'Cl–O–H 分子'},
+ ca_clo:{n:'次氯酸钙',f:'Ca(ClO)2',block:0,color:'#e8f0e0',st:'固',props:'漂白粉有效成分，遇酸放出氯气',struct:'Ca²⁺ 与 ClO⁻ 离子晶体'},
+ na2o:{n:'氧化钠',f:'Na2O',block:0,color:'#e8e8e8',st:'固',props:'白色固体，遇水生成氢氧化钠',struct:'Na⁺ 与 O²⁻ 离子晶体'},
+ na2o2:{n:'过氧化钠',f:'Na2O2',block:0,color:'#e8e0c8',st:'固',props:'淡黄色固体，与水/二氧化碳反应放出氧气',struct:'Na⁺ 与 O₂²⁻ 离子晶体'},
+ koh:{n:'氢氧化钾',f:'KOH',block:0,color:'#e8e8e0',st:'固',props:'强碱，易潮解',struct:'K⁺ 与 OH⁻ 离子晶体'},
+ aloh3:{n:'氢氧化铝',f:'Al(OH)3',block:0,color:'#f0f0ea',st:'固',props:'白色胶状沉淀，两性',struct:'层状 Al(OH)₃ 结构'},
+ feoh3:{n:'氢氧化铁',f:'Fe(OH)3',block:0,color:'#9a4a2a',st:'固',props:'红褐色沉淀，受热分解',struct:'Fe³⁺ 与 OH⁻ 的胶体/沉淀'},
+ h2sio3:{n:'硅酸',f:'H2SiO3',block:0,color:'#e8f0f0',st:'固（胶体）',props:'白色胶状沉淀，弱酸',struct:'SiO₄ 四面体缩合链'},
+ casio3:{n:'硅酸钙',f:'CaSiO3',block:0,color:'#d8d8d0',st:'固',props:'炉渣主要成分，难溶于水',struct:'链状 SiO₃²⁻ 与 Ca²⁺'},
+ caso3:{n:'亚硫酸钙',f:'CaSO3',block:0,color:'#e8e8e0',st:'固',props:'白色固体，可被氧化为硫酸钙',struct:'Ca²⁺ 与 SO₃²⁻'},
+ caso4:{n:'硫酸钙',f:'CaSO4',block:0,color:'#e8e4d8',st:'固',props:'微溶，石膏主要成分',struct:'Ca²⁺ 与 SO₄²⁻'},
+ so3:{n:'三氧化硫',f:'SO3',block:0,color:'#e0e0d0',st:'气/液',props:'遇水剧烈反应生成硫酸',struct:'平面三角形 SO₃'},
+ h2s:{n:'硫化氢',f:'H2S',block:0,color:'#c8d8c8',st:'气',props:'臭鸡蛋气味，有毒，可燃',struct:'V 形 H–S–H'},
+ h2co3:{n:'碳酸',f:'H2CO3',block:0,color:'#c8e0e8',st:'液（溶液）',props:'弱酸，不稳定，易分解',struct:'平面三角形 CO₃²⁻ 加质子'},
+ ca_hco3:{n:'碳酸氢钙',f:'Ca(HCO3)2',block:0,color:'#e8ece0',st:'固/液',props:'可溶，受热分解生成碳酸钙',struct:'Ca²⁺ 与 HCO₃⁻'},
+ nh4cl:{n:'氯化铵',f:'NH4Cl',block:0,color:'#e8e8e8',st:'固',props:'白色晶体，受热易分解',struct:'NH₄⁺ 与 Cl⁻ 离子晶体'},
+ nh4hco3:{n:'碳酸氢铵',f:'NH4HCO3',block:0,color:'#e8e8e0',st:'固',props:'白色晶体，受热分解，氮肥',struct:'NH₄⁺ 与 HCO₃⁻'},
+ nh3h2o:{n:'氨水',f:'NH3·H2O',block:0,color:'#d0e8f0',st:'液（溶液）',props:'弱碱，易挥发',struct:'NH₃ 与 H₂O 的氢键结合'},
+ no:{n:'一氧化氮',f:'NO',block:0,color:'#c8d0e0',st:'气',props:'无色气体，易被氧化为 NO₂',struct:'双原子分子 N=O'},
+ no2:{n:'二氧化氮',f:'NO2',block:0,color:'#b07a4a',st:'气',props:'红棕色刺激性气体，形成酸雨',struct:'V 形 O=N–O'},
+ hno3:{n:'硝酸',f:'HNO3',block:0,color:'#e8e8d0',st:'液',props:'强酸，强氧化性，见光分解',struct:'平面三角形 HNO₃'},
+ nano3:{n:'硝酸钠',f:'NaNO3',block:0,color:'#e8ece0',st:'固',props:'易溶，氧化剂',struct:'Na⁺ 与 NO₃⁻'},
+ agno3:{n:'硝酸银',f:'AgNO3',block:0,color:'#e8e8e8',st:'固',props:'易溶，见光分解，检验 Cl⁻',struct:'Ag⁺ 与 NO₃⁻'},
+ agcl:{n:'氯化银',f:'AgCl',block:0,color:'#f0f0f0',st:'固',props:'白色沉淀，见光变黑',struct:'Ag⁺ 与 Cl⁻ 离子晶体'},
+ ag:{n:'银',f:'Ag',block:0,color:'#d8d8d8',st:'固',props:'金属光泽，良导电',struct:'面心立方金属晶体'},
+ bacl2:{n:'氯化钡',f:'BaCl2',block:0,color:'#e8e8e0',st:'固',props:'易溶，检验 SO₄²⁻',struct:'Ba²⁺ 与 Cl⁻'},
+ baso4:{n:'硫酸钡',f:'BaSO4',block:0,color:'#f0f0e8',st:'固',props:'难溶，X 射线造影剂',struct:'Ba²⁺ 与 SO₄²⁻'},
+ p2o5:{n:'五氧化二磷',f:'P2O5',block:0,color:'#f0f0e8',st:'固',props:'强吸水性，遇水生成磷酸',struct:'P₄O₁₀ 分子'},
+ h3po4:{n:'磷酸',f:'H3PO4',block:0,color:'#e8f0e0',st:'液',props:'中强酸，三元酸',struct:'PO₄ 四面体'},
+ kmno4:{n:'高锰酸钾',f:'KMnO4',block:0,color:'#6a2a6a',st:'固',props:'紫黑色晶体，强氧化剂',struct:'K⁺ 与 MnO₄⁻'},
+ k2mno4:{n:'锰酸钾',f:'K2MnO4',block:0,color:'#2a6a3a',st:'固',props:'绿色固体，强氧化性',struct:'K⁺ 与 MnO₄²⁻'},
+ kcl:{n:'氯化钾',f:'KCl',block:0,color:'#e8e8e8',st:'固',props:'易溶，钾肥',struct:'K⁺ 与 Cl⁻'},
+ kclo3:{n:'氯酸钾',f:'KClO3',block:0,color:'#e8e8e0',st:'固',props:'强氧化剂，受热分解',struct:'K⁺ 与 ClO₃⁻'},
+ h2o2:{n:'过氧化氢',f:'H2O2',block:0,color:'#d0e8f0',st:'液',props:'强氧化剂，见光/受热分解',struct:'H–O–O–H'},
+ mno2:{n:'二氧化锰',f:'MnO2',block:0,color:'#2a2a2a',st:'固',props:'黑色粉末，催化剂',struct:'MnO₆ 八面体链'},
+ zno:{n:'氧化锌',f:'ZnO',block:0,color:'#e8e8e0',st:'固',props:'白色粉末，两性氧化物',struct:'ZnO 纤锌矿结构'},
+ fes:{n:'硫化亚铁',f:'FeS',block:0,color:'#3a3a2a',st:'固',props:'黑色固体，遇酸放出硫化氢',struct:'Fe²⁺ 与 S²⁻'},
+ ch3cl:{n:'一氯甲烷',f:'CH3Cl',block:0,color:'#d8e8d8',st:'气',props:'有机合成中间体',struct:'四面体分子'},
+ c2h5oh:{n:'乙醇',f:'C2H5OH',block:0,color:'#e8f0e8',st:'液',props:'易燃，良好溶剂',struct:'CH₃CH₂OH'},
+ ch3cooh:{n:'乙酸',f:'CH3COOH',block:0,color:'#e8e8d8',st:'液',props:'弱酸，食醋酸味',struct:'CH₃COOH'},
+ ch3coona:{n:'乙酸钠',f:'CH3COONa',block:0,color:'#e8e8e0',st:'固',props:'易溶，缓冲剂',struct:'CH₃COO⁻ 与 Na⁺'},
+ c6h12o6:{n:'葡萄糖',f:'C6H12O6',block:0,color:'#f0f0e8',st:'固',props:'单糖，生命体主要能源',struct:'吡喃环'},
+ cac2:{n:'碳化钙',f:'CaC2',block:0,color:'#4a4a4a',st:'固',props:'遇水生成乙炔',struct:'Ca²⁺ 与 C₂²⁻'},
+ c2h2:{n:'乙炔',f:'C2H2',block:0,color:'#d8e8d8',st:'气',props:'可燃，焊接切割金属',struct:'直线形 H–C≡C–H'},
+ hf:{n:'氢氟酸',f:'HF',block:0,color:'#d8f0e8',st:'液（溶液）',props:'弱酸但腐蚀玻璃，剧毒',struct:'H–F 分子'},
+ sif4:{n:'四氟化硅',f:'SiF4',block:0,color:'#e8e8e8',st:'气',props:'遇水水解生成硅酸',struct:'四面体 SiF₄'},
+ sio2:{n:'二氧化硅',f:'SiO2',block:0,color:'#d8d8d0',st:'固',props:'石英主要成分，熔点高',struct:'SiO₄ 四面体网络'},
+ fe2o3:{n:'氧化铁',f:'Fe2O3',block:0,color:'#8a3a2a',st:'固',props:'红棕色，铁锈主要成分',struct:'刚玉型 FeO₆'},
+ fe3o4:{n:'四氧化三铁',f:'Fe3O4',block:0,color:'#2a2a2a',st:'固',props:'黑色，具磁性',struct:'反尖晶石结构'}
 };
 
 var RX=[
@@ -1287,7 +1394,98 @@ var RX=[
  {a:'quicklime',b:'hcl',cond:'常温',out:['cacl2','water'],eq:'CaO + 2HCl → CaCl₂ + H₂O',note:'放热。'},
  {a:'cuso4',b:'naoh',cond:'常温',out:['cuoh2','na2so4'],eq:'CuSO₄ + 2NaOH → Cu(OH)₂↓ + Na₂SO₄',note:'蓝色絮状沉淀。'},
  {a:'sand',b:'na2co3',cond:'加热',out:['glass','co2'],eq:'SiO₂ + Na₂CO₃ →(高温) Na₂SiO₃ + CO₂↑',note:'工业玻璃的简化模型。'},
- {a:'h2so4',b:'water',cond:'常温',out:['dilute'],eq:'H₂SO₄ + H₂O → 稀硫酸',note:'必须“酸入水”，缓慢搅拌；水入浓酸会剧烈放热飞溅。',order:'加入顺序决定安全性与局部温度'}
+ {a:'h2so4',b:'water',cond:'常温',out:['dilute'],eq:'H₂SO₄ + H₂O → 稀硫酸',note:'必须“酸入水”，缓慢搅拌；水入浓酸会剧烈放热飞溅。',order:'加入顺序决定安全性与局部温度'},
+ {a:'h2',b:'cl2',cond:'点燃',out:['hcl'],eq:'H₂ + Cl₂ →(点燃) 2HCl',note:'苍白色火焰，生成氯化氢气体。'},
+ {a:'h2',b:'s',cond:'加热',out:['h2s'],eq:'H₂ + S →(Δ) H₂S',note:'化合反应，生成臭鸡蛋气味气体。'},
+ {a:'h2',b:'fe2o3',cond:'加热',out:['iron','water'],eq:'3H₂ + Fe₂O₃ →(Δ) 2Fe + 3H₂O',note:'氢气还原氧化铁。'},
+ {a:'c',b:'co2',cond:'加热',out:['co'],eq:'C + CO₂ →(Δ) 2CO',note:'高温下碳还原二氧化碳。'},
+ {a:'c',b:'water',cond:'加热',out:['co','h2'],eq:'C + H₂O →(Δ) CO + H₂',note:'水煤气反应，需高温。'},
+ {a:'c',b:'cuo',cond:'加热',out:['copper','co2'],eq:'C + 2CuO →(Δ) 2Cu + CO₂↑',note:'碳还原氧化铜。'},
+ {a:'c',b:'fe2o3',cond:'加热',out:['iron','co2'],eq:'3C + 2Fe₂O₃ →(Δ) 4Fe + 3CO₂↑',note:'高温炼铁原理之一。'},
+ {a:'co',b:'o2',cond:'点燃',out:['co2'],eq:'2CO + O₂ →(点燃) 2CO₂',note:'蓝色火焰，放热。'},
+ {a:'co',b:'cuo',cond:'加热',out:['copper','co2'],eq:'CO + CuO →(Δ) Cu + CO₂',note:'一氧化碳还原氧化铜。'},
+ {a:'co',b:'fe2o3',cond:'加热',out:['iron','co2'],eq:'3CO + Fe₂O₃ →(Δ) 2Fe + 3CO₂',note:'高炉炼铁主要反应。'},
+ {a:'co2',b:'water',cond:'常温',out:['h2co3'],eq:'CO₂ + H₂O ⇌ H₂CO₃',note:'碳酸不稳定，使紫色石蕊变红。'},
+ {a:'h2co3',b:'',cond:'加热',out:['co2','water'],eq:'H₂CO₃ →(Δ) CO₂↑ + H₂O',note:'碳酸受热分解。'},
+ {a:'co2',b:'limestone',cond:'常温',out:['ca_hco3'],eq:'CaCO₃ + CO₂ + H₂O → Ca(HCO₃)₂',note:'需水参与；溶洞形成与硬水暂时硬度。'},
+ {a:'ca_hco3',b:'',cond:'加热',out:['limestone','co2','water'],eq:'Ca(HCO₃)₂ →(Δ) CaCO₃↓ + CO₂↑ + H₂O',note:'水垢与钟乳石形成。'},
+ {a:'co2',b:'na2co3',cond:'常温',out:['nahco3'],eq:'Na₂CO₃ + CO₂ + H₂O → 2NaHCO₃',note:'需水参与。'},
+ {a:'nahco3',b:'',cond:'加热',out:['na2co3','co2','water'],eq:'2NaHCO₃ →(Δ) Na₂CO₃ + CO₂↑ + H₂O',note:'小苏打受热分解。'},
+ {a:'na2co3',b:'hcl',cond:'常温',out:['halite','water','co2'],eq:'Na₂CO₃ + 2HCl → 2NaCl + H₂O + CO₂↑',note:'起泡，检验碳酸盐。'},
+ {a:'nahco3',b:'hcl',cond:'常温',out:['halite','water','co2'],eq:'NaHCO₃ + HCl → NaCl + H₂O + CO₂↑',note:'比碳酸钠更剧烈。'},
+ {a:'naoh',b:'sio2',cond:'加热',out:['na2sio3','water'],eq:'2NaOH + SiO₂ →(Δ) Na₂SiO₃ + H₂O',note:'碱腐蚀玻璃的简化模型。'},
+ {a:'na2sio3',b:'hcl',cond:'常温',out:['h2sio3','halite'],eq:'Na₂SiO₃ + 2HCl → H₂SiO₃↓ + 2NaCl',note:'生成白色硅酸胶体。'},
+ {a:'quicklime',b:'sio2',cond:'加热',out:['casio3'],eq:'CaO + SiO₂ →(Δ) CaSiO₃',note:'炉渣主要成分。'},
+ {a:'limestone',b:'sio2',cond:'加热',out:['casio3','co2'],eq:'CaCO₃ + SiO₂ →(Δ) CaSiO₃ + CO₂↑',note:'高温下碳酸钙被二氧化硅分解。'},
+ {a:'quicklime',b:'so2',cond:'加热',out:['caso3'],eq:'CaO + SO₂ →(Δ) CaSO₃',note:'干法脱硫的简化模型。'},
+ {a:'caso3',b:'o2',cond:'加热',out:['caso4'],eq:'2CaSO₃ + O₂ →(Δ) 2CaSO₄',note:'亚硫酸钙被氧化。'},
+ {a:'so2',b:'o2',cond:'催化剂',out:['so3'],eq:'2SO₂ + O₂ ⇌(催化剂) 2SO₃',note:'接触法制硫酸。'},
+ {a:'so3',b:'water',cond:'常温',out:['h2so4'],eq:'SO₃ + H₂O → H₂SO₄',note:'剧烈放热，工业用浓硫酸吸收。'},
+ {a:'h2so4',b:'copper',cond:'加热',out:['cuso4','so2','water'],eq:'Cu + 2H₂SO₄(浓) →(Δ) CuSO₄ + SO₂↑ + 2H₂O',note:'浓硫酸强氧化性，不生成氢气。'},
+ {a:'h2so4',b:'iron',cond:'常温',out:['feso4','h2'],eq:'Fe + H₂SO₄ → FeSO₄ + H₂↑',note:'稀硫酸与铁发生置换。'},
+ {a:'h2so4',b:'slaked',cond:'常温',out:['caso4','water'],eq:'H₂SO₄ + Ca(OH)₂ → CaSO₄ + 2H₂O',note:'中和反应。'},
+ {a:'h2so4',b:'bacl2',cond:'常温',out:['baso4','hcl'],eq:'H₂SO₄ + BaCl₂ → BaSO₄↓ + 2HCl',note:'白色沉淀，检验硫酸根。'},
+ {a:'hcl',b:'fe2o3',cond:'加热',out:['fecl3','water'],eq:'6HCl + Fe₂O₃ →(Δ) 2FeCl₃ + 3H₂O',note:'除铁锈，溶液呈黄色。'},
+ {a:'hcl',b:'cuo',cond:'加热',out:['cucl2','water'],eq:'2HCl + CuO →(Δ) CuCl₂ + H₂O',note:'黑色氧化铜溶解，溶液蓝绿色。'},
+ {a:'hcl',b:'aloh3',cond:'常温',out:['alcl3','water'],eq:'3HCl + Al(OH)₃ → AlCl₃ + 3H₂O',note:'两性氢氧化物溶于酸。'},
+ {a:'hcl',b:'mg',cond:'常温',out:['mgcl2','h2'],eq:'Mg + 2HCl → MgCl₂ + H₂↑',note:'剧烈置换，放热。'},
+ {a:'hcl',b:'zinc',cond:'常温',out:['zncl2','h2'],eq:'Zn + 2HCl → ZnCl₂ + H₂↑',note:'实验室制氢气常用。'},
+ {a:'cl2',b:'naoh',cond:'常温',out:['halite','naclo','water'],eq:'Cl₂ + 2NaOH → NaCl + NaClO + H₂O',note:'歧化反应，漂白液制备。'},
+ {a:'cl2',b:'slaked',cond:'常温',out:['ca_clo','halite','water'],eq:'2Cl₂ + 2Ca(OH)₂ → Ca(ClO)₂ + CaCl₂ + 2H₂O',note:'工业制漂白粉。'},
+ {a:'cl2',b:'water',cond:'常温',out:['hcl','hclo'],eq:'Cl₂ + H₂O ⇌ HCl + HClO',note:'氯水成分，次氯酸具漂白性。'},
+ {a:'hclo',b:'',cond:'光照',out:['hcl','o2'],eq:'2HClO →(光照) 2HCl + O₂↑',note:'次氯酸见光分解，漂白液失效。'},
+ {a:'cl2',b:'iron',cond:'点燃',out:['fecl3'],eq:'2Fe + 3Cl₂ →(点燃) 2FeCl₃',note:'生成棕黄色烟。'},
+ {a:'cl2',b:'copper',cond:'点燃',out:['cucl2'],eq:'Cu + Cl₂ →(点燃) CuCl₂',note:'生成棕黄色烟。'},
+ {a:'cl2',b:'na',cond:'点燃',out:['halite'],eq:'2Na + Cl₂ →(点燃) 2NaCl',note:'黄色火焰，白色固体。'},
+ {a:'na',b:'o2',cond:'常温',out:['na2o'],eq:'4Na + O₂ → 2Na₂O',note:'常温缓慢氧化，表面变暗。'},
+ {a:'na',b:'o2',cond:'点燃',out:['na2o2'],eq:'2Na + O₂ →(点燃) Na₂O₂',note:'淡黄色过氧化钠。'},
+ {a:'na2o',b:'water',cond:'常温',out:['naoh'],eq:'Na₂O + H₂O → 2NaOH',note:'碱性氧化物水化。'},
+ {a:'na2o2',b:'water',cond:'常温',out:['naoh','o2'],eq:'2Na₂O₂ + 2H₂O → 4NaOH + O₂↑',note:'供氧剂，放热。'},
+ {a:'na2o2',b:'co2',cond:'常温',out:['na2co3','o2'],eq:'2Na₂O₂ + 2CO₂ → 2Na₂CO₃ + O₂',note:'潜艇/呼吸面具供氧。'},
+ {a:'na',b:'water',cond:'常温',out:['naoh','h2'],eq:'2Na + 2H₂O → 2NaOH + H₂↑',note:'浮、熔、游、响、红。'},
+ {a:'k',b:'water',cond:'常温',out:['koh','h2'],eq:'2K + 2H₂O → 2KOH + H₂↑',note:'比钠更剧烈，可能燃烧。'},
+ {a:'mg',b:'co2',cond:'点燃',out:['mgo','c'],eq:'2Mg + CO₂ →(点燃) 2MgO + C',note:'镁能在二氧化碳中燃烧。'},
+ {a:'al',b:'hcl',cond:'常温',out:['alcl3','h2'],eq:'2Al + 6HCl → 2AlCl₃ + 3H₂↑',note:'铝与盐酸反应。'},
+ {a:'al',b:'naoh',cond:'常温',out:['naalo2','h2'],eq:'2Al + 2NaOH + 2H₂O → 2NaAlO₂ + 3H₂↑',note:'需水参与；铝的两性。'},
+ {a:'al2o3',b:'naoh',cond:'加热',out:['naalo2','water'],eq:'Al₂O₃ + 2NaOH →(Δ) 2NaAlO₂ + H₂O',note:'两性氧化物溶于强碱。'},
+ {a:'alcl3',b:'naoh',cond:'常温',out:['aloh3','halite'],eq:'AlCl₃ + 3NaOH → Al(OH)₃↓ + 3NaCl',note:'白色胶状沉淀，过量碱会溶解。'},
+ {a:'iron',b:'cuso4',cond:'常温',out:['feso4','copper'],eq:'Fe + CuSO₄ → FeSO₄ + Cu',note:'湿法炼铜，铁表面析出红色铜。'},
+ {a:'fe2o3',b:'al',cond:'点燃',out:['iron','al2o3'],eq:'Fe₂O₃ + 2Al →(点燃) 2Fe + Al₂O₃',note:'铝热反应，高温焊接。'},
+ {a:'fe3o4',b:'co',cond:'加热',out:['iron','co2'],eq:'Fe₃O₄ + 4CO →(Δ) 3Fe + 4CO₂',note:'磁铁矿还原。'},
+ {a:'feoh3',b:'',cond:'加热',out:['fe2o3','water'],eq:'2Fe(OH)₃ →(Δ) Fe₂O₃ + 3H₂O',note:'红褐色沉淀受热分解。'},
+ {a:'fecl3',b:'naoh',cond:'常温',out:['feoh3','halite'],eq:'FeCl₃ + 3NaOH → Fe(OH)₃↓ + 3NaCl',note:'红褐色沉淀。'},
+ {a:'cucl2',b:'naoh',cond:'常温',out:['cuoh2','halite'],eq:'CuCl₂ + 2NaOH → Cu(OH)₂↓ + 2NaCl',note:'蓝色絮状沉淀。'},
+ {a:'cuoh2',b:'',cond:'加热',out:['cuo','water'],eq:'Cu(OH)₂ →(Δ) CuO + H₂O',note:'蓝色沉淀变黑。'},
+ {a:'cuso4',b:'bacl2',cond:'常温',out:['baso4','cucl2'],eq:'CuSO₄ + BaCl₂ → BaSO₄↓ + CuCl₂',note:'白色沉淀。'},
+ {a:'zinc',b:'cuso4',cond:'常温',out:['znso4','copper'],eq:'Zn + CuSO₄ → ZnSO₄ + Cu',note:'锌表面析出红色铜。'},
+ {a:'zinc',b:'o2',cond:'加热',out:['zno'],eq:'2Zn + O₂ →(Δ) 2ZnO',note:'白色氧化锌。'},
+ {a:'zno',b:'h2so4',cond:'常温',out:['znso4','water'],eq:'ZnO + H₂SO₄ → ZnSO₄ + H₂O',note:'两性氧化物溶于酸。'},
+ {a:'nh3',b:'hcl',cond:'常温',out:['nh4cl'],eq:'NH₃ + HCl → NH₄Cl',note:'白烟，检验氨气。'},
+ {a:'nh3',b:'water',cond:'常温',out:['nh3h2o'],eq:'NH₃ + H₂O ⇌ NH₃·H₂O',note:'氨水呈弱碱性。'},
+ {a:'nh4cl',b:'',cond:'加热',out:['nh3','hcl'],eq:'NH₄Cl →(Δ) NH₃↑ + HCl↑',note:'受热分解，遇冷重新化合。'},
+ {a:'nh4hco3',b:'',cond:'加热',out:['nh3','co2','water'],eq:'NH₄HCO₃ →(Δ) NH₃↑ + CO₂↑ + H₂O',note:'碳酸氢铵受热分解。'},
+ {a:'nh3',b:'o2',cond:'催化剂',out:['no','water'],eq:'4NH₃ + 5O₂ →(催化剂,Δ) 4NO + 6H₂O',note:'氨的催化氧化，工业制硝酸第一步。'},
+ {a:'no',b:'o2',cond:'常温',out:['no2'],eq:'2NO + O₂ → 2NO₂',note:'无色变红棕色。'},
+ {a:'no2',b:'water',cond:'常温',out:['hno3','no'],eq:'3NO₂ + H₂O → 2HNO₃ + NO',note:'工业制硝酸，尾气需处理。'},
+ {a:'n2',b:'o2',cond:'通电',out:['no'],eq:'N₂ + O₂ →(放电) 2NO',note:'雷雨闪电固氮的简化模型。'},
+ {a:'hno3',b:'naoh',cond:'常温',out:['nano3','water'],eq:'HNO₃ + NaOH → NaNO₃ + H₂O',note:'中和反应。'},
+ {a:'hno3',b:'copper',cond:'加热',out:['cuno32','no2','water'],eq:'Cu + 4HNO₃(浓) →(Δ) Cu(NO₃)₂ + 2NO₂↑ + 2H₂O',note:'浓硝酸强氧化性。'},
+ {a:'agno3',b:'halite',cond:'常温',out:['agcl','nano3'],eq:'AgNO₃ + NaCl → AgCl↓ + NaNO₃',note:'白色沉淀，检验氯离子。'},
+ {a:'agno3',b:'hcl',cond:'常温',out:['agcl','hno3'],eq:'AgNO₃ + HCl → AgCl↓ + HNO₃',note:'白色沉淀。'},
+ {a:'agcl',b:'',cond:'光照',out:['ag','cl2'],eq:'2AgCl →(光照) 2Ag + Cl₂↑',note:'白色沉淀变黑，感光材料原理。'},
+ {a:'h2o2',b:'',cond:'催化剂',out:['water','o2'],eq:'2H₂O₂ →(MnO₂) 2H₂O + O₂↑',note:'实验室制氧气。'},
+ {a:'kmno4',b:'',cond:'加热',out:['k2mno4','mno2','o2'],eq:'2KMnO₄ →(Δ) K₂MnO₄ + MnO₂ + O₂↑',note:'紫黑色固体受热分解。'},
+ {a:'kclo3',b:'',cond:'加热',out:['kcl','o2'],eq:'2KClO₃ →(MnO₂,Δ) 2KCl + 3O₂↑',note:'需二氧化锰催化。'},
+ {a:'s',b:'iron',cond:'加热',out:['fes'],eq:'Fe + S →(Δ) FeS',note:'黑色硫化亚铁。'},
+ {a:'p',b:'o2',cond:'点燃',out:['p2o5'],eq:'4P + 5O₂ →(点燃) 2P₂O₅',note:'白烟，放热。'},
+ {a:'p2o5',b:'water',cond:'常温',out:['h3po4'],eq:'P₂O₅ + 3H₂O → 2H₃PO₄',note:'强吸水性。'},
+ {a:'ch4',b:'cl2',cond:'光照',out:['ch3cl','hcl'],eq:'CH₄ + Cl₂ →(光照) CH₃Cl + HCl',note:'取代反应，需控制条件。'},
+ {a:'c2h5oh',b:'o2',cond:'点燃',out:['co2','water'],eq:'C₂H₅OH + 3O₂ →(点燃) 2CO₂ + 3H₂O',note:'乙醇完全燃烧，淡蓝色火焰。'},
+ {a:'ch3cooh',b:'nahco3',cond:'常温',out:['ch3coona','water','co2'],eq:'CH₃COOH + NaHCO₃ → CH₃COONa + H₂O + CO₂↑',note:'食醋与小苏打反应。'},
+ {a:'c6h12o6',b:'o2',cond:'催化剂',out:['co2','water'],eq:'C₆H₁₂O₆ + 6O₂ →(酶) 6CO₂ + 6H₂O',note:'细胞呼吸的简化模型。'},
+ {a:'co2',b:'water',cond:'光照',out:['c6h12o6','o2'],eq:'6CO₂ + 6H₂O →(光照,叶绿体) C₆H₁₂O₆ + 6O₂',note:'光合作用的简化模型，需叶绿体与光。'},
+ {a:'cac2',b:'water',cond:'常温',out:['c2h2','slaked'],eq:'CaC₂ + 2H₂O → C₂H₂↑ + Ca(OH)₂',note:'电石制乙炔。'},
+ {a:'sio2',b:'hf',cond:'常温',out:['sif4','water'],eq:'SiO₂ + 4HF → SiF₄↑ + 2H₂O',note:'氢氟酸腐蚀玻璃。'}
 ];
 
 var parseFormula=function(f){
@@ -1347,6 +1545,130 @@ function posOf(z){
   return[7,z-100];              // 104-118 -> 4..18
 }
 
+/* ---------- 自动组合：按化合价生成无机物 ---------- */
+var GEN_GROUPS=[
+ {id:'O',n:'氧化物',sym:'O',v:-2,prefix:'氧化',color:'#e05050'},
+ {id:'Cl',n:'氯化物',sym:'Cl',v:-1,prefix:'氯化',color:'#8fe08f'},
+ {id:'S',n:'硫化物',sym:'S',v:-2,prefix:'硫化',color:'#e8d44d'},
+ {id:'OH',n:'氢氧化物',sym:'OH',v:-1,prefix:'氢氧化',color:'#7ea6ff',poly:true},
+ {id:'CO3',n:'碳酸盐',sym:'CO3',v:-2,prefix:'碳酸',color:'#b9c0cc',poly:true},
+ {id:'SO4',n:'硫酸盐',sym:'SO4',v:-2,prefix:'硫酸',color:'#8fd6ff',poly:true},
+ {id:'NO3',n:'硝酸盐',sym:'NO3',v:-1,prefix:'硝酸',color:'#c58ad8',poly:true},
+ {id:'PO4',n:'磷酸盐',sym:'PO4',v:-3,prefix:'磷酸',color:'#e8a05a',poly:true}
+];
+var GEN_CENTERS=[
+ {id:'H',sym:'H',n:'氢',v:[1]},{id:'Li',sym:'Li',n:'锂',v:[1]},
+ {id:'Na',sym:'Na',n:'钠',v:[1]},{id:'K',sym:'K',n:'钾',v:[1]},
+ {id:'Mg',sym:'Mg',n:'镁',v:[2]},{id:'Ca',sym:'Ca',n:'钙',v:[2]},
+ {id:'Ba',sym:'Ba',n:'钡',v:[2]},{id:'Al',sym:'Al',n:'铝',v:[3]},
+ {id:'Fe',sym:'Fe',n:'铁',v:[2,3]},{id:'Cu',sym:'Cu',n:'铜',v:[1,2]},
+ {id:'Zn',sym:'Zn',n:'锌',v:[2]},{id:'Ag',sym:'Ag',n:'银',v:[1]},
+ {id:'NH4',sym:'NH4',n:'铵',v:[1]},{id:'C',sym:'C',n:'碳',v:[4]},
+ {id:'Si',sym:'Si',n:'硅',v:[4]},{id:'N',sym:'N',n:'氮',v:[3,5]},
+ {id:'P',sym:'P',n:'磷',v:[3,5]},{id:'S',sym:'S',n:'硫',v:[4,6]},
+ {id:'Mn',sym:'Mn',n:'锰',v:[2,4,7]},{id:'Cr',sym:'Cr',n:'铬',v:[3,6]}
+];
+var GEN_ITEMS=[],genBuilt=false;
+function gcd(a,b){a=Math.abs(a);b=Math.abs(b);while(b){var t=a%b;a=b;b=t;}return a||1;}
+function genFormula(pos,pv,g){
+  var gc=Math.abs(g.v),l=pv*gc/gcd(pv,gc),pc=l/pv,nc=l/gc;
+  var ps=(pc>1&&pos==='NH4')?('('+pos+')'):pos;
+  var ns=(nc>1&&g.poly)?('('+g.sym+')'):g.sym;
+  return ps+(pc>1?pc:'')+ns+(nc>1?nc:'');
+}
+var GEN_KNOWN={H2O:'水',CO2:'二氧化碳',SO2:'二氧化硫',SO3:'三氧化硫',N2O3:'三氧化二氮',N2O5:'五氧化二氮',P2O3:'三氧化二磷',P2O5:'五氧化二磷',SiO2:'二氧化硅',HCl:'氯化氢',H2S:'硫化氢',H2SO4:'硫酸',HNO3:'硝酸',H2CO3:'碳酸',H3PO4:'磷酸'};
+function genName(c,pv,g,formula){
+  if(GEN_KNOWN[formula])return GEN_KNOWN[formula];
+  var name=c.n;
+  if(c.id==='Fe')name=(pv===2?'亚铁':'铁');
+  if(c.id==='Cu')name=(pv===1?'亚铜':'铜');
+  if(c.id==='NH4')name='铵';
+  return g.prefix+name;
+}
+function genMass(formula){
+  var comp=parseFormula(formula),tot=0;
+  for(var s in comp){if(!EMAP[s])continue;tot+=comp[s]*EMAP[s][3];}
+  if(!tot)return [];
+  var arr=[];
+  for(var s2 in comp){if(!EMAP[s2])continue;arr.push([s2,Math.round(comp[s2]*EMAP[s2][3]/tot*1000)/10]);}
+  arr.sort(function(a,b){return b[1]-a[1];});
+  return arr.slice(0,4);
+}
+function showGenItem(i){
+  var box=document.getElementById('genDetail');
+  var it=GEN_ITEMS[i];
+  if(!it){box.innerHTML='没有生成结果。';return;}
+  var m=genMass(it.formula);
+  box.innerHTML='<h3>'+it.name+' <span class="badge">'+it.formula+'</span><span class="badge">'+it.g.n+'</span></h3>'+
+    '<div class="kv"><span>中心元素 / 化合价</span><span>'+it.c.n+'（'+it.c.sym+'） +'+it.pv+'</span></div>'+
+    '<div class="kv"><span>阴离子基团</span><span>'+it.g.sym+'（'+it.g.v+'）</span></div>'+
+    '<div class="kv"><span>配平方式</span><span>正价 +'+it.pv+' × '+it.g.sym+' 负价 '+it.g.v+' → 电荷代数和为 0</span></div>'+
+    '<div class="kv"><span>元素质量占比</span><span>'+(m.map(function(x){return x[0]+' '+x[1]+'%';}).join(' · ')||'—')+'</span></div>'+
+    '<div class="kv"><span>说明</span><span>按常见化合价推演，未校验热力学稳定性、溶解性与实际存在形式</span></div>'+
+    '<div class="rrow"><button class="run" data-genuse="'+i+'" type="button">加入反应台</button></div>';
+}
+function addGenMat(i){
+  var it=GEN_ITEMS[i];
+  if(!it)return;
+  var id=null;
+  for(var k in MATS){if(MATS[k].f===it.formula){id=k;break;}}
+  if(!id){
+    id='gen_'+it.formula.replace(/[^A-Za-z0-9]/g,'');
+    MATS[id]={n:it.name,f:it.formula,block:0,color:it.g.color,st:'推演',props:'按常见化合价配平生成；未校验热力学稳定性',struct:'教学推演结构',where:'自动组合生成'};
+  }
+  fillReactSelects(true);
+  document.getElementById('rA').value=id;
+  document.getElementById('rB').value='';
+  setChemTab('react');
+  toast('已加入反应台：'+it.name+'（'+it.formula+'）');
+}
+function buildGenSelects(){
+  var el=document.getElementById('genEl');
+  if(!el)return;
+  if(!el.options.length){
+    el.innerHTML=GEN_CENTERS.map(function(c){return '<option value="'+c.id+'">'+c.n+' '+c.sym+'（+'+c.v.join('/+')+'）</option>';}).join('');
+    el.value='Na';
+  }
+  var ty=document.getElementById('genType');
+  if(!ty.options.length){
+    ty.innerHTML='<option value="">全部类型</option>'+GEN_GROUPS.map(function(g){return '<option value="'+g.id+'">'+g.n+'</option>';}).join('');
+  }
+  if(!genBuilt){
+    genBuilt=true;
+    el.addEventListener('change',renderGen);
+    ty.addEventListener('change',renderGen);
+    document.getElementById('genRun').addEventListener('click',renderGen);
+    document.getElementById('genList').addEventListener('click',function(e){
+      var card=e.target.closest('[data-gi]');
+      if(card)showGenItem(+card.getAttribute('data-gi'));
+    });
+    document.getElementById('genDetail').addEventListener('click',function(e){
+      var b=e.target.closest('[data-genuse]');
+      if(b)addGenMat(+b.getAttribute('data-genuse'));
+    });
+  }
+  renderGen();
+}
+function renderGen(){
+  var cid=document.getElementById('genEl').value||'Na';
+  var c=null;
+  for(var i=0;i<GEN_CENTERS.length;i++)if(GEN_CENTERS[i].id===cid){c=GEN_CENTERS[i];break;}
+  if(!c)c=GEN_CENTERS[2];
+  var type=document.getElementById('genType').value;
+  GEN_ITEMS=[];
+  c.v.forEach(function(pv){
+    GEN_GROUPS.forEach(function(g){
+      if(type&&g.id!==type)return;
+      var f=genFormula(c.sym,pv,g);
+      GEN_ITEMS.push({c:c,pv:pv,g:g,formula:f,name:genName(c,pv,g,f)});
+    });
+  });
+  document.getElementById('genHint').textContent='中心元素 '+c.n+'（'+c.sym+'，+'+c.v.join('/+')+'） · 生成 '+GEN_ITEMS.length+' 个组合 · 仅按化合价配平';
+  document.getElementById('genList').innerHTML=GEN_ITEMS.map(function(it,i){
+    return '<div class="mcard" data-gi="'+i+'"><span class="sw" style="background:'+it.g.color+'"></span><div><div class="mn">'+it.formula+'</div><div class="mf">'+it.name+' · '+it.g.n+'</div></div></div>';
+  }).join('');
+  showGenItem(0);
+}
 /* ---------- 化学面板 ---------- */
 function elHTML(z){
   var e=ELEMENTS[z-1];
@@ -1376,20 +1698,22 @@ function openChem(tab){
   document.getElementById('chem').classList.remove('hidden');
   if(tab)setChemTab(tab);
   if(chemTab==='dist')renderDist();
+  if(chemTab==='gen')buildGenSelects();
   if(!window.__ptBuilt)buildPtable();
 }
 function closeChem(){document.getElementById('chem').classList.add('hidden');}
 function setChemTab(t){
   chemTab=t;
-  ['table','mats','react','dist'].forEach(function(k){
+  ['table','mats','react','dist','gen'].forEach(function(k){
     document.getElementById('cpanel-'+k).classList.toggle('hidden',k!==t);
   });
   Array.prototype.forEach.call(document.querySelectorAll('.ctabs button'),function(b){
     b.classList.toggle('on',b.getAttribute('data-ctab')===t);
   });
   if(t==='mats')renderMats();
-  if(t==='react'){fillReactSelects();}
+  if(t==='react'){fillReactSelects();renderRxLib();}
   if(t==='dist')renderDist();
+  if(t==='gen')buildGenSelects();
 }
 function buildPtable(){
   var box=document.getElementById('ptable');
@@ -1443,7 +1767,7 @@ function showMat(id){
     '<div class="kv"><span>世界分布</span><span>'+m.where+'</span></div>'+compHTML+
     (rxs.length?('<div class="catline">相关反应</div>'+rxs.map(function(r){return '<div class="kv"><span>'+r.eq+'</span><span>'+r.cond+'</span></div>';}).join('')):'');
 }
-function fillReactSelects(){
+function fillReactSelects(force){
   var opts='';
   var groupA='',groupB='';
   for(var id in MATS){
@@ -1453,7 +1777,7 @@ function fillReactSelects(){
   }
   opts='<optgroup label="世界中的物质">'+groupA+'</optgroup><optgroup label="反应体系中的物质">'+groupB+'</optgroup>';
   var A=document.getElementById('rA'),Bx=document.getElementById('rB');
-  if(!A.options.length||A.options.length<10){
+  if(force||!A.options.length||A.options.length<10){
     A.innerHTML=opts;Bx.innerHTML='<option value="">— 无（单一物质反应）—</option>'+opts;
     A.value='limestone';Bx.value='';
   }
@@ -1494,6 +1818,38 @@ function runReaction(){
     btn.addEventListener('click',function(){placeSubstance(btn.getAttribute('data-place'));});
   });
 }
+function renderRxLib(){
+  var box=document.getElementById('rxLib');
+  if(!box)return;
+  var cond=document.getElementById('rxFilter').value;
+  var q=(document.getElementById('rxSearch').value||'').trim().toLowerCase();
+  var rows=[];
+  RX.forEach(function(r,i){
+    if(cond&&r.cond!==cond)return;
+    var an=MATS[r.a]?MATS[r.a].n:r.a;
+    var bn=r.b?(MATS[r.b]?MATS[r.b].n:r.b):'';
+    var txt=(an+' '+bn+' '+r.eq+' '+(r.note||'')).toLowerCase();
+    if(q&&txt.indexOf(q)<0)return;
+    rows.push({i:i,r:r,an:an,bn:bn});
+  });
+  document.getElementById('rxCount').textContent='反应库 · '+RX.length+' 条（当前 '+rows.length+' 条）';
+  box.innerHTML=rows.map(function(x){
+    var prods=(x.r.out||[]).map(function(id){return MATS[id]?MATS[id].n:id;}).join(' + ');
+    return '<div class="rxitem" data-ri="'+x.i+'"><b>'+x.r.eq+'</b><em>'+x.r.cond+(x.r.amt?' · '+x.r.amt:'')+'</em><br>'+x.an+(x.bn?' + '+x.bn:'')+' → '+prods+'</div>';
+  }).join('')||'<div class="rxitem">没有匹配的反应</div>';
+  box.onclick=function(ev){
+    var row=ev.target.closest('[data-ri]');
+    if(!row)return;
+    var r=RX[+row.getAttribute('data-ri')];
+    if(!r)return;
+    document.getElementById('rA').value=r.a;
+    document.getElementById('rB').value=r.b||'';
+    document.getElementById('rCond').value=r.cond;
+    document.getElementById('rAmt').value=r.amt||'适量';
+    runReaction();
+    document.getElementById('rOut').scrollIntoView({block:'nearest'});
+  };
+}
 function placeSubstance(id){
   var m=MATS[id];if(!m||!m.block)return;
   var d=lookVec(),x=Math.floor(player.x+d[0]*3),z=Math.floor(player.z+d[2]*3);
@@ -1523,11 +1879,12 @@ function renderDist(){
     ['赤铁矿','地下 3–12 m，Fe₂O₃ 矿脉'],
     ['岩盐','海平面附近，NaCl 盐层'],
     ['积雪 / 红壤','高寒山地雪线以上 / 华南湿热丘陵（随地域切换）'],
+    ['冰','寒冷地域水面冬季结冰（温度 ≤ 0°C，相变生成）'],
     ['水','海平面以下的湖泊与海洋']
   ];
   document.getElementById('dist').innerHTML=dep.map(function(d){
     return '<div class="dep"><span>'+d[0]+'</span><span class="mut" style="text-align:right">'+d[1]+'</span></div>';
-  }).join('')+'<div class="mut" style="margin-top:10px;font-size:11px">当前世界共 '+tot.toLocaleString()+' 个方块，其中矿石：赤铁矿 '+(counts[9]||0)+'、煤 '+(counts[10]||0)+'、石灰石 '+(counts[11]||0)+'、岩盐 '+(counts[12]||0)+'。生成规则按地壳丰度与成矿深度近似映射。</div>';
+  }).join('')+'<div class="mut" style="margin-top:10px;font-size:11px">当前世界共 '+tot.toLocaleString()+' 个方块，其中矿石：赤铁矿 '+(counts[9]||0)+'、煤 '+(counts[10]||0)+'、石灰石 '+(counts[11]||0)+'、岩盐 '+(counts[12]||0)+'、冰 '+(counts[20]||0)+'。生成规则按地壳丰度与成矿深度近似映射。</div>';
 }
 
 
@@ -1588,13 +1945,15 @@ document.getElementById('rSwap').addEventListener('click',function(){
   var t=a.value;a.value=b.value;b.value=t;
 });
 document.getElementById('rRun').addEventListener('click',runReaction);
+document.getElementById('rxFilter').addEventListener('change',renderRxLib);
+document.getElementById('rxSearch').addEventListener('input',renderRxLib);
 
 /* ================= 时序 · 地域 · 生态 · 卦象 ================= */
 var RAD=Math.PI/180;
 var EPOCH_JDN=1721060;          // 公元0-01-01（天文纪年）儒略日数
 var SIM0=3601;                  // 0年1月1日 01:00:01
-var sim=SIM0,speed=60,worldTab='time',curRegion='hb',hexSel=1,env=null;
-var uiAcc=0,hudAcc=0,termListYear=-1,hexGridBuilt=false,regionMapBuilt=false;
+var sim=SIM0,speed=60,worldTab='time',curRegion='hb',worldRegion='hb',hexSel=1,env=null;
+var uiAcc=0,hudAcc=0,saveAcc=0,phaseAcc=0,labelAcc=0,phaseInfo='',wipeArm=0,termListYear=-1,hexGridBuilt=false,regionMapBuilt=false;
 var REGION_KEYS=['ne','hb','hd','hz','hn','xn','xb','qz'];
 
 /* ---------- 公历（天文纪年：有 0 年，0 年为闰年） ---------- */
@@ -1797,6 +2156,19 @@ var REGIONS={
   seasons:{spring:'冰雪消融，牧草返青，动物向高处迁移',summer:'生长季短促，繁殖集中',autumn:'草籽成熟，动物育肥储脂',winter:'严寒大风，部分动物迁往低海拔'}}
 };
 
+/* ---------- 3D 世界中的代表动物（随季节迁徙 / 隐匿） ---------- */
+var FAUNA={
+ ne:[{n:'东北虎',kind:'pred',color:[0.86,0.56,0.24],size:1.0,winter:'active'},{n:'梅花鹿',kind:'herb',color:[0.78,0.62,0.42],size:0.8,winter:'active'},{n:'紫貂',kind:'herb',color:[0.45,0.32,0.22],size:0.55,winter:'active'},{n:'丹顶鹤',kind:'bird',color:[0.95,0.95,0.95],size:0.7,winter:'migrate'}],
+ hb:[{n:'华北豹',kind:'pred',color:[0.82,0.62,0.28],size:0.95,winter:'active'},{n:'狍',kind:'herb',color:[0.72,0.55,0.38],size:0.8,winter:'active'},{n:'岩松鼠',kind:'herb',color:[0.55,0.40,0.25],size:0.5,winter:'active'},{n:'褐马鸡',kind:'bird',color:[0.65,0.45,0.30],size:0.65,winter:'active'}],
+ hd:[{n:'扬子鳄',kind:'pred',color:[0.35,0.45,0.28],size:0.9,winter:'hide'},{n:'獐',kind:'herb',color:[0.70,0.55,0.35],size:0.75,winter:'active'},{n:'白鹭',kind:'bird',color:[0.95,0.95,0.90],size:0.6,winter:'migrate'},{n:'东方白鹳',kind:'bird',color:[0.90,0.90,0.85],size:0.7,winter:'migrate'}],
+ hz:[{n:'豹猫',kind:'pred',color:[0.75,0.55,0.30],size:0.75,winter:'active'},{n:'麂',kind:'herb',color:[0.65,0.50,0.32],size:0.7,winter:'active'},{n:'白鹤',kind:'bird',color:[0.95,0.95,0.95],size:0.7,winter:'migrate'},{n:'鸳鸯',kind:'bird',color:[0.85,0.45,0.35],size:0.55,winter:'active'}],
+ hn:[{n:'蟒蛇',kind:'pred',color:[0.45,0.50,0.28],size:0.9,winter:'hide'},{n:'猕猴',kind:'herb',color:[0.60,0.45,0.30],size:0.65,winter:'active'},{n:'白鹇',kind:'bird',color:[0.90,0.90,0.88],size:0.6,winter:'active'},{n:'树蛙',kind:'herb',color:[0.35,0.70,0.35],size:0.4,winter:'hide'}],
+ xn:[{n:'豹',kind:'pred',color:[0.80,0.60,0.30],size:0.9,winter:'active'},{n:'大熊猫',kind:'herb',color:[0.90,0.90,0.88],size:1.0,winter:'active'},{n:'小熊猫',kind:'herb',color:[0.85,0.45,0.25],size:0.6,winter:'active'},{n:'朱鹮',kind:'bird',color:[0.95,0.75,0.70],size:0.65,winter:'active'}],
+ xb:[{n:'金雕',kind:'bird',color:[0.70,0.55,0.30],size:0.8,winter:'active'},{n:'鹅喉羚',kind:'herb',color:[0.80,0.70,0.50],size:0.75,winter:'active'},{n:'蒙古野驴',kind:'herb',color:[0.75,0.65,0.45],size:0.9,winter:'active'},{n:'沙蜥',kind:'herb',color:[0.75,0.65,0.40],size:0.4,winter:'hide'}],
+ qz:[{n:'雪豹',kind:'pred',color:[0.85,0.85,0.82],size:0.9,winter:'active'},{n:'藏羚羊',kind:'herb',color:[0.80,0.72,0.55],size:0.75,winter:'migrate'},{n:'藏野驴',kind:'herb',color:[0.75,0.68,0.50],size:0.9,winter:'active'},{n:'黑颈鹤',kind:'bird',color:[0.90,0.90,0.88],size:0.7,winter:'migrate'}]
+};
+var fauna=[],showFauna=true;
+
 /* ---------- 环境计算：太阳高度 / 昼夜 / 温度 / 光照 ---------- */
 function mix3(a,b,t){return [a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];}
 function skyColor(alt,cloud){
@@ -1859,6 +2231,46 @@ function updateEnv(dt){
   env.term=currentTerm();
   return env;
 }
+/* 温度驱动的相变：水 ⇄ 冰，积雪消融 */
+function phaseTick(){
+  if(!env)return {changed:0,freeze:0,meltIce:0,meltSnow:0,snowAdd:0};
+  if(worldRegion!==curRegion){phaseInfo='预览地域：地形未切换，暂不相变';return {changed:0,freeze:0,meltIce:0,meltSnow:0,snowAdd:0};}
+  var changed=0,freeze=0,meltIce=0,meltSnow=0,snowAdd=0;
+  for(var y=0;y<WY;y++)for(var z=0;z<WZ;z++)for(var x=0;x<WX;x++){
+    var b=getB(x,y,z);
+    if(b!==5&&b!==20&&b!==18)continue;
+    if(getB(x,y+1,z)!==0)continue;
+    var t=env.temp-Math.max(0,(y-SEA))*1.2;
+    if(b===5&&t<=-1){setB(x,y,z,20);freeze++;changed++;}
+    else if(b===20&&t>=1){setB(x,y,z,5);meltIce++;changed++;}
+    else if(b===18&&t>=2.5){
+      var below=getB(x,y-1,z),repl;
+      if(below===1)repl=1;
+      else if(below===4)repl=4;
+      else if(below===19)repl=19;
+      else if(below===5||below===20)repl=5;
+      else if(below===2)repl=(y-1===heightAt(x,z)?1:2);
+      else repl=3;
+      setB(x,y,z,repl);meltSnow++;changed++;
+    }
+  }
+  // 降雪堆积：只铺一层，避免无限堆高
+  if(env.w.n==='雪'){
+    var budget=280;
+    for(var y2=0;y2<WY-1&&budget>0;y2++)for(var z2=0;z2<WZ&&budget>0;z2++)for(var x2=0;x2<WX&&budget>0;x2++){
+      var b2=getB(x2,y2,z2);
+      if(b2===0||b2===18||b2===5)continue;
+      if(getB(x2,y2+1,z2)!==0)continue;
+      var t2=env.temp-Math.max(0,(y2-SEA))*1.2;
+      if(t2<=-0.5&&hash2(x2*7+y2*13,z2*7+31)<0.03){
+        setB(x2,y2+1,z2,18);snowAdd++;changed++;budget--;
+      }
+    }
+  }
+  if(changed){buildMesh();phaseInfo='结冰 '+freeze+' · 融冰 '+meltIce+' · 融雪 '+meltSnow+' · 降雪 '+snowAdd;}
+  else phaseInfo='稳定（当前 '+env.temp.toFixed(1)+' °C）';
+  return {changed:changed,freeze:freeze,meltIce:meltIce,meltSnow:meltSnow,snowAdd:snowAdd};
+}
 function yearFrac(D){
   var a=simFromDate(D.y,1,1,0,0,0),b=simFromDate(D.y+1,1,1,0,0,0);
   return Math.max(0,Math.min(1,(sim-a)/(b-a)));
@@ -1886,6 +2298,105 @@ function updateHUD(){
   document.getElementById('ckTerm').textContent=env.season.n+' · '+(env.term.now?env.term.now.n:'—');
   document.getElementById('ckTemp').textContent=env.temp.toFixed(1)+'°C';
   document.getElementById('ckLight').textContent='光 '+env.light.toFixed(2);
+}
+
+/* ---------- 世界 / 时间存档 ---------- */
+var SAVE_KEY='mapping-world-save-v1';
+function rleEncode(bytes){
+  var out=[],i=0,n=bytes.length;
+  while(i<n){
+    var v=bytes[i],j=i+1;
+    while(j<n&&bytes[j]===v&&(j-i)<65535)j++;
+    out.push((j-i).toString(36)+':'+v.toString(36));
+    i=j;
+  }
+  return out.join(',');
+}
+function rleDecode(str,len){
+  var out=new Uint8Array(len),p=0;
+  var parts=String(str||'').split(',');
+  for(var i=0;i<parts.length;i++){
+    if(!parts[i])continue;
+    var a=parts[i].split(':');
+    var c=parseInt(a[0],36),v=parseInt(a[1],36);
+    if(!(c>0)||!(v>=0))continue;
+    for(var k=0;k<c&&p<len;k++)out[p++]=v;
+  }
+  return p===len?out:null;
+}
+function saveInfoText(s){var el=document.getElementById('saveInfo');if(el)el.textContent=s;}
+function saveWorld(manual){
+  try{
+    var data={v:1,ts:Date.now(),sim:sim,speed:speed,region:worldRegion,sel:sel,showFauna:showFauna,
+      player:{x:player.x,y:player.y,z:player.z,yaw:player.yaw,pitch:player.pitch,vy:player.vy},
+      blocks:rleEncode(blocks)};
+    var raw=JSON.stringify(data);
+    localStorage.setItem(SAVE_KEY,raw);
+    var kb=(raw.length/1024).toFixed(1);
+    var tm=new Date();
+    saveInfoText('已保存 '+pad2(tm.getHours())+':'+pad2(tm.getMinutes())+':'+pad2(tm.getSeconds())+' · '+kb+' KB');
+    if(manual)toast('已保存当前世界与时间（'+kb+' KB）');
+    return true;
+  }catch(e){
+    saveInfoText('保存失败：浏览器存储不可用或已满');
+    if(manual)toast('保存失败：浏览器存储不可用或已满');
+    return false;
+  }
+}
+function loadWorld(auto){
+  var raw=null;
+  try{raw=localStorage.getItem(SAVE_KEY);}catch(e){}
+  if(!raw){if(!auto)saveInfoText('没有可读取的存档');return false;}
+  try{
+    var s=JSON.parse(raw);
+    var arr=s&&s.blocks?rleDecode(s.blocks,blocks.length):null;
+    if(!arr)throw new Error('存档方块数据损坏');
+    blocks.set(arr);
+    curRegion=(s.region&&REGIONS[s.region])?s.region:'hb';
+    worldRegion=curRegion;
+    RG=REGION_GEN[curRegion]||REGION_GEN.hb;
+    if(typeof s.sim==='number'&&s.sim>=0)sim=s.sim;
+    speed=(typeof s.speed==='number'&&s.speed>=0)?s.speed:60;
+    if(typeof s.showFauna==='boolean')showFauna=s.showFauna;
+    var bf=document.getElementById('btnFauna');
+    if(bf)bf.classList.toggle('on',showFauna);
+    if(s.sel&&B[s.sel])sel=s.sel;
+    if(s.player){
+      player.x=+s.player.x||player.x;player.y=+s.player.y||player.y;player.z=+s.player.z||player.z;
+      player.yaw=+s.player.yaw||0;player.pitch=+s.player.pitch||0;player.vy=0;
+    }
+    spawn={x:player.x,y:player.y,z:player.z};
+    npc=npcSpot(player.x,player.z,player.yaw);
+    buildMesh();
+    buildHotbar();
+    updateEnv(0);
+    syncRegionChips();
+    updateHUD();
+    renderAll();
+    if(typeof initFauna==='function')initFauna();
+    saveInfoText('已读取存档 · '+fmtDate(env.D)+' '+fmtClock(env.D));
+    if(!auto)toast('已读取存档：'+fmtDate(env.D)+' '+fmtClock(env.D));
+    return true;
+  }catch(e){
+    saveInfoText('读取失败：'+e.message);
+    if(!auto)toast('读取失败：'+e.message);
+    return false;
+  }
+}
+function wipeWorld(){
+  try{localStorage.removeItem(SAVE_KEY);}catch(e){}
+  worldRegion=curRegion;
+  RG=REGION_GEN[curRegion]||REGION_GEN.hb;
+  genWorld();buildMesh();
+  var sp2=pickSpawn();
+  player.x=sp2.x;player.y=sp2.y;player.z=sp2.z;player.vy=0;
+  spawn={x:sp2.x,y:sp2.y,z:sp2.z};
+  npc=npcSpot(sp2.x,sp2.z,player.yaw);
+  updateEnv(0);updateHUD();renderAll();
+  if(atomMode){buildAtoms();updateAtomPanel();}
+  if(typeof initFauna==='function')initFauna();
+  saveInfoText('存档已清除 · 世界已重新生成');
+  toast('已按「'+REGIONS[curRegion].n+'」重新生成世界');
 }
 function sunArcHTML(){
   var h=env.D.sod/3600;
@@ -1951,6 +2462,7 @@ function renderTimeDyn(){
     '<div class="kv"><span>白天 12:00</span><span>'+de.temp.toFixed(1)+' °C · '+Math.round(de.solar)+' W/m² · 光 '+de.light.toFixed(2)+'</span></div>'+
     '<div class="kv"><span>夜间 02:00</span><span>'+ne.temp.toFixed(1)+' °C · '+Math.round(ne.solar)+' W/m² · 光 '+ne.light.toFixed(2)+'</span></div>'+
     '<div class="kv"><span>夜间光源</span><span>月光 '+Math.round(env.moon*100)+'% · 星光 常驻</span></div>'+
+    '<div class="kv"><span>相变</span><span>'+(phaseInfo||'水面 ≤0°C 结冰 · 冰 ≥1°C 融化 · 雪 ≥2.5°C 消融')+'</span></div>'+
     '<div class="kv"><span>昼夜能量比</span><span>'+(env.solar>1?('1 : '+(env.moonLight/1.0).toFixed(3)):'0 : 夜')+'</span></div>';
   document.getElementById('yearBar').innerHTML=yearBarHTML(D);
   sunArcHTML();
@@ -2059,12 +2571,14 @@ function selectRegion(k){
 }
 function applyRegionTerrain(){
   RG=REGION_GEN[curRegion];
+  worldRegion=curRegion;
   genWorld();buildMesh();
   var sp2=pickSpawn();
   player.x=sp2.x;player.y=sp2.y;player.z=sp2.z;player.vy=0;
   spawn={x:sp2.x,y:sp2.y,z:sp2.z};
-  npc={x:sp2.x-Math.sin(player.yaw)*7+Math.cos(player.yaw)*3.5,z:sp2.z-Math.cos(player.yaw)*7-Math.sin(player.yaw)*3.5};
+  npc=npcSpot(sp2.x,sp2.z,player.yaw);
   if(atomMode){buildAtoms();updateAtomPanel();}
+  initFauna();
   closeWorld();
   toast('3D 世界已切到「'+REGIONS[curRegion].n+'」：'+REGIONS[curRegion].landform);
 }
@@ -2077,10 +2591,13 @@ function renderEco(){
     '<div class="wmetric"><div class="k">代表动物</div><div class="v">'+R.animals.length+' <small>类</small></div></div>'+
     '<div class="wmetric"><div class="k">多样性指数</div><div class="v">'+Math.round(R.bio*100)+' <small>/100</small></div></div>'+
     '<div class="wmetric"><div class="k">当前季节</div><div class="v">'+e.season.n+' <small>'+(env.term.now?env.term.now.n:'')+'</small></div></div>';
+  var flist=FAUNA[curRegion]||[];
+  var fnames=flist.filter(function(d){return !(se==='winter'&&d.winter==='hide');}).map(function(d){return d.n+(se==='winter'&&d.winter==='migrate'?'（迁徙）':'');});
   document.getElementById('ecoSummary').innerHTML='<h3>'+R.n+' · '+R.biome+'</h3>'+
     '<div class="kv"><span>自然地貌</span><span>'+R.landform+'</span></div>'+
     '<div class="kv"><span>气候</span><span>'+R.climate+'</span></div>'+
     '<div class="kv"><span>当季物候</span><span>'+R.seasons[se]+'</span></div>'+
+    '<div class="kv"><span>3D 世界中的动物</span><span>'+(worldRegion!==curRegion?'切换到该地域后可见：':'')+(showFauna?fnames.join('、'):'已隐藏（时序面板可打开）')+'</span></div>'+
     '<div class="wbar"><i style="width:'+Math.round(R.bio*100)+'%"></i></div>';
   document.getElementById('ecoPlants').innerHTML=R.plants.map(function(p){
     return '<div class="spcard"><div class="n">'+p[0]+'</div><div class="r">'+p[2]+'</div><span class="t">'+p[1]+'</span></div>';
@@ -2094,6 +2611,123 @@ function renderEco(){
   document.getElementById('ecoRel').innerHTML=
     '<div class="relBox"><h4>相生 · 促进与供养</h4>'+R.sheng.map(function(s){return '· '+s;}).join('<br>')+'</div>'+
     '<div class="relBox ke"><h4>相克 · 捕食与限制</h4>'+R.ke.map(function(s){return '· '+s;}).join('<br>')+'</div>';
+}
+
+/* ---------- 动物迁徙 / 3D 可视化 ---------- */
+function initFauna(){
+  var list=FAUNA[curRegion]||FAUNA.hb;
+  fauna=[];
+  var fw=Math.atan2(-Math.cos(player.yaw),-Math.sin(player.yaw));
+  var offs=[0,0.35,-0.35,Math.PI],dists=[4,5.5,7,8.5];
+  for(var i=0;i<list.length;i++){
+    var ang=fw+offs[i%offs.length]+(i>=offs.length?(Math.random()-0.5)*1.2:0);
+    var r=dists[i%dists.length]+(i>=dists.length?Math.random()*4:0);
+    var x=player.x+Math.cos(ang)*r,z=player.z+Math.sin(ang)*r;
+    x=Math.max(3,Math.min(WX-4,x));z=Math.max(3,Math.min(WZ-4,z));
+    fauna.push({def:list[i],x:x,z:z,dir:Math.random()*6.28,t:Math.random()*10,active:true,seed:i*97+13});
+  }
+}
+function updateFauna(dt){
+  if(!env||!fauna.length)return;
+  var winter=env.season.key==='winter';
+  for(var i=0;i<fauna.length;i++){
+    var a=fauna[i],def=a.def;
+    a.active=!(winter&&def.winter==='hide');
+    if(!a.active)continue;
+    a.t+=dt;
+    if(winter&&def.winter==='migrate'&&def.kind!=='bird'){a.z+=dt*0.6;if(a.z>WZ-5)a.z=5;}
+    if(def.kind==='bird'){
+      if(winter&&def.winter==='migrate'){
+        a.z+=dt*0.9;if(a.z>WZ-5)a.z=5;
+        a.x+=Math.sin(a.t*0.8)*dt*1.1;
+      }else{
+        a.x+=Math.cos(a.t*0.5+a.seed)*dt*0.8;
+        a.z+=Math.sin(a.t*0.4+a.seed)*dt*0.8;
+      }
+    }else if(def.kind==='pred'){
+      var target=null,td=999;
+      for(var j=0;j<fauna.length;j++){
+        var b=fauna[j];
+        if(b.def.kind!=='herb'||!b.active)continue;
+        var d=Math.hypot(b.x-a.x,b.z-a.z);
+        if(d<td){td=d;target=b;}
+      }
+      if(target&&td<12){
+        a.x+=(target.x-a.x)/Math.max(0.1,td)*dt*1.15;
+        a.z+=(target.z-a.z)/Math.max(0.1,td)*dt*1.15;
+      }else{
+        a.dir+=(hash2(Math.floor(a.t*10),a.seed)-0.5)*dt*3.0;
+        a.x+=Math.cos(a.dir)*dt*0.7;a.z+=Math.sin(a.dir)*dt*0.7;
+      }
+    }else{
+      var flee=null,fd=99;
+      for(var k=0;k<fauna.length;k++){
+        var p=fauna[k];
+        if(p.def.kind!=='pred'||!p.active)continue;
+        var dd=Math.hypot(p.x-a.x,p.z-a.z);
+        if(dd<fd){fd=dd;flee=p;}
+      }
+      if(flee&&fd<8){
+        a.x-=(flee.x-a.x)/Math.max(0.1,fd)*dt*1.2;
+        a.z-=(flee.z-a.z)/Math.max(0.1,fd)*dt*1.2;
+      }else{
+        a.dir+=(hash2(Math.floor(a.t*7)+11,a.seed)-0.5)*dt*3.5;
+        a.x+=Math.cos(a.dir)*dt*0.6;a.z+=Math.sin(a.dir)*dt*0.6;
+      }
+    }
+    a.x=Math.max(3,Math.min(WX-4,a.x));
+    a.z=Math.max(3,Math.min(WZ-4,a.z));
+    if(def.kind!=='bird'&&surfaceY(Math.floor(a.x),Math.floor(a.z))<=SEA+1){
+      a.x+=Math.sin(a.t*2.7)*dt*2;a.z+=Math.cos(a.t*2.3)*dt*2;
+      a.x=Math.max(3,Math.min(WX-4,a.x));a.z=Math.max(3,Math.min(WZ-4,a.z));
+    }
+  }
+}
+function updateFaunaLabels(){
+  var box=document.getElementById('faunaLabels');
+  if(!box)return;
+  if(!showFauna||!fauna.length){box.innerHTML='';return;}
+  var html='';
+  for(var i=0;i<fauna.length;i++){
+    var a=fauna[i];
+    if(!a.active)continue;
+    var gy=surfaceY(Math.floor(a.x),Math.floor(a.z));
+    var y=a.def.kind==='bird'?gy+5.2:gy+1.25*a.def.size;
+    var cw=MVP[3]*a.x+MVP[7]*y+MVP[11]*a.z+MVP[15];
+    if(cw<=0.01)continue;
+    var cx=MVP[0]*a.x+MVP[4]*y+MVP[8]*a.z+MVP[12];
+    var cy=MVP[1]*a.x+MVP[5]*y+MVP[9]*a.z+MVP[13];
+    var sx=(cx/cw*0.5+0.5)*innerWidth,sy=(1-(cy/cw*0.5+0.5))*innerHeight;
+    if(sx<10||sx>innerWidth-10||sy<10||sy>innerHeight-10)continue;
+    var tag=a.def.n+(env&&env.season.key==='winter'&&a.def.winter==='migrate'?' · 迁徙':'');
+    html+='<div class="fl" style="left:'+sx.toFixed(0)+'px;top:'+sy.toFixed(0)+'px">'+tag+'</div>';
+  }
+  box.innerHTML=html;
+}
+function bakeAnimal(off,a){
+  var d=a.def,s=d.size,col=d.color;
+  var gy=surfaceY(Math.floor(a.x),Math.floor(a.z));
+  var y=d.kind==='bird'?gy+4.5+Math.sin(a.t*2+a.seed)*0.5:gy+0.02;
+  var fx=Math.cos(a.dir),fz=Math.sin(a.dir);
+  var dark=[col[0]*0.72,col[1]*0.72,col[2]*0.72];
+  var head=[Math.min(1,col[0]*1.18+0.05),Math.min(1,col[1]*1.18+0.05),Math.min(1,col[2]*1.18+0.05)];
+  if(d.kind==='bird'){
+    off=bakePart(charArr,off,a.x,y+0.55*s,a.z,a.dir,0,0,0.5*s,0.38*s,0.7*s,col);
+    off=bakePart(charArr,off,a.x+fx*0.5*s,y+0.78*s,a.z+fz*0.5*s,a.dir,0,0,0.26*s,0.26*s,0.26*s,col);
+    var flap=Math.sin(a.t*9+a.seed)*0.5;
+    off=bakePart(charArr,off,a.x-fz*0.35*s,y+0.55*s,a.z+fx*0.35*s,a.dir,0,flap,0.16*s,0.10*s,0.5*s,dark);
+    off=bakePart(charArr,off,a.x+fz*0.35*s,y+0.55*s,a.z-fx*0.35*s,a.dir,0,-flap,0.16*s,0.10*s,0.5*s,dark);
+    off=bakePart(charArr,off,a.x-fx*0.55*s,y+0.55*s,a.z-fz*0.55*s,a.dir,0.3,0,0.18*s,0.10*s,0.35*s,dark);
+  }else{
+    off=bakePart(charArr,off,a.x,y+0.55*s,a.z,a.dir,0,0,0.55*s,0.42*s,0.35*s,col);
+    off=bakePart(charArr,off,a.x+fx*0.55*s,y+0.82*s,a.z+fz*0.55*s,a.dir,0,0,0.30*s,0.30*s,0.30*s,head);
+    off=bakePart(charArr,off,a.x-fx*0.55*s,y+0.58*s,a.z-fz*0.55*s,a.dir,0,0,0.12*s,0.12*s,0.38*s,dark);
+    var lx=Math.cos(a.dir+Math.PI/2)*0.20*s,lz=Math.sin(a.dir+Math.PI/2)*0.20*s;
+    var step=Math.sin(a.t*7+a.seed)*0.16*s;
+    off=bakePart(charArr,off,a.x+lx,y+0.22*s+step,a.z+lz,a.dir,0,0,0.12*s,0.42*s,0.12*s,dark);
+    off=bakePart(charArr,off,a.x-lx,y+0.22*s-step,a.z-lz,a.dir,0,0,0.12*s,0.42*s,0.12*s,dark);
+  }
+  return off;
 }
 
 /* ---------- 六十四卦 ---------- */
@@ -2312,6 +2946,26 @@ function bindWorldUI(){
     b.addEventListener('click',function(){setWorldTab(b.getAttribute('data-wtab'));});
   });
   document.getElementById('applyRegion').addEventListener('click',applyRegionTerrain);
+  document.getElementById('btnFauna').addEventListener('click',function(){
+    showFauna=!showFauna;
+    this.classList.toggle('on',showFauna);
+    if(showFauna&&!fauna.length)initFauna();
+    toast(showFauna?'3D 世界：显示代表动物':'3D 世界：隐藏动物');
+  });
+  document.getElementById('btnSave').addEventListener('click',function(){saveWorld(true);});
+  document.getElementById('btnLoad').addEventListener('click',function(){if(!loadWorld(false))toast('没有可读取的存档');});
+  var bw=document.getElementById('btnWipe');
+  bw.addEventListener('click',function(){
+    var now=Date.now();
+    if(now-wipeArm>3000){
+      wipeArm=now;bw.textContent='再点一次确认';
+      setTimeout(function(){if(Date.now()-wipeArm>=2900){bw.textContent='重置世界';wipeArm=0;}},3200);
+    }else{
+      wipeArm=0;bw.textContent='重置世界';wipeWorld();
+    }
+  });
+  addEventListener('pagehide',function(){saveWorld(false);});
+  document.addEventListener('visibilitychange',function(){if(document.visibilityState==='hidden')saveWorld(false);});
   document.getElementById('world').addEventListener('click',function(e){
     var el=e.target;
     var rb=el.closest('[data-region]');
@@ -2353,19 +3007,37 @@ genWorld();
 var sp=pickSpawn();
 player.x=sp.x;player.y=sp.y;player.z=sp.z;player.vy=0;
 spawn={x:sp.x,y:sp.y,z:sp.z};
-npc={x:sp.x-Math.sin(player.yaw)*7+Math.cos(player.yaw)*3.5,z:sp.z-Math.cos(player.yaw)*7-Math.sin(player.yaw)*3.5};
+npc=npcSpot(sp.x,sp.z,player.yaw);
 buildMesh();
 buildHotbar();
 updateEnv(0);
 buildRegionChips();
 bindWorldUI();
 updateHUD();
-setTimeout(function(){toast('时间起点：公元0年1月1日 01:00:01 · 当前 60× 流动');},1200);
+var restored=loadWorld(true);
+if(!restored)initFauna();
+if(restored){
+  setTimeout(function(){toast('已恢复上次存档：'+fmtDate(env.D)+' '+fmtClock(env.D));},1200);
+}else{
+  setTimeout(function(){toast('时间起点：公元0年1月1日 01:00:01 · 当前 60× 流动');},1200);
+}
 window.__world={
-  get:function(){return {sim:sim,speed:speed,region:curRegion,date:env.D,env:env};},
+  get:function(){return {sim:sim,speed:speed,region:curRegion,showFauna:showFauna,date:env.D,env:env};},
   set:function(s){sim=s;updateEnv(0);updateHUD();renderAll();},
   setSpeed:function(v){speed=v;updateHUD();},
-  setRegion:function(k){selectRegion(k);}
+  setRegion:function(k){selectRegion(k);},
+  save:function(){return saveWorld(true);},
+  load:function(){return loadWorld(false);},
+  setBlock:function(x,y,z,t){setB(x,y,z,t);buildMesh();},
+  getBlock:function(x,y,z){return getB(x,y,z);},
+  phase:function(){
+    var r=phaseTick(),c={ice:0,water:0,snow:0};
+    for(var i=0;i<blocks.length;i++){if(blocks[i]===20)c.ice++;else if(blocks[i]===5)c.water++;else if(blocks[i]===18)c.snow++;}
+    return {r:r,counts:c,info:phaseInfo};
+  },
+  applyTerrain:function(){applyRegionTerrain();},
+  faunaList:function(){return fauna.map(function(a){return {n:a.def.n,x:a.x,z:a.z,active:a.active};});},
+  lookAt:function(x,z){player.yaw=Math.atan2(-(x-player.x),-(z-player.z));player.pitch=0;}
 };
 requestAnimationFrame(function(t){last=t;loop(t);});
 setTimeout(function(){document.getElementById('hint').style.opacity='0';document.getElementById('hint').style.transition='opacity 1.2s';},9000);
