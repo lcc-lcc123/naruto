@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <link rel="icon" href="data:,">
 <title>映射 + AI 世界</title>
-<meta name="version" content="world-v8.0.0">
+<meta name="version" content="world-v8.1.0">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:"PingFang SC","Microsoft YaHei",sans-serif;color:#fff;touch-action:none;user-select:none;-webkit-user-select:none}
@@ -5462,7 +5462,7 @@ function spawnAnimalChild(p){
   c.ageDays=0;c.stage='幼年';c.energy=70;c.hp=c.maxHp*0.6;
   c.x=Math.max(3,Math.min(WX-4,p.x+(Math.random()-0.5)*1.5));
   c.z=Math.max(3,Math.min(WZ-4,p.z+(Math.random()-0.5)*1.5));
-  c.dir=Math.random()*6.28;c.cooldown=40;
+  c.dir=Math.random()*6.28;c.cooldown=40;c.motherId=p.id;
   fauna.push(c);return c;
 }
 function spawnPlant(p){
@@ -5589,6 +5589,85 @@ function refreshPetBar(force){
   });
 }
 function cmdName2(c){return {follow:'跟随',stay:'待命',sit:'坐下',eat:'进食',hunt:'捕猎',flee:'逃跑'}[c]||c;}
+
+/* ---------- 同类间距 / 母幼距离 ---------- */
+function animalAdult(a){return a&&(a.stage==='青年'||a.stage==='中年');}
+function canMatePair(a,b){
+  if(!a||!b||a===b)return false;
+  if(a.type!==b.type)return false;
+  if(a.repro!=='sexual'||b.repro!=='sexual')return false;
+  if(a.sex==='—'||b.sex==='—'||a.sex===b.sex)return false;
+  if(!animalAdult(a)||!animalAdult(b))return false;
+  if(a.pregnant||b.pregnant)return false;
+  if(a.cooldown>0||b.cooldown>0)return false;
+  if(a.energy<45||b.energy<45)return false;
+  return true;
+}
+function animalPersonalSpace(a){
+  var z=a.size||0.7;
+  if(a.def.kind==='bird')return Math.max(0.65,0.55+z*0.55);
+  if(a.def.kind==='pred')return Math.max(1.05,0.85+z*0.85);
+  return Math.max(0.9,0.72+z*0.8);
+}
+function motherSpacing(a,dt){
+  if(!a.motherId)return false;
+  if(a.stage!=='幼年'&&a.stage!=='少年'){a.motherId=null;return false;}
+  var mom=findAgent(a.motherId);
+  if(!mom||mom.kind!=='animal'||!mom.alive||mom.type!==a.type){a.motherId=null;return false;}
+  var dx=mom.x-a.x,dz=mom.z-a.z,d=Math.hypot(dx,dz)||0.001;
+  var minD=0.9+(a.size||0.7)*0.4;
+  var maxD=2.4+(a.size||0.7)*0.9;
+  if(d>maxD){
+    var ux=dx/d,uz=dz/d,sp=Math.min(1.5,0.55+(d-maxD)*0.9);
+    a.x+=ux*dt*sp;a.z+=uz*dt*sp;
+    a.dir=Math.atan2(uz,ux);a.state='跟随母亲';a.drive='生存';
+    return true;
+  }
+  if(d<minD){
+    var vx=a.x-mom.x,vz=a.z-mom.z,vl=Math.hypot(vx,vz)||0.001;
+    var sx=vx/vl,sz=vz/vl,sp2=Math.min(1.0,0.3+(minD-d)*1.2);
+    a.x+=sx*dt*sp2;a.z+=sz*dt*sp2;
+    a.dir=Math.atan2(sz,sx);a.state='避让母亲';a.drive='生存';
+    return true;
+  }
+  return false;
+}
+function courtshipStep(a,dt){
+  if(!animalAdult(a)||a.repro!=='sexual'||a.pregnant||a.cooldown>0||a.energy<=55)return false;
+  var best=null,bd=12;
+  for(var i=0;i<fauna.length;i++){
+    var b=fauna[i];
+    if(b===a||!b.alive||!b.active||b.type!==a.type)continue;
+    if(!canMatePair(a,b))continue;
+    var d=Math.hypot(b.x-a.x,b.z-a.z);
+    if(d<bd){bd=d;best=b;}
+  }
+  if(!best)return false;
+  if(bd>1.6){
+    var ux=(best.x-a.x)/bd,uz=(best.z-a.z)/bd,sp=0.8;
+    a.x+=ux*dt*sp;a.z+=uz*dt*sp;
+    a.dir=Math.atan2(uz,ux);
+  }
+  a.state='求偶';a.drive='繁衍';
+  return true;
+}
+function applySocialSpacing(a,dt){
+  var sa=animalPersonalSpace(a),moved=false;
+  for(var i=0;i<fauna.length;i++){
+    var b=fauna[i];
+    if(b===a||!b.alive||!b.active||b.type!==a.type)continue;
+    if(a.tamed||b.tamed)continue;
+    if(a.motherId===b.id||b.motherId===a.id)continue;
+    if(canMatePair(a,b))continue;
+    var dx=a.x-b.x,dz=a.z-b.z,d=Math.hypot(dx,dz);
+    var space=Math.max(sa,animalPersonalSpace(b));
+    if(d>=space)continue;
+    if(d<0.0001){dx=0.01;dz=0.01;d=0.014;}
+    var step=Math.min((space-d)*0.7,1.2*dt);
+    a.x+=dx/d*step;a.z+=dz/d*step;moved=true;
+  }
+  if(moved&&(a.state==='休息'||a.state==='幼崽'))a.state='避让同类';
+}
 function updateFauna(dt,bio){
   if(!env)return;
   var winter=env.season.key==='winter';
@@ -5596,12 +5675,13 @@ function updateFauna(dt,bio){
     var a=fauna[i];
     if(!a.alive){
       a.respawn-=(bio||0);
-      if(a.respawn<=0&&countType(a.type)<6){a.alive=true;a.hp=a.maxHp;a.ageDays=0;a.energy=70;a.respawn=0;a.cooldown=20;}
+      if(a.respawn<=0&&countType(a.type)<6){a.alive=true;a.hp=a.maxHp;a.ageDays=0;a.energy=70;a.respawn=0;a.cooldown=20;a.motherId=null;}
       continue;
     }
     a.cooldown=Math.max(0,a.cooldown-(bio||0));
     a.ageDays+=(bio||0);
     a.stage=stageOfAnimal(a.ageDays,a.lifespanDays);
+    if(a.motherId&&a.stage!=='幼年'&&a.stage!=='少年')a.motherId=null;
     if(a.ageDays>=a.lifespanDays){a.alive=false;a.respawn=10;a.tamed=false;a.tameCommand='';continue;}
     a.energy=Math.max(0,Math.min(100,a.energy-dt*1.1));
     if(a.energy>35)a.hp=Math.min(a.maxHp,a.hp+a.recovery*dt);
@@ -5650,6 +5730,11 @@ function updateFauna(dt,bio){
     a.active=!(winter&&a.def.winter==='hide');
     if(!a.active){a.state='隐匿';a.drive='生存';continue;}
     a.t+=dt;
+    if(motherSpacing(a,dt)){
+      applySocialSpacing(a,dt);
+      a.x=Math.max(3,Math.min(WX-4,a.x));a.z=Math.max(3,Math.min(WZ-4,a.z));
+      continue;
+    }
     a.state='休息';
     var harsh=(env.temp<-8||env.temp>35||env.w.precip>0);
     if(harsh)a.state=env.temp<-8?'避寒':(env.temp>35?'避暑':(env.w.n==='雨'?'避雨':'避雪'));
@@ -5669,6 +5754,9 @@ function updateFauna(dt,bio){
       a.gestation-=(bio||0);
       if(a.gestation<=0){spawnAnimalChild(a);a.pregnant=false;a.children++;a.cooldown=50;}
     }
+    var courted=false;
+    if(!harsh)courted=courtshipStep(a,dt);
+    if(!courted){
     var prey=null,pd=99;
     if(a.def.kind==='pred'){
       for(var k=0;k<fauna.length;k++){
@@ -5721,6 +5809,8 @@ function updateFauna(dt,bio){
       if(winter&&a.def.winter==='migrate'){a.z+=dt*0.8;if(a.z>WZ-5)a.z=5;a.state='迁徙';}
       else{a.x+=Math.cos(a.t*0.5+a.seed)*dt*0.7;a.z+=Math.sin(a.t*0.4+a.seed)*dt*0.7;}
     }
+    }
+    applySocialSpacing(a,dt);
     a.x=Math.max(3,Math.min(WX-4,a.x));a.z=Math.max(3,Math.min(WZ-4,a.z));
     if(a.def.kind!=='bird'&&surfaceY(Math.floor(a.x),Math.floor(a.z))<=SEA+1){
       a.x+=Math.sin(a.t*2.7)*dt*2;a.z+=Math.cos(a.t*2.3)*dt*2;
@@ -5912,6 +6002,7 @@ function renderSpecies(){
   var h='<div class="wdetail"><h3>'+a.type+' '+kindBadge+'<span class="badge">'+(a.alive?'存活':'死亡')+'</span></h3>';
   if(a.kind==='animal'){
     var t=AGENT_TRAITS[a.def.kind]||AGENT_TRAITS.herb;
+    var mom=a.motherId?findAgent(a.motherId):null;
     h+='<div class="kv"><span>性别 / 繁殖</span><span>'+a.sex+' · '+(a.repro==='sexual'?'有性繁殖':'无性繁殖')+'</span></div>'+
       '<div class="kv"><span>年龄 / 阶段</span><span>'+(a.ageDays/365).toFixed(1)+' 岁 · '+a.stage+'</span></div>'+
       '<div class="kv"><span>状态 / 第一驱动</span><span>'+a.state+' · '+a.drive+'</span></div>'+
@@ -5927,6 +6018,7 @@ function renderSpecies(){
       '<div class="kv"><span>参数区间</span><span>HP '+Math.round(a.maxHp*0.85)+'–'+Math.round(a.maxHp*1.15)+' · 攻击 '+Math.max(1,Math.round(a.attack*0.8))+'–'+Math.round(a.attack*1.2)+' · 寿命 '+(a.lifespanDays*0.85/365).toFixed(1)+'–'+(a.lifespanDays*1.15/365).toFixed(1)+' 岁</span></div>'+
       '<div class="kv"><span>繁殖 / 后代</span><span>'+(a.pregnant?('怀孕中 · 剩余 '+Math.max(0,a.gestation).toFixed(1)+' 天'):('冷却 '+a.cooldown.toFixed(1)+' 天'))+' · 已有 '+a.children+' 胎</span></div>'+
       '<div class="kv"><span>体表寄生负荷</span><span>'+a.parasiteLoad.toFixed(2)+'</span></div>'+
+      '<div class="kv"><span>母幼 / 同类间距</span><span>'+(mom&&mom.alive?('母亲 '+mom.type+' · '+Math.hypot(a.x-mom.x,a.z-mom.z).toFixed(1)+' m'):(a.children?('已育 '+a.children+' 胎'):'独立'))+' · 同种保持距离</span></div>'+
       '<div class="catline">驯服 / 指令</div>'+
       '<div class="wrow tamebar">'+
         '<button id="btnTame" type="button" style="'+(a.tamed?'':'border-color:#ffd166;color:#ffd166')+'">'+(a.tamed?'放归':'驯服')+'</button>'+
@@ -6317,7 +6409,7 @@ window.__world={
   },
   applyTerrain:function(){applyRegionTerrain();},
   faunaList:function(){return fauna.map(function(a){return {id:a.id,n:a.type,x:a.x,z:a.z,active:a.active,alive:a.alive};});},
-  agents:function(){return {fauna:fauna.map(function(a){return {id:a.id,type:a.type,sex:a.sex,stage:a.stage,state:a.state,hp:a.hp,pregnant:a.pregnant,alive:a.alive,tamed:a.tamed||false,tameCommand:a.tameCommand||'',x:a.x,z:a.z,active:a.active};}),flora:flora.map(function(a){return {id:a.id,type:a.type,stage:a.stage,growth:a.growth,alive:a.alive};}),humans:humans.map(function(a){return {id:a.id,sex:a.sex,age:a.ageYears,stage:a.stage,ethnic:a.ethnic,state:a.state,energy:a.energy,cooldown:a.cooldown,pregnant:a.pregnant,alive:a.alive,x:a.x,z:a.z,occ:a.occ,atlas:a.atlasName};})};},
+  agents:function(){return {fauna:fauna.map(function(a){return {id:a.id,type:a.type,sex:a.sex,stage:a.stage,state:a.state,hp:a.hp,pregnant:a.pregnant,alive:a.alive,energy:a.energy,cooldown:a.cooldown,repro:a.repro,children:a.children||0,tamed:a.tamed||false,tameCommand:a.tameCommand||'',x:a.x,z:a.z,active:a.active,motherId:a.motherId||null};}),flora:flora.map(function(a){return {id:a.id,type:a.type,stage:a.stage,growth:a.growth,alive:a.alive};}),humans:humans.map(function(a){return {id:a.id,sex:a.sex,age:a.ageYears,stage:a.stage,ethnic:a.ethnic,state:a.state,energy:a.energy,cooldown:a.cooldown,pregnant:a.pregnant,alive:a.alive,x:a.x,z:a.z,occ:a.occ,atlas:a.atlasName};})};},
   openSpecies:function(id){openSpecies(id);},
   openList:function(){openSpeciesList();},
   fastForward:function(d){return fastForward(d||30);},
@@ -6358,6 +6450,10 @@ window.__world={
     player.vy=0;return [player.x,player.y,player.z,player.yaw];
   },
   setDir:function(id,dir){var a=findAgent(id);if(a){a.dir=dir;return true;}return false;},
+  setAnimalPos:function(id,x,z){var a=findAgent(id);if(!a||a.kind!=='animal')return false;a.x=Math.max(3,Math.min(WX-4,x));a.z=Math.max(3,Math.min(WZ-4,z));return true;},
+  setAnimalEnergy:function(id,v){var a=findAgent(id);if(!a||a.kind!=='animal')return false;a.energy=Math.max(0,Math.min(100,+v||0));return true;},
+  spawnChild:function(id){var p=findAgent(id);if(!p||p.kind!=='animal')return null;var c=spawnAnimalChild(p);return c?{id:c.id,type:c.type,motherId:c.motherId||null}:null;},
+  canMate:function(a,b){var x=findAgent(a),y=findAgent(b);return !!(x&&y&&canMatePair(x,y));},
   tame:function(id){return tameAnimal(id);},
   command:function(id,cmd){return commandAnimal(id,cmd);},
   tameNearest:function(){return tameNearest();},
