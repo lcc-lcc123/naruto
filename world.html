@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <link rel="icon" href="data:,">
 <title>映射 + AI 世界</title>
-<meta name="version" content="world-v7.1.1">
+<meta name="version" content="world-v8.0.0">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:"PingFang SC","Microsoft YaHei",sans-serif;color:#fff;touch-action:none;user-select:none;-webkit-user-select:none}
@@ -29,19 +29,19 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
 .tamebar{margin-top:8px}
 .tamebar button.on{background:#ffd166;color:#3a2a00;border-color:#ffd166;font-weight:700}
 #species{position:fixed;inset:0;z-index:80;background:rgba(7,11,17,.97);backdrop-filter:blur(16px);display:flex;flex-direction:column;color:#dce7f7}
-#joy{position:absolute;left:calc(14px + env(safe-area-inset-left));bottom:calc(76px + env(safe-area-inset-bottom));width:118px;height:118px;border-radius:50%;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.25);pointer-events:auto;touch-action:none}
+#joy{position:absolute;left:calc(14px + env(safe-area-inset-left));bottom:calc(76px + env(safe-area-inset-bottom));width:118px;height:118px;border-radius:50%;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.25);pointer-events:auto;touch-action:none;z-index:6}
 #knob{position:absolute;left:50%;top:50%;width:50px;height:50px;margin:-25px 0 0 -25px;border-radius:50%;background:rgba(255,255,255,.35);border:1px solid rgba(255,255,255,.5)}
-#acts{position:absolute;right:calc(14px + env(safe-area-inset-right));bottom:calc(76px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(3,54px);gap:8px;pointer-events:auto}
+#acts{position:absolute;right:calc(14px + env(safe-area-inset-right));bottom:calc(76px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(3,54px);gap:8px;pointer-events:auto;z-index:6}
 #acts button{width:54px;height:54px;border-radius:50%;border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.14);color:#fff;font-size:14px;font-weight:600;backdrop-filter:blur(6px);touch-action:none}
 #acts button:active{background:rgba(255,255,255,.35)}
 #acts button.dig{background:rgba(226,86,66,.55)}
 #acts button.put{background:rgba(7,193,96,.5)}
 #acts button.jump{background:rgba(90,141,239,.55)}
-#hotbar{position:absolute;left:50%;bottom:calc(8px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;gap:5px;padding:5px;background:rgba(0,0,0,.38);border-radius:12px;pointer-events:auto;backdrop-filter:blur(6px);max-width:94vw;overflow-x:auto}
+#hotbar{position:absolute;left:50%;bottom:calc(8px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;gap:5px;padding:5px;background:rgba(0,0,0,.38);border-radius:12px;pointer-events:auto;backdrop-filter:blur(6px);max-width:94vw;overflow-x:auto;z-index:6}
 #hotbar .slot{width:40px;height:40px;border-radius:8px;border:2px solid rgba(255,255,255,.18);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:9px;color:#fff;flex-shrink:0}
 #hotbar .slot.on{border-color:#fff;box-shadow:0 0 0 2px rgba(7,193,96,.7)}
 #hotbar .sw{width:19px;height:19px;border-radius:4px;margin-bottom:2px}
-#info{position:absolute;left:10px;bottom:calc(214px + env(safe-area-inset-bottom));font-size:11px;line-height:1.6;color:#dbe7fa;background:rgba(0,0,0,.42);padding:7px 9px;border-radius:9px;max-width:60vw;backdrop-filter:blur(4px);pointer-events:none}
+#info{position:absolute;left:10px;bottom:calc(238px + env(safe-area-inset-bottom));font-size:11px;line-height:1.6;color:#dbe7fa;background:rgba(0,0,0,.42);padding:7px 9px;border-radius:9px;max-width:54vw;z-index:5;backdrop-filter:blur(4px);pointer-events:none}
 #atomPanel{position:absolute;right:10px;top:calc(96px + env(safe-area-inset-top));width:min(68vw,300px);background:rgba(10,16,26,.86);border:1px solid rgba(120,170,255,.35);border-radius:12px;padding:10px 12px;font-size:12px;line-height:1.75;color:#cfe0ff;pointer-events:auto;backdrop-filter:blur(8px)}
 #atomPanel h3{font-size:13px;color:#8fe2b3;margin-bottom:4px}
 #atomPanel .el{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px;vertical-align:-1px}
@@ -244,6 +244,39 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
   #hotbar{bottom:calc(8px + env(safe-area-inset-bottom))}
   #hotbar .slot{width:37px;height:37px}
 }
+
+/* ---------- 物品 / 背包 / 战斗 / 飞行 / 驯服条 ---------- */
+#hotbar .slot{position:relative;cursor:pointer}
+#hotbar .slot .ico{font-size:17px;line-height:1.05;margin-bottom:1px}
+#hotbar .slot .cnt{position:absolute;right:1px;bottom:0;font-size:9px;line-height:1;background:rgba(0,0,0,.62);border-radius:5px;padding:1px 3px;color:#fff}
+#hotbar .slot.empty{opacity:.45}
+#acts button.atk{background:rgba(239,90,90,.55)}
+#acts button.fly.on{background:rgba(143,226,179,.7);color:#08120c}
+#hitmark{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:22px;color:#ff6b6b;opacity:0;transition:opacity .12s;pointer-events:none;text-shadow:0 0 6px rgba(0,0,0,.8);z-index:12}
+#hitmark.show{opacity:1}
+#info .held{color:#ffd166}
+#petBar{position:absolute;left:50%;top:calc(96px + env(safe-area-inset-top));transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:5px;pointer-events:auto;z-index:15;max-width:94vw}
+#petBar .pbName{font-size:11px;color:#ffd166;background:rgba(0,0,0,.64);border:1px solid rgba(255,209,102,.45);border-radius:999px;padding:3px 9px;white-space:nowrap}
+#petBar .pbRow{display:flex;gap:5px;flex-wrap:wrap;justify-content:center}
+#petBar button{background:rgba(20,28,40,.86);border:1px solid rgba(255,255,255,.22);color:#dce7f7;border-radius:999px;padding:6px 11px;font-size:12px;backdrop-filter:blur(6px);touch-action:none}
+#petBar button.tame{border-color:#ffd166;color:#ffd166;font-weight:600}
+#petBar button.on{background:#ffd166;color:#3a2a00;border-color:#ffd166;font-weight:600}
+#bag{position:fixed;inset:0;z-index:65;background:rgba(7,11,17,.96);backdrop-filter:blur(16px);display:flex;flex-direction:column;color:#dce7f7;pointer-events:auto}
+.bhead{display:flex;align-items:center;gap:8px;padding:calc(10px + env(safe-area-inset-top)) 10px 8px;border-bottom:1px solid rgba(255,255,255,.08)}
+.bhead .bback{background:none;border:none;color:#dce7f7;font-size:26px;width:34px;line-height:1;padding:0}
+.bhead .btitle{font-size:15px;font-weight:600;flex:1}
+.bhead .bsub{font-size:10px;color:#7e8ea6}
+.bbody{flex:1;min-height:0;overflow-y:auto;padding:2px 12px calc(24px + env(safe-area-inset-bottom))}
+.bagRow{display:grid;grid-template-columns:repeat(8,1fr);gap:4px}
+.bagGrid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:6px}
+.bagSlot{min-height:52px;border:1px solid rgba(255,255,255,.12);border-radius:9px;background:rgba(255,255,255,.04);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-size:9px;color:#c3d3e8;padding:3px 2px;position:relative;touch-action:none}
+.bagSlot .ico{font-size:18px;line-height:1.05}
+.bagSlot .nm{font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.bagSlot .cnt{position:absolute;right:2px;bottom:1px;font-size:9px;background:rgba(0,0,0,.6);border-radius:5px;padding:0 3px;color:#fff}
+.bagSlot.on{outline:2px solid #8fe2b3}
+.bagSlot.empty{opacity:.35}
+.bagRow .bagSlot{width:auto;min-height:48px}
+.bagSlot .sw{width:20px;height:20px;border-radius:4px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.15)}
 </style>
 </head>
 <body>
@@ -264,12 +297,17 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
   </div>
   <div id="hint">拖动画面看向四周 · 左下摇杆移动<br>对准方块点 <b>挖</b> / <b>放</b> · 点击物种名称看属性<br>点右上 <b>时序</b> 看昼夜节气 · <b>化学</b> 查元素与反应</div>
   <div id="cross"></div>
+  <div id="hitmark">✕</div>
+  <div id="petBar" class="hidden"></div>
   <div id="faunaLabels"></div>
   <div id="joy"><div id="knob"></div></div>
   <div id="acts">
+    <button class="atk" data-act="attack">攻击</button>
     <button class="jump" data-act="jump">跳</button>
-    <button class="dig" data-act="dig">挖</button>
     <button class="put" data-act="put">放</button>
+    <button class="dig" data-act="dig">挖</button>
+    <button id="btnFly" class="fly" type="button">飞行</button>
+    <button id="btnBag" type="button">背包</button>
     <button data-act="inspect">看</button>
     <button id="btnAtom" type="button">原子</button>
     <button id="btnView" type="button">视角</button>
@@ -420,6 +458,20 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
       <div class="trigramRow" id="hexMonths"></div>
       <div class="note">以《周易》六十四卦的“时位—发展”结构作教学映射：一年等分为 64 段，每段一卦；六爻对应当日六个时段；上下卦对应八个方位与地域。错卦、综卦、互卦用于展示阴阳互根与内在演化。不是占卜，也不预测现实事件。</div>
     </div>
+  </div>
+</div>
+<div id="bag" class="hidden">
+  <div class="bhead">
+    <button class="bback" id="bagBack" type="button">‹</button>
+    <div class="btitle">背包</div>
+    <div class="bsub" id="bagSub">0 / 30</div>
+  </div>
+  <div class="bbody">
+    <div class="catline">快捷栏 · 点击物品移入背包</div>
+    <div id="bagHotbar" class="bagRow"></div>
+    <div class="catline">背包 · 点击物品放入空快捷栏</div>
+    <div id="bagGrid" class="bagGrid"></div>
+    <div class="note">武器：石刀（近战）· 铁剑 / 长矛（冷兵器）· 猎弓（远程，消耗箭）· 火枪（枪械，消耗子弹）。<br>狩猎动物可获得生肉、兽毛、羽毛、兽皮；物品栏与背包会随世界一起存档。</div>
   </div>
 </div>
 <div id="species" class="hidden">
@@ -697,6 +749,165 @@ var sel=1;
 var hotbarTypes=[1,2,3,4,6,7,11,9];
 var HOTNAME={1:'草',2:'土',3:'石',4:'沙',6:'木',7:'叶',8:'板',9:'铁矿',10:'煤',11:'石灰石',12:'岩盐',13:'玻璃',14:'生石灰',15:'熟石灰',16:'铜',17:'铁'};
 
+/* ---------- 物品 / 背包 ---------- */
+var ITEMS={
+  meat:{n:'生肉',ico:'🥩',stack:99},
+  fur:{n:'兽毛',ico:'🧶',stack:99},
+  feather:{n:'羽毛',ico:'🪶',stack:99},
+  hide:{n:'兽皮',ico:'🟫',stack:99},
+  arrow:{n:'箭',ico:'➶',stack:99},
+  bullet:{n:'子弹',ico:'•',stack:99},
+  knife:{n:'石刀',ico:'🔪',stack:1,w:{cls:'melee',dmg:20,range:3.0,cd:0.45}},
+  sword:{n:'铁剑',ico:'⚔️',stack:1,w:{cls:'cold',dmg:30,range:3.4,cd:0.5}},
+  spear:{n:'长矛',ico:'🔱',stack:1,w:{cls:'cold',dmg:26,range:4.0,cd:0.55}},
+  bow:{n:'猎弓',ico:'🏹',stack:1,w:{cls:'ranged',dmg:26,range:22,cd:0.9,ammo:'arrow'}},
+  gun:{n:'火枪',ico:'🔫',stack:1,w:{cls:'gun',dmg:46,range:28,cd:1.0,ammo:'bullet'}}
+};
+var BAG_MAX=30;
+var hotbarSlots=[1,2,3,4,6,7,11,9].map(function(id){return {id:id,n:0};});
+var bag=[
+  {id:'knife',n:1},{id:'sword',n:1},{id:'spear',n:1},{id:'bow',n:1},{id:'gun',n:1},
+  {id:'arrow',n:20},{id:'bullet',n:12},{id:'meat',n:2},{id:'fur',n:3},{id:'feather',n:2},{id:'hide',n:1}
+];
+var bagOpen=false;
+function itemDef(id){
+  if(typeof id==='number'){
+    var bd=B[id];if(!bd)return null;
+    var col=bd.top||bd.side||bd.col||[.5,.5,.5];
+    return {id:id,n:HOTNAME[id]||bd.n,block:true,color:col};
+  }
+  var it=ITEMS[id];if(!it)return null;
+  return {id:id,n:it.n,ico:it.ico,block:false,stack:it.stack||1,weapon:it.w||null};
+}
+function itemName(id){var d=itemDef(id);return d?d.n:String(id);}
+function sameItem(a,b){return a!=null&&b!=null&&String(a)===String(b);}
+function countItem(id){
+  if(typeof id==='number')return 999;
+  var c=0;
+  for(var i=0;i<hotbarSlots.length;i++){var sl=hotbarSlots[i];if(sl&&sameItem(sl.id,id))c+=sl.n;}
+  for(var j=0;j<bag.length;j++){if(sameItem(bag[j].id,id))c+=bag[j].n;}
+  return c;
+}
+function addItem(id,count){
+  var def=itemDef(id);if(!def)return false;
+  var n=count==null?1:Math.max(1,count|0),stack=def.stack||1,i,sl;
+  if(def.block){
+    for(i=0;i<hotbarSlots.length;i++)if(hotbarSlots[i]&&sameItem(hotbarSlots[i].id,id))return true;
+    for(i=0;i<bag.length;i++)if(sameItem(bag[i].id,id))return true;
+    for(i=0;i<hotbarSlots.length;i++)if(!hotbarSlots[i]){hotbarSlots[i]={id:id,n:0};return true;}
+    if(bag.length<BAG_MAX){bag.push({id:id,n:0});return true;}
+    return false;
+  }
+  for(i=0;i<hotbarSlots.length&&n>0;i++){sl=hotbarSlots[i];if(sl&&sameItem(sl.id,id)&&sl.n<stack){var add=Math.min(stack-sl.n,n);sl.n+=add;n-=add;}}
+  for(i=0;i<hotbarSlots.length&&n>0;i++){if(!hotbarSlots[i]){var put=Math.min(stack,n);hotbarSlots[i]={id:id,n:put};n-=put;}}
+  for(i=0;i<bag.length&&n>0;i++){sl=bag[i];if(sameItem(sl.id,id)&&sl.n<stack){var add2=Math.min(stack-sl.n,n);sl.n+=add2;n-=add2;}}
+  while(n>0&&bag.length<BAG_MAX){var put2=Math.min(stack,n);bag.push({id:id,n:put2});n-=put2;}
+  renderHotbar();
+  return n===0;
+}
+function consumeItem(id,count){
+  if(typeof id==='number')return true;
+  var need=count==null?1:count|0;
+  if(countItem(id)<need)return false;
+  for(var i=0;i<hotbarSlots.length&&need>0;i++){var sl=hotbarSlots[i];if(sl&&sameItem(sl.id,id)){var take=Math.min(sl.n,need);sl.n-=take;need-=take;if(sl.n<=0)hotbarSlots[i]=null;}}
+  for(var j=0;j<bag.length&&need>0;j++){if(sameItem(bag[j].id,id)){var take2=Math.min(bag[j].n,need);bag[j].n-=take2;need-=take2;if(bag[j].n<=0)bag.splice(j,1),j--;}}
+  renderHotbar();
+  return need===0;
+}
+function arrowTip(cls){
+  return '<div class="ico">'+(cls?'?' : '')+'</div>';
+}
+function slotInner(sl){
+  if(!sl)return '<div class="ico" style="opacity:.35">·</div><span style="opacity:.4">空</span>';
+  var d=itemDef(sl.id);
+  if(!d)return '<div class="ico">?</div>';
+  if(d.block){
+    var c=d.color,rgb='rgb('+Math.round(c[0]*255)+','+Math.round(c[1]*255)+','+Math.round(c[2]*255)+')';
+    return '<div class="sw" style="background:'+rgb+'"></div>'+d.n+(sl.n>0?('<span class="cnt">'+sl.n+'</span>'):'');
+  }
+  return '<div class="ico">'+(d.ico||'?')+'</div>'+d.n+(sl.n>1?('<span class="cnt">'+sl.n+'</span>'):'');
+}
+function slotHTML(sl,attr,val,on){
+  return '<div class="slot'+(sl?'':' empty')+(on?' on':'')+'" '+attr+'="'+val+'">'+slotInner(sl)+'</div>';
+}
+function renderHotbar(){
+  var hb=document.getElementById('hotbar');if(!hb)return;
+  var h='';
+  for(var i=0;i<hotbarSlots.length;i++){
+    var sl=hotbarSlots[i];
+    h+=slotHTML(sl,'data-slot',i,sl&&sameItem(sl.id,sel));
+  }
+  hb.innerHTML=h;
+  Array.prototype.forEach.call(hb.querySelectorAll('.slot'),function(el){
+    el.addEventListener('click',function(){
+      var i=+el.getAttribute('data-slot');
+      if(bagOpen){moveHotbarToBag(i);return;}
+      var sl=hotbarSlots[i];
+      sel=sl?sl.id:null;
+      Array.prototype.forEach.call(hb.querySelectorAll('.slot'),function(x){x.classList.remove('on');});
+      if(sl)el.classList.add('on');
+    });
+  });
+}
+function buildHotbar(){renderHotbar();}
+function moveBagToHotbar(bi){
+  var it=bag[bi];if(!it)return false;
+  var empty=-1;
+  for(var i=0;i<hotbarSlots.length;i++)if(!hotbarSlots[i]){empty=i;break;}
+  if(empty<0){toast('快捷栏已满，先把快捷栏物品移入背包');return false;}
+  hotbarSlots[empty]={id:it.id,n:it.n};
+  bag.splice(bi,1);
+  sel=it.id;
+  renderHotbar();renderBag();
+  toast(itemName(it.id)+' → 快捷栏 '+(empty+1));
+  return true;
+}
+function moveHotbarToBag(hi){
+  var sl=hotbarSlots[hi];if(!sl)return false;
+  var def=itemDef(sl.id),stack=def&&def.stack?def.stack:1,left=sl.n;
+  if(def&&def.block){left=0;for(var b=0;b<bag.length;b++)if(sameItem(bag[b].id,sl.id)){left=0;break;}if(bag.length>=BAG_MAX)return false;bag.push({id:sl.id,n:0});}
+  else{
+    for(var i=0;i<bag.length&&left>0;i++){if(sameItem(bag[i].id,sl.id)&&bag[i].n<stack){var add=Math.min(stack-bag[i].n,left);bag[i].n+=add;left-=add;}}
+    while(left>0&&bag.length<BAG_MAX){var put=Math.min(stack,left);bag.push({id:sl.id,n:put});left-=put;}
+  }
+  if(left>0){toast('背包已满，无法移入');return false;}
+  hotbarSlots[hi]=null;
+  if(sameItem(sel,sl.id)){
+    sel=null;
+    for(var k=0;k<hotbarSlots.length;k++)if(hotbarSlots[k]){sel=hotbarSlots[k].id;break;}
+  }
+  renderHotbar();renderBag();
+  toast(itemName(sl.id)+' → 背包');
+  return true;
+}
+function renderBag(){
+  var hot=document.getElementById('bagHotbar'),grid=document.getElementById('bagGrid');
+  if(!hot||!grid)return;
+  var h='';
+  for(var i=0;i<hotbarSlots.length;i++){
+    var sl=hotbarSlots[i];
+    h+='<div class="bagSlot'+(sl?'':' empty')+'" data-bh="'+i+'">'+(sl?slotInner(sl):'<div class="ico" style="opacity:.35">·</div>空')+'</div>';
+  }
+  hot.innerHTML=h;
+  var g='';
+  for(var j=0;j<BAG_MAX;j++){
+    var it=bag[j];
+    g+='<div class="bagSlot'+(it?'':' empty')+'" data-bi="'+j+'">'+(it?slotInner(it):'<div class="ico" style="opacity:.3">·</div>')+'</div>';
+  }
+  grid.innerHTML=g;
+  var sub=document.getElementById('bagSub');
+  if(sub)sub.textContent=bag.length+' / '+BAG_MAX;
+  Array.prototype.forEach.call(hot.querySelectorAll('[data-bh]'),function(el){
+    el.addEventListener('click',function(){moveHotbarToBag(+el.getAttribute('data-bh'));});
+  });
+  Array.prototype.forEach.call(grid.querySelectorAll('[data-bi]'),function(el){
+    el.addEventListener('click',function(){var bi=+el.getAttribute('data-bi');if(bag[bi])moveBagToHotbar(bi);});
+  });
+}
+function openBag(){bagOpen=true;document.getElementById('bag').classList.remove('hidden');renderBag();}
+function closeBag(){bagOpen=false;document.getElementById('bag').classList.add('hidden');}
+
+
 /* ---------- 输入 ---------- */
 var keys={},joy={x:0,y:0},joyOn=false;
 addEventListener('keydown',function(e){keys[e.key.toLowerCase()]=true;if(e.key===' '){e.preventDefault();jump();}});
@@ -756,32 +967,121 @@ function collides(px,py,pz){
   }
   return false;
 }
-function jump(){if(player.onGround){player.vy=8.2;player.onGround=false;}}
+var flyMode=false,holdUp=false,holdDown=false;
+function jump(){if(player.onGround&&!flyMode){player.vy=11.2;player.onGround=false;}}
+function setFly(v,silent){
+  if(!v&&typeof collides==='function'){
+    var guard=0;
+    while(collides(player.x,player.y,player.z)&&guard++<48)player.y+=1;
+  }
+  flyMode=!!v;player.vy=0;holdUp=false;holdDown=false;
+  var b=document.getElementById('btnFly');if(b)b.classList.toggle('on',flyMode);
+  var d=document.querySelector('#acts .dig');if(d)d.textContent=flyMode?'降':'挖';
+  if(!silent)toast(flyMode?'飞行模式：按住 跳 上升 · 按住 降 下降 · G 退出':'已退出飞行');
+}
+function toggleFly(){setFly(!flyMode,false);}
 function updatePlayer(dt){
   var fwd=(keys['w']?1:0)-(keys['s']?1:0);
   var str=(keys['d']?1:0)-(keys['a']?1:0);
   fwd+=-joy.y;str+=joy.x;
   var len=Math.hypot(fwd,str);
   if(len>1){fwd/=len;str/=len;}
-  var sp=(keys['shift']?7.4:4.8);
+  var sp=flyMode?7.4:(keys['shift']?7.4:4.8);
   var sy=Math.sin(player.yaw),cy=Math.cos(player.yaw);
   var mx=(-sy*fwd+cy*str)*sp*dt;
   var mz=(-cy*fwd-sy*str)*sp*dt;
   var nx=player.x+mx;
-  if(!collides(nx,player.y,player.z))player.x=nx;
   var nz=player.z+mz;
-  if(!collides(player.x,player.y,nz))player.z=nz;
-  player.vy-=26*dt;
-  var ny=player.y+player.vy*dt;
-  if(!collides(player.x,ny,player.z))player.y=ny;
-  else{
-    if(player.vy<0)player.onGround=true;
-    player.vy=0;
+  if(flyMode){
+    player.x=Math.max(2,Math.min(WX-3,nx));
+    player.z=Math.max(2,Math.min(WZ-3,nz));
+    var vv=0;
+    if(holdUp||keys[' '])vv+=1;
+    if(holdDown||keys['shift'])vv-=1;
+    player.y=Math.max(1,Math.min(WY-2,player.y+vv*6.2*dt));
+    player.vy=0;player.onGround=false;
+  }else{
+    if(!collides(nx,player.y,player.z))player.x=nx;
+    if(!collides(player.x,player.y,nz))player.z=nz;
+    player.vy-=26*dt;
+    var ny=player.y+player.vy*dt;
+    if(!collides(player.x,ny,player.z))player.y=ny;
+    else{
+      if(player.vy<0)player.onGround=true;
+      player.vy=0;
+    }
+    if(player.y<-6){player.x=spawn.x;player.z=spawn.z;player.y=spawn.y;player.vy=0;}
   }
-  if(player.y<-6){player.x=spawn.x;player.z=spawn.z;player.y=spawn.y;player.vy=0;}
   if(Math.abs(mx)+Math.abs(mz)>0.0005)player.walk=(player.walk||0)+dt*8;
   player.moving=len>0.01;
-  player.running=!!keys['shift'];
+  player.running=!flyMode&&!!keys['shift'];
+}
+
+/* ---------- 战斗 / 狩猎 ---------- */
+var atkCd=0,hitTimer=0;
+function weaponInfo(){
+  var d=itemDef(sel);
+  if(d&&d.weapon)return d.weapon;
+  return {cls:'fist',dmg:7,range:2.3,cd:0.4};
+}
+function showHit(){
+  var h=document.getElementById('hitmark');if(!h)return;
+  h.classList.add('show');
+  clearTimeout(hitTimer);
+  hitTimer=setTimeout(function(){h.classList.remove('show');},160);
+}
+function attack(){
+  if(atkCd>0)return {ok:false,msg:'冷却中'};
+  var w=weaponInfo();
+  if(w.ammo&&countItem(w.ammo)<=0){toast('没有'+itemName(w.ammo)+'，无法射击');return {ok:false,msg:'没有弹药'};}
+  var f=lookVec(),ex=player.x,ey=player.y+1.5,ez=player.z;
+  var best=null,bd=1e9;
+  for(var i=0;i<fauna.length;i++){
+    var a=fauna[i];
+    if(!a.alive||!a.active||a.tamed)continue;
+    var dx=a.x-ex,dz=a.z-ez,hd=Math.hypot(dx,dz);
+    if(hd>w.range)continue;
+    var dot=(dx*f[0]+dz*f[2])/(hd||1);
+    if(w.cls==='ranged'||w.cls==='gun'){if(dot<0.9)continue;}
+    else if(dot<0.1)continue;
+    var score=(1-dot)*8+hd;
+    if(score<bd){bd=score;best=a;}
+  }
+  atkCd=w.cd;
+  if(!best){toast(w.cls==='fist'?'附近没有可攻击的动物':'没有瞄准目标');return {ok:false,msg:'没有目标'};}
+  if(w.ammo)consumeItem(w.ammo,1);
+  var dmg=Math.round(w.dmg*(0.85+Math.random()*0.3));
+  best.hp-=dmg;
+  showHit();
+  if(best.hp<=0){killAnimal(best,true);}
+  else toast('命中 '+best.type+'  −'+dmg+' HP');
+  return {ok:true,target:best.id,dmg:dmg,weapon:w.cls};
+}
+function animalForm(a){
+  return a.natureRig&&a.natureRig.spec?a.natureRig.spec.form:'';
+}
+function lootAnimal(a){
+  var got=[],miss=false,big=(a.size||0.7)>=0.9,form=animalForm(a);
+  function give(id,n){var name=itemName(id);if(addItem(id,n))got.push(name+'×'+n);else miss=true;}
+  if(a.def.kind==='bird'){
+    give('feather',1+Math.floor(Math.random()*2));
+    give('meat',1);
+  }else if(form==='reptile'||form==='amphibian'||form==='fish'){
+    give('hide',1);
+    give('meat',1);
+  }else{
+    give('meat',big?2+Math.floor(Math.random()*2):1+Math.floor(Math.random()*2));
+    give('fur',big?2:1+Math.floor(Math.random()*2));
+    if(big&&Math.random()<0.6)give('hide',1);
+  }
+  renderHotbar();
+  toast(got.length?('狩猎成功：获得 '+got.join('、')+(miss?'（背包已满，部分丢失）':'')):'背包已满，战利品丢失');
+}
+function killAnimal(a,byPlayer){
+  if(!a||!a.alive)return;
+  a.hp=0;a.alive=false;a.respawn=byPlayer?14:12;a.state='死亡';
+  if(a.tamed){a.tamed=false;a.tameCommand='';}
+  if(byPlayer)lootAnimal(a);
 }
 
 /* ---------- 拾取/编辑 ---------- */
@@ -810,6 +1110,7 @@ function dig(){
   toast('挖掉了 '+B[h.b].n);
 }
 function place(){
+  if(typeof sel!=='number')return toast('武器 / 材料不能放置，请选中方块');
   var h=raycast(6);
   if(!h)return toast('请对准一个方块');
   var x=h.px,y=h.py,z=h.pz;
@@ -1006,6 +1307,8 @@ function loop(ts){
   updatePlayer(dt);
   updateEnv(dt);
   updateAgents(dt);
+  if(atkCd>0)atkCd=Math.max(0,atkCd-dt);
+  petAcc+=dt;if(petAcc>=0.25){petAcc=0;refreshPetBar();}
   hudAcc+=dt;if(hudAcc>=0.25){hudAcc=0;updateHUD();}
   uiAcc+=dt;if(uiAcc>=0.6){uiAcc=0;refreshWorldUI();}
   if(speed>0){saveAcc+=dt;if(saveAcc>=15){saveAcc=0;saveWorld(false);}}
@@ -1098,7 +1401,15 @@ function loop(ts){
     if(!hh){var tb=getB(Math.floor(player.x),Math.floor(player.y)-1,Math.floor(player.z));if(tb)hh={b:tb};}
     var inf=document.getElementById('info');
     var mm=hh?MATS[BLOCK_MAT[hh.b]]:null;
-    inf.innerHTML='坐标 '+player.x.toFixed(1)+' , '+player.y.toFixed(1)+' , '+player.z.toFixed(1)+(hh?('<br>'+B[hh.b].n+(mm?(' · '+(mm.n===B[hh.b].n?'':mm.n+' ')+mm.f):'')+'<br><span style="opacity:.7">'+(mm?mm.props:B[hh.b].f)+'</span>'):'');
+    var heldLine='';
+    if(sel!=null){
+      var hd=itemDef(sel);
+      if(hd){
+        var hw=hd.weapon;
+        heldLine='<br><span class="held">手持 '+hd.n+(hw?(hw.ammo?(' · '+itemName(hw.ammo)+' '+countItem(hw.ammo)):(' · 伤害 '+hw.dmg)):'')+'</span>';
+      }
+    }
+    inf.innerHTML='坐标 '+player.x.toFixed(1)+' , '+player.y.toFixed(1)+' , '+player.z.toFixed(1)+(hh?('<br>'+B[hh.b].n+(mm?(' · '+(mm.n===B[hh.b].n?'':mm.n+' ')+mm.f):'')+'<br><span style="opacity:.7">'+(mm?mm.props:B[hh.b].f)+'</span>'):'')+heldLine;
   }
   requestAnimationFrame(loop);
 }
@@ -1866,27 +2177,27 @@ function toast(msg){
   t.textContent=msg;t.style.opacity=1;
   clearTimeout(t._t);t._t=setTimeout(function(){t.style.opacity=0;},1500);
 }
-function buildHotbar(){
-  var hb=document.getElementById('hotbar');
-  hb.innerHTML=hotbarTypes.map(function(t){
-    var d=B[t],c=d.top||d.side||d.col;
-    return '<div class="slot'+(t===sel?' on':'')+'" data-type="'+t+'"><div class="sw" style="background:rgb('+Math.round(c[0]*255)+','+Math.round(c[1]*255)+','+Math.round(c[2]*255)+')"></div>'+HOTNAME[t]+'</div>';
-  }).join('');
-  Array.prototype.forEach.call(hb.querySelectorAll('.slot'),function(s){
-    s.addEventListener('click',function(){
-      sel=Number(s.getAttribute('data-type'));
-      Array.prototype.forEach.call(hb.querySelectorAll('.slot'),function(x){x.classList.remove('on');});
-      s.classList.add('on');
-    });
-  });
-}
+
 Array.prototype.forEach.call(document.querySelectorAll('#acts button'),function(b){
-  b.addEventListener('pointerdown',function(e){e.preventDefault();});
-  b.addEventListener('click',function(){
-    var a=b.getAttribute('data-act');
-    if(a==='jump')jump();else if(a==='dig')dig();else if(a==='place')place();else if(a==='inspect')inspect();
-  });
+  var act=b.getAttribute('data-act');
+  if(!act)return;
+  function down(e){
+    e.preventDefault();
+    if(act==='jump'){holdUp=true;if(!flyMode)jump();}
+    else if(act==='dig'){if(flyMode)holdDown=true;else dig();}
+    else if(act==='place'||act==='put')place();
+    else if(act==='inspect')inspect();
+    else if(act==='attack')attack();
+  }
+  function up(){if(act==='jump')holdUp=false;if(act==='dig')holdDown=false;}
+  b.addEventListener('pointerdown',down);
+  b.addEventListener('pointerup',up);
+  b.addEventListener('pointercancel',up);
+  b.addEventListener('pointerleave',up);
 });
+document.getElementById('btnFly').addEventListener('click',toggleFly);
+document.getElementById('btnBag').addEventListener('click',openBag);
+document.getElementById('bagBack').addEventListener('click',closeBag);
 document.getElementById('btnAtom').addEventListener('click',toggleAtom);
 document.getElementById('btnView').addEventListener('click',function(){
   thirdPerson=!thirdPerson;
@@ -1921,6 +2232,12 @@ addEventListener('keydown',function(e){
     var tr=__world.tameNearest();
     if(tr&&tr.ok)toast(tr.tamed?'已驯服：'+tr.type:'已放归：'+tr.type);
     else toast(tr&&tr.msg?tr.msg:'附近没有动物');
+  }else if(e.key==='g'||e.key==='G'){
+    toggleFly();
+  }else if(e.key==='f'||e.key==='F'){
+    attack();
+  }else if(e.key==='b'||e.key==='B'){
+    if(bagOpen)closeBag();else openBag();
   }
 });
 document.getElementById('btnAI').addEventListener('click',function(){
@@ -1935,7 +2252,7 @@ Array.prototype.forEach.call(document.querySelectorAll('#aiPanel .cmds button'),
     if(atomMode)updateAtomPanel();
   });
 });
-addEventListener('keydown',function(e){if(e.key==='Escape'){document.getElementById('aiPanel').classList.add('hidden');closeChem();}});
+addEventListener('keydown',function(e){if(e.key==='Escape'){document.getElementById('aiPanel').classList.add('hidden');closeChem();closeBag();}});
 
 /* 化学面板绑定 */
 document.getElementById('btnChem').addEventListener('click',function(){openChem('table');});
@@ -1956,7 +2273,7 @@ var RAD=Math.PI/180;
 var EPOCH_JDN=1721060;          // 公元0-01-01（天文纪年）儒略日数
 var SIM0=3601;                  // 0年1月1日 01:00:01
 var sim=SIM0,speed=60,worldTab='time',curRegion='hb',worldRegion='hb',hexSel=1,env=null;
-var uiAcc=0,hudAcc=0,saveAcc=0,phaseAcc=0,labelAcc=0,phaseInfo='',wipeArm=0,termListYear=-1,hexGridBuilt=false,regionMapBuilt=false;
+var uiAcc=0,hudAcc=0,saveAcc=0,phaseAcc=0,labelAcc=0,petAcc=0,phaseInfo='',wipeArm=0,termListYear=-1,hexGridBuilt=false,regionMapBuilt=false;
 var REGION_KEYS=['ne','hb','hd','hz','hn','xn','xb','qz'];
 
 /* ---------- 公历（天文纪年：有 0 年，0 年为闰年） ---------- */
@@ -2473,7 +2790,8 @@ function rleDecode(str,len){
 function saveInfoText(s){var el=document.getElementById('saveInfo');if(el)el.textContent=s;}
 function saveWorld(manual){
   try{
-    var data={v:1,ts:Date.now(),sim:sim,speed:speed,region:worldRegion,sel:sel,showFauna:showFauna,
+    var data={v:1,ts:Date.now(),sim:sim,speed:speed,region:worldRegion,sel:sel,showFauna:showFauna,fly:flyMode,
+      inv:{hot:hotbarSlots.map(function(x){return x?{id:x.id,n:x.n}:null;}),bag:bag.map(function(x){return {id:x.id,n:x.n};})},
       player:{x:player.x,y:player.y,z:player.z,yaw:player.yaw,pitch:player.pitch,vy:player.vy},
       blocks:rleEncode(blocks)};
     var raw=JSON.stringify(data);
@@ -2506,7 +2824,15 @@ function loadWorld(auto){
     if(typeof s.showFauna==='boolean')showFauna=s.showFauna;
     var bf=document.getElementById('btnFauna');
     if(bf)bf.classList.toggle('on',showFauna);
-    if(s.sel&&B[s.sel])sel=s.sel;
+    if(s.inv&&s.inv.hot&&s.inv.hot.length===8){
+      hotbarSlots=s.inv.hot.map(normSlot);
+      if(s.inv.bag&&s.inv.bag.length)bag=s.inv.bag.slice(0,BAG_MAX).map(normSlot).filter(function(x){return x;});
+    }
+    if(s.sel!=null){
+      var okSel=(typeof s.sel==='number')?!!B[s.sel]:!!ITEMS[s.sel];
+      if(okSel)sel=s.sel;
+    }
+    if(typeof s.fly==='boolean')setFly(s.fly,true);
     if(s.player){
       player.x=+s.player.x||player.x;player.y=+s.player.y||player.y;player.z=+s.player.z||player.z;
       player.yaw=+s.player.yaw||0;player.pitch=+s.player.pitch||0;player.vy=0;
@@ -5194,6 +5520,75 @@ function tameNearest() {
   if (!best) return { ok: false, msg: '附近没有动物' };
   return tameAnimal(best.id);
 }
+function normSlot(x){
+  if(!x)return null;
+  var d=itemDef(x.id);if(!d)return null;
+  if(typeof x.id==='number')return {id:x.id,n:0};
+  var n=Math.max(1,Math.min(d.stack||1,parseInt(x.n,10)||1));
+  return {id:x.id,n:n};
+}
+var petSig='',petId='',petLock=0;
+function petTarget(){
+  var best=null,bestScore=1e9,f=lookVec();
+  for(var i=0;i<fauna.length;i++){
+    var a=fauna[i];
+    if(!a.alive||!a.active)continue;
+    var dx=a.x-player.x,dz=a.z-player.z,d=Math.hypot(dx,dz);
+    if(d>5.6)continue;
+    var dot=(dx*f[0]+dz*f[2])/(d||1);
+    if(dot<0.05&&d>2.6)continue;
+    var score=d-dot*2-(a.tamed?3:0);
+    if(score<bestScore){bestScore=score;best=a;}
+  }
+  return best;
+}
+function refreshPetBar(force){
+  var bar=document.getElementById('petBar');if(!bar)return;
+  var a=petTarget();
+  if(a&&!force&&petId&&a.id!==petId&&Date.now()<petLock){
+    var locked=findAgent(petId);
+    if(locked&&locked.alive&&locked.active&&Math.hypot(locked.x-player.x,locked.z-player.z)<=5.6)a=locked;
+  }
+  if(!a){if(petSig!==''){petSig='';petId='';bar.classList.add('hidden');bar.innerHTML='';}return;}
+  var sig=a.id+'|'+(a.tamed?1:0)+'|'+(a.tameCommand||'');
+  if(!force&&sig===petSig)return;
+  petSig=sig;petId=a.id;petLock=Date.now()+1500;
+  bar.classList.remove('hidden');
+  var hint=document.getElementById('hint');if(hint)hint.style.opacity='0';
+  var cmdName={follow:'跟随',stay:'待命',sit:'坐下',eat:'进食',hunt:'捕猎',flee:'逃跑'}[a.tameCommand]||'';
+  var h='<div class="pbName">'+a.type+(a.tamed?' · 已驯服'+(cmdName?' · '+cmdName:''):' · 靠近中')+'</div><div class="pbRow">';
+  if(a.tamed){
+    h+='<button data-pb="follow" class="'+(a.tameCommand==='follow'?'on':'')+'">跟随</button>'+
+       '<button data-pb="stay" class="'+(a.tameCommand==='stay'?'on':'')+'">待命</button>'+
+       '<button data-pb="sit" class="'+(a.tameCommand==='sit'?'on':'')+'">坐下</button>'+
+       '<button data-pb="eat" class="'+(a.tameCommand==='eat'?'on':'')+'">进食</button>'+
+       (a.def.kind==='pred'?'<button data-pb="hunt" class="'+(a.tameCommand==='hunt'?'on':'')+'">捕猎</button>':'')+
+       '<button data-pb="flee" class="'+(a.tameCommand==='flee'?'on':'')+'">逃跑</button>'+
+       '<button data-pb="release">放归</button>';
+  }else{
+    h+='<button class="tame" data-pb="tame">驯服 '+a.type+'</button>';
+  }
+  h+='</div>';
+  bar.innerHTML=h;
+  Array.prototype.forEach.call(bar.querySelectorAll('[data-pb]'),function(btn){
+    btn.addEventListener('pointerdown',function(e){
+      e.preventDefault();e.stopPropagation();
+      var cmd=btn.getAttribute('data-pb');
+      if(cmd==='tame'){
+        var r=tameAnimal(a.id);
+        toast(r&&r.ok?'已驯服：'+a.type:(r&&r.msg?r.msg:'无法驯服'));
+      }else if(cmd==='release'){
+        var r2=tameAnimal(a.id);
+        toast(r2&&r2.ok?'已放归：'+a.type:(r2&&r2.msg?r2.msg:'无法放归'));
+      }else{
+        var r3=commandAnimal(a.id,cmd);
+        toast(r3&&r3.ok?'指令：'+cmdName2(cmd):(r3&&r3.msg?r3.msg:'指令失败'));
+      }
+      refreshPetBar(true);
+    });
+  });
+}
+function cmdName2(c){return {follow:'跟随',stay:'待命',sit:'坐下',eat:'进食',hunt:'捕猎',flee:'逃跑'}[c]||c;}
 function updateFauna(dt,bio){
   if(!env)return;
   var winter=env.season.key==='winter';
@@ -5966,6 +6361,19 @@ window.__world={
   tame:function(id){return tameAnimal(id);},
   command:function(id,cmd){return commandAnimal(id,cmd);},
   tameNearest:function(){return tameNearest();},
+  attack:function(){return attack();},
+  inventory:function(){
+    return {sel:sel,
+      hot:hotbarSlots.map(function(x){return x?{id:x.id,name:itemName(x.id),n:x.n}:null;}),
+      bag:bag.map(function(x){return {id:x.id,name:itemName(x.id),n:x.n};}),
+      bagMax:BAG_MAX,fly:flyMode,weapon:weaponInfo()};
+  },
+  addItem:function(id,n){var ok=addItem(id,n);return {ok:ok,count:countItem(id)};},
+  moveBagToHotbar:function(i){return moveBagToHotbar(i);},
+  moveHotbarToBag:function(i){return moveHotbarToBag(i);},
+  bag:function(open){if(open==null)return bagOpen;if(open)openBag();else closeBag();return bagOpen;},
+  pet:function(){var a=petTarget();return a?{id:a.id,type:a.type,tamed:!!a.tamed,cmd:a.tameCommand||'',dist:+Math.hypot(a.x-player.x,a.z-player.z).toFixed(2)}:null;},
+  fly:function(v){if(v==null)return flyMode;setFly(v,false);return flyMode;},
   third:function(v){
     thirdPerson=!!v;camOrbit=0;
     var b=document.getElementById('btnView');if(b)b.classList.toggle('on',thirdPerson);
