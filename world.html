@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <link rel="icon" href="data:,">
 <title>映射 + AI 世界</title>
-<meta name="version" content="world-v8.5.0">
+<meta name="version" content="world-v8.5.1">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:"PingFang SC","Microsoft YaHei",sans-serif;color:#fff;touch-action:none;user-select:none;-webkit-user-select:none}
@@ -29,7 +29,9 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
 .tamebar{margin-top:8px}
 .tamebar button.on{background:#ffd166;color:#3a2a00;border-color:#ffd166;font-weight:700}
 #species{position:fixed;inset:0;z-index:80;background:rgba(7,11,17,.97);backdrop-filter:blur(16px);display:flex;flex-direction:column;color:#dce7f7}
-#joy{position:absolute;left:calc(14px + env(safe-area-inset-left));bottom:calc(76px + env(safe-area-inset-bottom));width:118px;height:118px;border-radius:50%;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.25);pointer-events:auto;touch-action:none;z-index:6}
+#joyZone{position:absolute;left:0;bottom:calc(54px + env(safe-area-inset-bottom));width:190px;height:190px;pointer-events:none;touch-action:none;z-index:5;border-radius:32px}
+@media (pointer:coarse),(any-pointer:coarse){#joyZone{pointer-events:auto}}
+#joy{position:absolute;left:calc(14px + env(safe-area-inset-left));bottom:calc(76px + env(safe-area-inset-bottom));width:118px;height:118px;border-radius:50%;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.25);pointer-events:auto;touch-action:none;z-index:6;will-change:left,top}
 #knob{position:absolute;left:50%;top:50%;width:50px;height:50px;margin:-25px 0 0 -25px;border-radius:50%;background:rgba(255,255,255,.35);border:1px solid rgba(255,255,255,.5)}
 #acts{position:absolute;right:calc(14px + env(safe-area-inset-right));bottom:calc(76px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(3,54px);gap:8px;pointer-events:auto;z-index:6}
 #acts button{width:54px;height:54px;border-radius:50%;border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.14);color:#fff;font-size:14px;font-weight:600;backdrop-filter:blur(6px);touch-action:none}
@@ -241,6 +243,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
   #acts{grid-template-columns:repeat(3,50px);gap:6px}
   #acts button{width:50px;height:50px;font-size:12px}
   #joy{width:104px;height:104px}
+  #joyZone{width:176px;height:176px;bottom:calc(50px + env(safe-area-inset-bottom))}
   #hotbar{bottom:calc(8px + env(safe-area-inset-bottom))}
   #hotbar .slot{width:37px;height:37px}
 }
@@ -319,6 +322,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
   <div id="hitmark">✕</div>
   <div id="petBar" class="hidden"></div>
   <div id="faunaLabels"></div>
+  <div id="joyZone"></div>
   <div id="joy"><div id="knob"></div></div>
   <div id="acts">
     <button class="atk" data-act="attack">攻击</button>
@@ -959,29 +963,49 @@ canvas.addEventListener('contextmenu',function(e){e.preventDefault();});
 addEventListener('mousedown',function(e){if(e.target!==canvas)return;if(e.button===0)dig();else if(e.button===2)place();});
 addEventListener('keydown',function(e){if(e.key.toLowerCase()==='e')dig();if(e.key.toLowerCase()==='q')place();});
 
-/* 摇杆 */
-var joyEl=document.getElementById('joy'),knob=document.getElementById('knob');
+/* 摇杆: 摇杆头限制在圆盘内 + 190px 触控区 + 盘外落点浮动 */
+var joyEl=document.getElementById('joy'),knob=document.getElementById('knob'),joyZone=document.getElementById('joyZone');
+var joyId=null,joyCx=0,joyCy=0,joyMax=32,joyFloat=false;
 function joyStart(e){
-  joyOn=true;joyMove(e);
-  try{joyEl.setPointerCapture(e.pointerId);}catch(err){}
+  if(joyOn)return;
+  var r=joyEl.getBoundingClientRect(),br=r.width/2;
+  var hx=r.left+br,hy=r.top+br;
+  var dist=Math.hypot(e.clientX-hx,e.clientY-hy);
+  joyOn=true;joyId=e.pointerId;joyFloat=false;
+  if(dist>br*0.94){
+    var x=Math.max(br+6,Math.min(innerWidth-br-6,e.clientX));
+    var y=Math.max(br+6,Math.min(innerHeight-br-6,e.clientY));
+    joyEl.style.left=(x-br)+'px';joyEl.style.top=(y-br)+'px';joyEl.style.bottom='auto';
+    joyFloat=true;joyCx=x;joyCy=y;
+  }else{joyCx=hx;joyCy=hy;}
+  joyMax=Math.max(18,br-27);
+  joy.x=0;joy.y=0;knob.style.transform='translate(0,0)';
+  try{e.currentTarget.setPointerCapture(e.pointerId);}catch(err){}
   e.preventDefault();
+  joyMove(e);
 }
 function joyMove(e){
-  if(!joyOn)return;
-  var r=joyEl.getBoundingClientRect();
-  var cx=r.left+r.width/2,cy=r.top+r.height/2;
-  var dx=e.clientX-cx,dy=e.clientY-cy;
-  var max=r.width*0.34,len=Math.hypot(dx,dy);
-  if(len>max){dx*=max/len;dy*=max/len;len=max;}
-  joy.x=dx/max;joy.y=dy/max;
-  knob.style.transform='translate('+dx+'px,'+dy+'px)';
+  if(!joyOn||e.pointerId!==joyId)return;
+  var dx=e.clientX-joyCx,dy=e.clientY-joyCy;
+  var len=Math.hypot(dx,dy);
+  if(len>joyMax){dx*=joyMax/len;dy*=joyMax/len;len=joyMax;}
+  if(len<4){joy.x=0;joy.y=0;knob.style.transform='translate(0,0)';}
+  else{joy.x=dx/joyMax;joy.y=dy/joyMax;knob.style.transform='translate('+dx+'px,'+dy+'px)';}
   e.preventDefault();
 }
-function joyEnd(){joyOn=false;joy.x=joy.y=0;knob.style.transform='translate(0,0)';}
-joyEl.addEventListener('pointerdown',joyStart);
-joyEl.addEventListener('pointermove',joyMove);
-joyEl.addEventListener('pointerup',joyEnd);
-joyEl.addEventListener('pointercancel',joyEnd);
+function joyEnd(e){
+  if(e&&e.pointerId!==undefined&&e.pointerId!==joyId)return;
+  joyOn=false;joyId=null;joy.x=0;joy.y=0;knob.style.transform='translate(0,0)';
+  if(joyFloat){joyEl.style.left='';joyEl.style.top='';joyEl.style.bottom='';joyFloat=false;}
+}
+function joyBind(el){
+  el.addEventListener('pointerdown',joyStart);
+  el.addEventListener('pointermove',joyMove);
+  el.addEventListener('pointerup',joyEnd);
+  el.addEventListener('pointercancel',joyEnd);
+  el.addEventListener('lostpointercapture',joyEnd);
+}
+joyBind(joyEl);joyBind(joyZone);
 
 /* ---------- 物理 ---------- */
 function collides(px,py,pz){

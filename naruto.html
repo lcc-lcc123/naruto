@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="version" content="naruto-v1.1.0">
+<meta name="version" content="naruto-v1.1.1">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>火影忍者·忍界对决</title>
 <style>
@@ -115,9 +115,9 @@ canvas{display:block;width:100%;height:100%}
 #bS2.twostage small{color:#00e5ff}
 
 /* ---- 摇杆 ---- */
-#stick{position:absolute;z-index:6;pointer-events:none}
-#stick .base{position:absolute;width:110px;height:110px;border-radius:50%;border:2px solid rgba(255,255,255,.3);background:rgba(255,255,255,.06);transform:translate(-50%,-50%)}
-#stick .knob{position:absolute;width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.35);border:2px solid rgba(255,255,255,.5);transform:translate(-50%,-50%)}
+#stick{position:absolute;z-index:6;pointer-events:none;width:120px;height:120px;transform:translate(-50%,-50%)}
+#stick .base{position:absolute;left:50%;top:50%;width:120px;height:120px;border-radius:50%;border:2px solid rgba(255,255,255,.3);background:rgba(255,255,255,.06);transform:translate(-50%,-50%)}
+#stick .knob{position:absolute;width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.35);border:2px solid rgba(255,255,255,.5);transform:translate(-50%,-50%)}
 
 /* ---- KO ---- */
 #overlay{position:absolute;inset:0;z-index:15;background:rgba(6,10,22,.55);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2.5vh;color:#fff}
@@ -1695,53 +1695,58 @@ function updateBtn(id,cd,max){
    ============================================================ */
 const joystick={active:false,id:null,sx:0,sy:0,dir:{x:0,y:0}};
 const stickEl=document.getElementById('stick');
+const JOY_BASE=60,JOY_MAX=32; // 盘半径60 - 摇杆头半径25 - 3px 边距
 function stickDown(t){
-  if(t.clientX>window.innerWidth*0.45)return false;
-  joystick.active=true;joystick.id=t.identifier;
+  // 左侧60%都能起手(盘外落点直接浮动到手指下); 右侧40%留给技能键
+  if(t.clientX>window.innerWidth*0.60)return false;
+  joystick.active=true;joystick.id=t.pointerId;
   const r=cv.getBoundingClientRect();
   joystick.sx=t.clientX-r.left;joystick.sy=t.clientY-r.top;
   stickEl.classList.remove('hidden');
   stickEl.style.left=joystick.sx+'px';stickEl.style.top=joystick.sy+'px';
+  const knob=stickEl.querySelector('.knob');
+  knob.style.left=JOY_BASE+'px';knob.style.top=JOY_BASE+'px';
+  joystick.dir.x=0;joystick.dir.y=0;
   return true;
 }
 function stickMove(t){
-  if(!joystick.active||t.identifier!==joystick.id)return;
+  if(!joystick.active||t.pointerId!==joystick.id)return;
   const r=cv.getBoundingClientRect();
   let dx=(t.clientX-r.left)-joystick.sx,dy=(t.clientY-r.top)-joystick.sy;
-  const len=Math.hypot(dx,dy),max=52;
-  if(len>max){dx=dx/len*max;dy=dy/len*max;}
+  const len=Math.hypot(dx,dy);
+  if(len>JOY_MAX){dx=dx/len*JOY_MAX;dy=dy/len*JOY_MAX;}
   const knob=stickEl.querySelector('.knob');
-  knob.style.left=(55+dx)+'px';knob.style.top=(55+dy)+'px';
-  joystick.dir.x=dx/max;joystick.dir.y=dy/max;
+  if(len<4){joystick.dir.x=0;joystick.dir.y=0;}
+  else{joystick.dir.x=dx/JOY_MAX;joystick.dir.y=dy/JOY_MAX;}
+  knob.style.left=(JOY_BASE+dx)+'px';knob.style.top=(JOY_BASE+dy)+'px';
 }
 function stickUp(t){
-  if(joystick.active&&t.identifier===joystick.id){
+  if(joystick.active&&t.pointerId===joystick.id){
     joystick.active=false;joystick.dir.x=0;joystick.dir.y=0;
     stickEl.classList.add('hidden');
   }
 }
 const stageEl=document.getElementById('stage');
-stageEl.addEventListener('touchstart',e=>{
-  // 菜单/结算界面/参数面板/暂停按钮/联机面板/排行榜上的触摸不拦截, 保证浏览器正常合成 click(手机才能点按钮)
-  if(e.target.closest('#menu')||e.target.closest('#overlay')||e.target.closest('#cfgPanel')||e.target.closest('#btnPause')||e.target.closest('#pausePanel')||e.target.closest('#onlinePanel')||e.target.closest('#rankPanel'))return;
+const joyBlocked=el=>!!(el.closest('#menu')||el.closest('#overlay')||el.closest('#cfgPanel')||el.closest('#btnPause')||el.closest('#pausePanel')||el.closest('#onlinePanel')||el.closest('#rankPanel'));
+stageEl.addEventListener('pointerdown',e=>{
+  // 菜单/结算/参数/暂停/联机/排行榜上的触摸不拦截, 保证按钮正常 click
+  if(e.pointerType==='mouse'&&e.button!==0)return;
+  if(joyBlocked(e.target)||e.target.closest('#btns'))return;
   SFX.ensure();
-  for(const t of e.changedTouches){
-    if(t.target.closest('#btns'))continue;
-    if(!joystick.active&&stickDown(t))continue;
+  if(joystick.active)return;
+  if(stickDown(e)){
+    try{stageEl.setPointerCapture(e.pointerId);}catch(err){}
+    e.preventDefault();
   }
+},{passive:false});
+stageEl.addEventListener('pointermove',e=>{
+  if(!joystick.active||e.pointerId!==joystick.id)return;
+  stickMove(e);
   e.preventDefault();
 },{passive:false});
-stageEl.addEventListener('touchmove',e=>{
-  if(e.target.closest('#menu')||e.target.closest('#overlay')||e.target.closest('#cfgPanel')||e.target.closest('#btnPause')||e.target.closest('#pausePanel')||e.target.closest('#onlinePanel')||e.target.closest('#rankPanel'))return;
-  for(const t of e.changedTouches)stickMove(t);
-  e.preventDefault();
-},{passive:false});
-stageEl.addEventListener('touchend',e=>{
-  for(const t of e.changedTouches)stickUp(t);
-});
-stageEl.addEventListener('touchcancel',e=>{
-  for(const t of e.changedTouches)stickUp(t);
-});
+stageEl.addEventListener('pointerup',e=>{ if(joystick.active&&e.pointerId===joystick.id)stickUp(e); });
+stageEl.addEventListener('pointercancel',e=>{ if(joystick.active&&e.pointerId===joystick.id)stickUp(e); });
+stageEl.addEventListener('lostpointercapture',e=>{ if(joystick.active&&e.pointerId===joystick.id)stickUp(e); });
 // 键盘
 const keys={};
 window.addEventListener('keydown',e=>{
