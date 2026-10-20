@@ -1,4 +1,4 @@
-// 极简云服务端 v3.3.0 (Node.js 零依赖)
+// 极简云服务端 v3.4.0 (Node.js 零依赖)
 // = 完整聊天(好友/群聊/已读/撤回/文件) + 火影联机信令 + 排行榜 + 门户
 // 用法: node server.js --port=3777 --datadir=./data
 'use strict';
@@ -29,7 +29,9 @@ try { fs.mkdirSync(FILESDIR, { recursive: true }); } catch (e) {}
 // ---------- 状态 ----------
 const state = { users: {}, friends: {}, requests: {}, groups: [], messages: [], nextId: 1, rank: {}, cleared: {}, reports: [], worldRooms: {} };
 const fsRooms = {};   // 火影帧同步房间: id -> {a,b,frames:{},next}
-const worldPresence = {}; // 世界房间在线心跳: roomId -> {name:{at,x,z,sim}}
+const worldPresence = {}; // 世界房间在线心跳: roomId -> {name:{at,x,z,sim,mic,ear}}
+const voiceBox = {};      // 语音信令收件箱: name -> [{seq,from,room,kind,data,time}]
+let voiceSeq = 0;
 const stateFile = path.join(DATADIR, 'state.json');
 function loadState() {
   try {
@@ -155,6 +157,24 @@ function worldOnline(id) {
   }
   return arr;
 }
+function worldVoice(id) {
+  const t = now(), box = worldPresence[id] || {}, out = {};
+  for (const n in box) {
+    if (t - (box[n].at || 0) <= 30000) out[n] = { mic: !!box[n].mic, ear: !!box[n].ear };
+  }
+  return out;
+}
+function voiceAllowed(from, to, room) {
+  room = String(room || '');
+  if (!to || !state.users[to] || to === from) return false;
+  if (room.indexOf('w') === 0) {
+    const r = worldRoomById(room);
+    return !!(r && worldCanOpen(r, from) && worldCanOpen(r, to));
+  }
+  const fr = fsRooms[room];
+  if (fr && ((fr.a === from && fr.b === to) || (fr.b === from && fr.a === to))) return true;
+  return isFriend(from, to);
+}
 function worldRoomDTO(r, name) {
   const role = worldRole(r, name);
   return {
@@ -163,7 +183,7 @@ function worldRoomDTO(r, name) {
     role: role, invitedBy: (r.inviteBy && r.inviteBy[name]) || '',
     createdAt: r.createdAt || 0, updatedAt: r.updatedAt || 0,
     version: r.version || 0, saveBytes: r.saveBytes || 0, saveBy: r.saveBy || '',
-    hasSave: (r.saveBytes || 0) > 0, online: worldOnline(r.id)
+    hasSave: (r.saveBytes || 0) > 0, online: worldOnline(r.id), voice: worldVoice(r.id)
   };
 }
 function worldSaveFile(id) { return path.join(WORLDDIR, id + '.json'); }
@@ -271,7 +291,7 @@ async function handle(req, res) {
   }
 
   // ---------- 基础 ----------
-  if (p === '/api/status') { ok(res, { ok: true, app: '极简聊天云服务端', version: '3.3.0' }); return; }
+  if (p === '/api/status') { ok(res, { ok: true, app: '极简聊天云服务端', version: '3.4.0' }); return; }
 
   if (p === '/api/register') {
     const b = JSON.parse(((await readBody(req)) || '{}').toString());
@@ -574,10 +594,49 @@ async function handle(req, res) {
       at: now(),
       x: Number(b.x) || 0,
       z: Number(b.z) || 0,
-      sim: Number(b.sim) || 0
+      sim: Number(b.sim) || 0,
+      mic: !!b.mic,
+      ear: !!b.ear
     };
     lastSeen[name] = now();
-    return ok(res, { ok: true, online: worldOnline(r.id) });
+    return ok(res, { ok: true, online: worldOnline(r.id), voice: worldVoice(r.id) });
+  }
+
+
+  // ---------- 房间语音信令 (WebRTC offer/answer/ICE, 不转发音频) ----------
+  if (p === '/api/voice/send' && req.method === 'POST') {
+    const name = auth(req);
+    if (!name) return fail(res, 401, '请先登录');
+    let b = {};
+    try { b = JSON.parse(((await readBody(req, 512 * 1024)) || '{}').toString()); } catch (e) { return fail(res, 400, '请求格式错误'); }
+    const to = String(b.to || '');
+    const room = String(b.room || '').slice(0, 64);
+    const kind = String(b.kind || '');
+    if (!/^(offer|answer|ice|bye|state)$/.test(kind)) return fail(res, 400, '信令类型无效');
+    if (!voiceAllowed(name, to, room)) return fail(res, 403, '不在同一语音房间');
+    let raw = '';
+    try { raw = JSON.stringify(b.data || {}); } catch (e) { return fail(res, 400, '信令无法序列化'); }
+    if (raw.length > 200 * 1024) return fail(res, 413, '信令过大');
+    if (!voiceBox[to]) voiceBox[to] = [];
+    const item = { seq: ++voiceSeq, from: name, to: to, room: room, kind: kind, data: b.data || {}, time: now() };
+    voiceBox[to].push(item);
+    if (voiceBox[to].length > 300) voiceBox[to].splice(0, voiceBox[to].length - 300);
+    lastSeen[name] = now();
+    return ok(res, { ok: true, seq: item.seq });
+  }
+
+  if (p === '/api/voice/inbox' && req.method === 'GET') {
+    const name = auth(req);
+    if (!name) return fail(res, 401, '请先登录');
+    const after = parseInt(qp(req, 'after') || '0', 10) || 0;
+    const t = now();
+    for (const n in voiceBox) {
+      voiceBox[n] = voiceBox[n].filter(function (m) { return t - m.time < 60000; });
+      if (!voiceBox[n].length) delete voiceBox[n];
+    }
+    const list = (voiceBox[name] || []).filter(function (m) { return m.seq > after; }).slice(-100);
+    lastSeen[name] = now();
+    return ok(res, { ok: true, messages: list, latest: voiceSeq });
   }
 
   // ---------- 群聊 ----------
@@ -1045,7 +1104,7 @@ let httpsStarted = false;
 
 const server = http.createServer(handle);
 server.listen(PORT, '0.0.0.0', function () {
-  console.log('NarutoCloud v3.3.0 listening on http://0.0.0.0:' + PORT + ' datadir=' + DATADIR);
+  console.log('NarutoCloud v3.4.0 listening on http://0.0.0.0:' + PORT + ' datadir=' + DATADIR);
 });
 
 // 自签名证书: 首次访问需在浏览器里点“高级 → 继续前往”
