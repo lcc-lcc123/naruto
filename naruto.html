@@ -2,6 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
+<meta name="version" content="naruto-v1.1.0">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>火影忍者·忍界对决</title>
 <style>
@@ -271,7 +272,7 @@ canvas{display:block;width:100%;height:100%}
   <div class="cfgCard onlineCard">
     <h2>🌐 联机对战</h2>
     <div id="onLogin">
-      <div class="cfgRow"><label>服务器地址</label><input id="onSrv" type="text" value="http://127.0.0.1:3777"></div>
+      <div class="cfgRow"><label>服务器地址</label><input id="onSrv" type="text" value="" placeholder="当前网页地址，例如 http://101.200.171.33:3777"></div>
       <div class="cfgRow"><label>聊天账号</label><input id="onName" type="text"></div>
       <div class="cfgRow"><label>密码</label><input id="onPass" type="password"></div>
       <div class="cfgBtns">
@@ -342,7 +343,7 @@ canvas{display:block;width:100%;height:100%}
 </div>
 
 <div id="winVideoBox" class="hidden"><video id="winV" playsinline webkit-playsinline></video></div>
-<div id="overlay" class="hidden"><h2 id="koTitle"></h2><div id="koSub"></div><div><button id="btnAgain">再来一局</button><button class="ghost" id="btnMenu">换角色</button></div></div>
+<div id="overlay" class="hidden"><h2 id="koTitle"></h2><div id="koSub"></div><div><button id="btnAgain">再邀一局</button><button class="ghost" id="btnMenu">换角色</button></div></div>
 
 </div></div>
 <script>
@@ -1859,13 +1860,16 @@ document.getElementById('btnAgain').addEventListener('click',()=>{
   if(G.mode==='online'){ startRematch(); return; }
   if(G.mode==='practice')startPractice(); else startBattle();
 });
-// 免邀请再来一局: 生成新房间号广播给对手, 双方直接开始(保持角色/皮肤/参数)
+// “再来一局”改为重新发起邀请：对方点击接受后才开局，绝不再免邀请直接开战
 function startRematch(){
   if(!ON.peer||!ON.token){ backToMenu(); return; }
-  const room='r'+Date.now().toString(36)+Math.floor(Math.random()*1e6).toString(36);
-  ON.room=room;
-  onSend('REM',JSON.stringify({room}));
-  onStartOnlineFight();
+  ON.host=true; ON.authorized=true; ON.accepted=false; ON.state='waiting';
+  ON.inviteId='i'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+  ON.matchId=ON.inviteId; ON.picks={}; ON.picker=''; ON.peerSkin=null;
+  onSend('INV',JSON.stringify({id:ON.inviteId}),ON.peer);
+  document.getElementById('onPickTip').textContent='已向 '+ON.peer+' 发出再战邀请, 等待接受...';
+  document.getElementById('onlinePanel').classList.remove('hidden');
+  onShow('onPick');
 }
 document.getElementById('btnMenu').addEventListener('click',backToMenu);
 /* ============================================================
@@ -1952,6 +1956,7 @@ document.getElementById('btnPauseMenu').addEventListener('click',()=>{
 const ON={
   state:'off', srv:'http://127.0.0.1:3777', token:'', name:'',
   friends:[], peer:'', host:false, lastId:0,
+  inviteId:'', matchId:'', authorized:false, accepted:false, ready:false,
   mode:'draw', timeLimit:90, timeLeft:0,
   picker:'', picks:{}, myChar:'', peerChar:'',
   pollTimer:null, pingTimer:null,
@@ -1964,20 +1969,53 @@ function onShow(which){
     document.getElementById(id).classList.toggle('hidden',id!==which);
   });
 }
+function onDefaultSrv(){
+  if(/github\.io$/i.test(location.hostname)) return 'http://101.200.171.33:3777';
+  return (location.protocol==='http:'||location.protocol==='https:')?location.origin:'http://101.200.171.33:3777';
+}
+function onParse(s,fallback){
+  try{ const v=JSON.parse(s); return v&&typeof v==='object'?v:fallback; }catch(e){ return fallback; }
+}
 async function onApi(path,body){
+  let base=(ON.srv||'').trim().replace(/\/+$/,'');
+  if(!base) base=onDefaultSrv();
+  if(!/^https?:\/\//i.test(base)) base='http://'+base;
+  base=base.replace(/\/+$/,'');
   const sep=path.includes('?')?'&':'?';
-  const url=ON.srv+path+sep+'token='+encodeURIComponent(ON.token);
-  const opt=body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{};
-  const r=await fetch(url,opt);
-  return r.json();
+  const url=base+path+sep+'token='+encodeURIComponent(ON.token);
+  const ctl=new AbortController();
+  const tm=setTimeout(()=>ctl.abort(),12000);
+  try{
+    const r=await fetch(url,{
+      method:body?'POST':'GET',
+      headers:body?{'Content-Type':'application/json'}:{},
+      body:body?JSON.stringify(body):undefined,
+      cache:'no-store',
+      signal:ctl.signal
+    });
+    let j=null;
+    try{ j=await r.json(); }catch(e){ j=null; }
+    if(!r.ok) return Object.assign({ok:false,status:r.status,error:(j&&j.error)||('服务器错误 '+r.status)},j||{});
+    if(!j||typeof j!=='object') return {ok:false,error:'服务器返回格式错误'};
+    return j;
+  }catch(e){
+    return {ok:false,status:0,error:(e&&e.name==='AbortError')?'连接超时':'无法连接服务器'};
+  }finally{ clearTimeout(tm); }
 }
 async function onSend(verb,data,to){
+  if(!ON.token) return false;
   const text='⛩NR:'+verb+(data?'|'+data:'');
+  const target=to||ON.peer;
+  if(!target) return false;
+  let sent=false;
   for(let i=0;i<2;i++){
-    try{ await onApi('/api/messages',{text,to:to||ON.peer}); break; }catch(e){ await new Promise(r=>setTimeout(r,300)); }
+    const r=await onApi('/api/messages',{text,to:target});
+    if(r&&r.ok){ sent=true; if(r.id) ON.lastId=Math.max(ON.lastId,r.id); break; }
+    await new Promise(r=>setTimeout(r,300));
   }
   // 关键控制消息发出后立即拉取一次, 降低选人/邀请的响应延迟
   setTimeout(onPoll,60);
+  return sent;
 }
 function onMsg(t){
   if(!t||t.type!=='text'||typeof t.text!=='string'||t.from===ON.name)return;
@@ -1987,15 +2025,22 @@ function onMsg(t){
   const verb=sp<0?body:body.slice(0,sp);
   const data=sp<0?'':body.slice(sp+1);
   if(verb==='INV'){
-    if(ON.state==='lobby'){
+    if(ON.state==='lobby'&&!ON.started&&!ON.accepted){
+      const inv=onParse(data,{});
       ON.peer=t.from; ON.host=false;
+      ON.inviteId=String(inv.id||('msg'+t.id));
+      ON.matchId=''; ON.authorized=false; ON.accepted=false;
+      document.getElementById('onlinePanel').classList.remove('hidden');
       document.getElementById('onInviteText').textContent='⚔️ '+t.from+' 向你发起忍界对决挑战!';
       document.getElementById('onInviteBox').classList.remove('hidden');
     }else{ onSend('REJ','',t.from); }
     return;
   }
   if(verb==='ACC'&&t.from===ON.peer&&ON.state==='waiting'){
-    ON.host=true;
+    const ack=onParse(data,{});
+    const aid=String(ack.id||'');
+    if(aid&&ON.inviteId&&aid!==ON.inviteId) return;
+    ON.authorized=true; ON.accepted=true; ON.host=true; ON.matchId=ON.inviteId||aid;
     ON.state='pick';
     ON.mode=document.getElementById('onSelMode').value;
     ON.timeLimit=parseInt(document.getElementById('onTime').value)||0;
@@ -2014,7 +2059,7 @@ function onMsg(t){
     onShow('onPick'); onResetMatch(true);
     return;
   }
-  if(verb==='CFG'&&t.from===ON.peer&&!ON.host){
+  if(verb==='CFG'&&t.from===ON.peer&&!ON.host&&ON.authorized&&ON.accepted){
     let c={};
     try{ c=JSON.parse(data||'{}'); }catch(e){}
     ON.mode=c.mode||'free'; ON.timeLimit=c.timeLimit||0; ON.picker=c.picker||'';
@@ -2026,11 +2071,11 @@ function onMsg(t){
     onRenderPickButtons();
     return;
   }
-  if(verb==='PICK'&&t.from===ON.peer){
+  if(verb==='PICK'&&t.from===ON.peer&&ON.authorized&&ON.accepted){
     const pp=String(data).split('|');
     const pc=pp[0]||'naruto', psk=parseInt(pp[1]||'0',10);
     ON.picks[ON.peer]=pc; ON.peerSkin=psk;
-    if(ON.host){
+    if(ON.host&&ON.accepted){
       if(ON.mode==='draw'){ ON.picks[ON.name]=pc==='naruto'?'sasuke':'naruto'; onAllPicked(); }
       else if(ON.picks[ON.name])onAllPicked();
     }
@@ -2038,9 +2083,12 @@ function onMsg(t){
   }
   if(verb==='START'&&t.from===ON.peer){
     if(ON.started)return; // 防重复开局
+    if(!ON.authorized||!ON.accepted||ON.state!=='pick') return;
     let c={};
     try{ c=JSON.parse(data||'{}'); }catch(e){}
-    ON.room=c.room||''; ON.seed=c.seed||0;
+    if(!c.room) return;
+    if(c.id&&ON.matchId&&String(c.id)!==String(ON.matchId)) return;
+    ON.room=c.room; ON.seed=c.seed||0;
     const mine=c.B&&c.B.c?c.B:(c.A||{}), peer=c.A&&c.A.c?c.A:(c.B||{});
     ON.myChar=mine.c||'naruto'; ON.mySkin=parseInt(mine.sk||'0',10);
     ON.peerChar=peer.c||'sasuke'; ON.peerSkin=parseInt(peer.sk||'0',10);
@@ -2049,11 +2097,8 @@ function onMsg(t){
     onStartOnlineFight();
     return;
   }
-  if(verb==='REM'&&t.from===ON.peer){
-    // 免邀请再来一局: 对手发起, 使用新房间号直接开战
-    let e={};
-    try{ e=JSON.parse(data||'{}'); }catch(err){}
-    if(e.room){ ON.room=e.room; onStartOnlineFight(); }
+  if(verb==='REM'&&t.from===ON.peer&&ON.state==='lobby'){
+    // 旧版“免邀请再战”消息：不再自动开局，需重新发起邀请并由对方接受
     return;
   }
   if(verb==='KOVID'&&t.from===ON.peer){
@@ -2065,57 +2110,89 @@ function onMsg(t){
   }
 }
 async function onPoll(){
-  if(!ON.token||ON.pollBusy)return;
+  if(!ON.token||!ON.ready||ON.pollBusy)return;
   ON.pollBusy=true;
   try{
     const r=await onApi('/api/messages?after='+ON.lastId);
-    if(r.latestId)ON.lastId=Math.max(ON.lastId,r.latestId);
-    (r.messages||[]).forEach(t=>{
-      // 消息去重: 轮询重叠/重发时不重复处理同一条协议消息
+    if(!r||!r.ok){ ON.pollErrors=(ON.pollErrors||0)+1; if(ON.pollErrors<=3)console.warn('[NR] 消息轮询失败',r&&r.error); return; }
+    const list=r.messages||[];
+    for(const t of list){
       if(t&&t.id!==undefined){
-        if(ON.seen.has(t.id))return;
+        if(ON.seen.has(t.id))continue;
         ON.seen.add(t.id);
         if(ON.seen.size>500){
           const it=ON.seen.values();
           for(let i=0;i<250;i++)ON.seen.delete(it.next().value);
         }
       }
-      onMsg(t);
-    });
-    if(ON.state==='lobby'&&(++ON.pollCount%30===0))onRefreshFriends();
-  }catch(e){}
-  ON.pollBusy=false;
+      try{ onMsg(t); }catch(err){ console.warn('[NR] 忽略异常联机消息', err, t); }
+    }
+    if(r.latestId)ON.lastId=Math.max(ON.lastId,Number(r.latestId)||0);
+    ON.pollErrors=0;
+    if(ON.state==='lobby'&&(++ON.pollCount%12===0))onRefreshFriends();
+  }catch(e){ ON.pollErrors=(ON.pollErrors||0)+1; if(ON.pollErrors<=3)console.warn('[NR] 轮询异常',e); }
+  finally{ON.pollBusy=false;}
 }
 function onStartPoll(){
   if(ON.pollTimer)return;
-  ON.pollTimer=setInterval(onPoll,60);
+  ON.pollTimer=setInterval(onPoll,250);
   ON.pingTimer=setInterval(()=>{ onApi('/api/ping').catch(()=>{}); },10000);
 }
 function onStopPoll(){
   if(ON.pollTimer){ clearInterval(ON.pollTimer); ON.pollTimer=null; }
   if(ON.pingTimer){ clearInterval(ON.pingTimer); ON.pingTimer=null; }
+  ON.ready=false;
 }
 async function onDoLogin(reg){
-  const srv=document.getElementById('onSrv').value.trim().replace(/\/+$/,'');
+  let srv=document.getElementById('onSrv').value.trim().replace(/\/+$/,'');
+  if(!srv) srv=onDefaultSrv();
   const n=document.getElementById('onName').value.trim();
   const p=document.getElementById('onPass').value;
   const msg=document.getElementById('onMsg');
-  if(!srv||!n||!p){ msg.textContent='请填写服务器地址、账号和密码'; return; }
+  if(!n||!p){ msg.textContent='请填写账号和密码'; return; }
+  if(!/^https?:\/\//i.test(srv)) srv='http://'+srv;
   ON.srv=srv;
   try{ localStorage.setItem('naruto-on-srv',srv); localStorage.setItem('naruto-on-name',n); }catch(e){}
   msg.textContent='连接中...';
   let r=null;
   try{ r=await onApi(reg?'/api/register':'/api/login',{name:n,password:p}); }catch(e){}
-  if(r&&r.ok){ onLoggedIn(r,n); }
-  else{ msg.textContent='失败: '+((r&&r.error)||'无法连接服务器(检查地址, 确认极简聊天 v3.0.5 已开启)'); }
+  if(r&&r.ok){ await onLoggedIn(r,n); }
+  else{ msg.textContent='失败: '+((r&&r.error)||'无法连接服务器(请检查服务器地址)'); }
 }
-function onLoggedIn(r,n){
+async function onLoggedIn(r,n){
+  onStopPoll();
   ON.token=r.token; ON.name=n; ON.state='lobby'; ON.lastId=0;
+  ON.peer=''; ON.host=false; ON.inviteId=''; ON.matchId='';
+  ON.authorized=false; ON.accepted=false; ON.ready=false; ON.started=false;
+  ON.picks={}; ON.picker=''; ON.myChar=''; ON.peerChar=''; ON.room='';
+  ON.pollCount=0; ON.pollErrors=0;
+  ON.seen.clear();
   document.getElementById('onMe').textContent='已登录: '+n+' ('+ON.srv+')';
+  document.getElementById('onInviteBox').classList.add('hidden');
   onShow('onLobby');
-  onRefreshFriends();
+  try{onRefreshFriends();}catch(e){}
+  try{vcSync();}catch(e){}   // 登录时校验/下载胜利奥义视频到手机本地
+  // 只接收登录后的新消息：先把游标推到当前最新，避免重放历史 INV/REM/START
+  let primed=false;
+  for(let i=0;i<3&&!primed;i++){
+    const p=await onApi('/api/messages?after=999999999999');
+    if(p&&p.ok&&p.latestId!==undefined&&Number.isFinite(Number(p.latestId))){
+      ON.lastId=Number(p.latestId); primed=true; break;
+    }
+    await new Promise(x=>setTimeout(x,250));
+  }
+  if(!primed){
+    ON.token=''; onStopPoll();
+    document.getElementById('onLobby').classList.add('hidden');
+    document.getElementById('onLogin').classList.remove('hidden');
+    const msg=document.getElementById('onMsg');
+    if(msg) msg.textContent='消息服务连接失败，请检查服务器地址后重试';
+    return;
+  }
+  ON.ready=true;
   onStartPoll();
-  vcSync();   // 登录时校验/下载胜利奥义视频到手机本地
+  onPoll();
+  console.log('登录成功, 已跳过历史消息, 游标', ON.lastId);
 }
 async function onRefreshFriends(){
   try{
@@ -2189,13 +2266,14 @@ function onPickChar(c){
 }
 function onAllPicked(){
   if(ON.started)return; // 防重复开局
+  if(!ON.authorized||!ON.accepted||ON.state!=='pick') return; // 对方未接受邀请, 绝不开局
   ON.started=true;
   ON.myChar=ON.picks[ON.name]||'naruto'; ON.peerChar=ON.picks[ON.peer]||'sasuke';
   ON.mySkin=G.skins[ON.myChar]||0;
   ON.musicIdx=Math.floor(Math.random()*8);
   ON.room='r'+Date.now().toString(36)+Math.floor(Math.random()*1e6).toString(36);
   ON.seed=(Math.random()*1e9)|0;
-  const start={m:ON.musicIdx,A:{c:ON.myChar,sk:ON.mySkin},B:{c:ON.peerChar,sk:ON.peerSkin||0},room:ON.room,seed:ON.seed};
+  const start={m:ON.musicIdx,A:{c:ON.myChar,sk:ON.mySkin},B:{c:ON.peerChar,sk:ON.peerSkin||0},room:ON.room,seed:ON.seed,id:ON.matchId||''};
   document.getElementById('onlinePanel').classList.add('hidden');
   onSend('START',JSON.stringify(start),ON.peer);
   onStartOnlineFight();
@@ -2313,10 +2391,12 @@ function onFightCleanup(){
   fsStop();
   if(ON.state==='fight')ON.state='lobby';
   ON.started=false;
+  ON.authorized=false; ON.accepted=false; ON.matchId=''; ON.room='';
 }
 function onResetMatch(keepPanel){
   ON.peer=''; ON.host=false; ON.picks={}; ON.picker='';
-  ON.started=false;
+  ON.started=false; ON.authorized=false; ON.accepted=false;
+  ON.inviteId=''; ON.matchId=''; ON.room='';
   if(ON.token){ ON.state='lobby'; }
   else{ ON.state='off'; }
   document.getElementById('onInviteBox').classList.add('hidden');
@@ -2381,16 +2461,21 @@ document.getElementById('rankClose').addEventListener('click',()=>{
 document.getElementById('onCloseBtn').addEventListener('click',()=>document.getElementById('onlinePanel').classList.add('hidden'));
 document.getElementById('onBackBtn').addEventListener('click',()=>document.getElementById('onlinePanel').classList.add('hidden'));
 document.getElementById('onStartBtn').addEventListener('click',()=>{
-  ON.state='waiting';
-  onSend('INV',ON.name);
+  if(!ON.peer){ document.getElementById('onPickTip').textContent='请先选择好友'; return; }
+  ON.host=true; ON.authorized=true; ON.accepted=false; ON.state='waiting';
+  ON.inviteId='i'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+  ON.matchId=ON.inviteId; ON.picks={}; ON.picker=''; ON.peerSkin=null;
+  onSend('INV',JSON.stringify({id:ON.inviteId}),ON.peer);
   onShow('onPick');
   document.getElementById('onPickTip').textContent='邀请已发出, 等待 '+ON.peer+' 接受...';
 });
 document.getElementById('onAccBtn').addEventListener('click',()=>{
+  if(!ON.peer||!ON.inviteId){ document.getElementById('onInviteBox').classList.add('hidden'); return; }
   document.getElementById('onInviteBox').classList.add('hidden');
-  ON.state='pick';
-  onSend('ACC','',ON.peer);
-  document.getElementById('onPickTip').textContent='已接受, 等待开局...';
+  ON.authorized=true; ON.accepted=true; ON.host=false; ON.state='pick';
+  ON.matchId=ON.inviteId; ON.picks={}; ON.picker='';
+  onSend('ACC',JSON.stringify({id:ON.inviteId}),ON.peer);
+  document.getElementById('onPickTip').textContent='已接受, 选人后等待开局...';
   onShow('onPick');
 });
 document.getElementById('onRejBtn').addEventListener('click',()=>{
@@ -2401,7 +2486,10 @@ document.getElementById('onRejBtn').addEventListener('click',()=>{
 document.getElementById('onCancelBtn').addEventListener('click',()=>onResetMatch(true));
 document.getElementById('onPickCancel').addEventListener('click',()=>onResetMatch(true));
 try{
-  ON.srv=localStorage.getItem('naruto-on-srv')||ON.srv;
+  const _defSrv=onDefaultSrv();
+  const _savedSrv=localStorage.getItem('naruto-on-srv');
+  ON.srv=_savedSrv||_defSrv;
+  if(_savedSrv && /^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?\/?$/i.test(_savedSrv) && !/^(127\.0\.0\.1|localhost)$/i.test(location.hostname)) ON.srv=_defSrv;
   document.getElementById('onSrv').value=ON.srv;
   document.getElementById('onName').value=localStorage.getItem('naruto-on-name')||'';
 }catch(e){}
@@ -2505,20 +2593,34 @@ setInterval(async()=>{
    ============================================================ */
 const LOGIC_MS=1000/30;
 const SIM={now:0};
-const FS={on:false,room:'',frame:0,recvAt:-1,accT:0,hist:[],remote:{},localIn:{},lastRemote:{},jdir:{x:0,y:0},rjdir:{x:0,y:0},pollTimer:null,replaying:false};
+const FS={on:false,ready:false,polling:false,room:'',frame:0,recvAt:-1,accT:0,hist:[],remote:{},localIn:{},lastRemote:{},jdir:{x:0,y:0},rjdir:{x:0,y:0},pollTimer:null,replaying:false};
 const FS_HIST=120;      // 快照环: 4秒回滚窗口
 const FS_SAFE=100;      // 领先确认前沿的上限: 超出则暂停等帧(不产生不可回滚的分歧)
-function fsInit(){
-  FS.on=true; FS.frame=0; FS.recvAt=-1; FS.accT=0; FS.hist=[]; FS.remote={}; FS.localIn={}; FS.lastRemote={}; FS.jdir={x:0,y:0}; FS.rjdir={x:0,y:0};
-  SIM.now=0;
-  if(FS.pollTimer)clearInterval(FS.pollTimer);
-  FS.pollTimer=setInterval(fsPoll,50);
-  onApi('/api/nrfs/start',{room:FS.room}).catch(()=>{});
-  fsPoll();
+function fsFail(r){
+  FS.on=false; FS.ready=false;
+  if(FS.pollTimer){ clearInterval(FS.pollTimer); FS.pollTimer=null; }
+  ON.started=false;
+  try{ backToMenu(); }catch(e){}
+  const op=document.getElementById('onlinePanel'); if(op)op.classList.remove('hidden');
+  try{ onShow('onLobby'); }catch(e){}
+  const msg=document.getElementById('onMsg'); if(msg)msg.textContent='联机房间创建失败: '+((r&&r.error)||'网络错误，请重试');
 }
-function fsStop(){ FS.on=false; if(FS.pollTimer){ clearInterval(FS.pollTimer); FS.pollTimer=null; } }
+function fsInit(){
+  FS.on=true; FS.ready=false; FS.polling=false;
+  FS.frame=0; FS.recvAt=-1; FS.accT=0; FS.hist=[]; FS.remote={}; FS.localIn={}; FS.lastRemote={}; FS.jdir={x:0,y:0}; FS.rjdir={x:0,y:0};
+  SIM.now=0;
+  if(FS.pollTimer){clearInterval(FS.pollTimer);FS.pollTimer=null;}
+  onApi('/api/nrfs/start',{room:FS.room}).then(r=>{
+    if(!FS.on)return;
+    if(!r||!r.ok){ fsFail(r); return; }
+    FS.ready=true;
+    if(!FS.pollTimer)FS.pollTimer=setInterval(fsPoll,50);
+    fsPoll();
+  }).catch(()=>{ if(FS.on)fsFail(null); });
+}
+function fsStop(){ FS.on=false; FS.ready=false; FS.polling=false; if(FS.pollTimer){ clearInterval(FS.pollTimer); FS.pollTimer=null; } }
 function fsTick(dt){
-  if(!FS.on||G.state!=='fight')return;
+  if(!FS.on||!FS.ready||G.state!=='fight')return;
   FS.accT+=dt;
   while(FS.accT>=LOGIC_MS/1000){
     FS.accT-=LOGIC_MS/1000;
@@ -2549,6 +2651,7 @@ function fsStep(){
   FS.frame=F+1;
 }
 function fsSendInput(F,li){
+  if(!FS.ready||!FS.on)return;
   onApi('/api/nrfs/input',{room:FS.room,frame:F,input:li}).catch(()=>{});
 }
 function fsSimFrame(F,li,ri){
@@ -2609,7 +2712,8 @@ function fsRollback(n){
   FS.replaying=false;
 }
 async function fsPoll(){
-  if(!FS.on||G.state!=='fight')return;
+  if(!FS.on||!FS.ready||FS.polling||G.state!=='fight'||document.hidden)return;
+  FS.polling=true;
   try{
     const r=await onApi('/api/nrfs/frames?room='+encodeURIComponent(FS.room)+'&after='+FS.recvAt);
     if(!r||!r.ok)return;
@@ -2641,7 +2745,11 @@ async function fsPoll(){
       FS.recvAt=fr.n;
     }
     if(rollFrom>=0)fsRollback(rollFrom);   // 从最早不一致帧重放到最新, 确保所有修正一次到位
-  }catch(e){}
+  }catch(e){} finally{
+    FS.polling=false;
+    // 只保留最近约 20 秒的远程帧，避免长局内存无限增长
+    for(const k in FS.remote){ if(Number(k)<FS.frame-600) delete FS.remote[k]; }
+  }
 }
 
 /* ============================================================
@@ -2709,6 +2817,8 @@ function loop(now){
   ctx.setTransform(viewScale*DPR,0,0,viewScale*DPR,0,0);
   ctx.globalAlpha=1;
 }
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden && typeof FS!=='undefined' && FS.on && FS.ready){ try{fsPoll();}catch(e){} } });
+window.addEventListener('pagehide',()=>{ try{onStopPoll();}catch(e){} try{fsStop();}catch(e){} });
 requestAnimationFrame(loop);
 </script>
 </body>
