@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <link rel="icon" href="data:,">
 <title>映射 + AI 世界</title>
-<meta name="version" content="world-v9.0.3">
+<meta name="version" content="world-v9.0.4">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:"PingFang SC","Microsoft YaHei",sans-serif;color:#fff;touch-action:none;user-select:none;-webkit-user-select:none}
@@ -9847,6 +9847,7 @@ window.__vehicle = {
    客房：5 × 12 = 60 m²（毛面积），含浴室/电视/窗/床/灯/密码门
    公路：5 m 宽平整路面，从酒店正门直达世界边缘
    ============================================================= */
+var WORLD_VER = '9.0.4';
 var HOTEL = (function () {
   var X0 = HOTEL_X0, Z0 = HOTEL_Z0, W = 30, D = 18, BASE = 40;
   var FLOORS = 3, ROOM_W = 5, ROOM_D = 12;
@@ -10009,6 +10010,7 @@ var HOTEL = (function () {
   /* ---------- 建造 ---------- */
   function buildBlocks(seed) {
     levelArea(X0, Z0, W, D, 21);
+    levelArea(X0 - 7, Z0 + 11, 7, 7, 21);   /* 门前广场：与地基同高 */
     road();
     structure();
     rooms();
@@ -10192,12 +10194,12 @@ var HOTEL = (function () {
 
   function renderPanel() {
     var st = els('hotelState'), mt = els('hotelMetrics'), rd = els('hotelRoadInfo');
-    if (st) st.textContent = meta ? '已建成' : '未建造';
+    if (st) st.textContent = 'v' + WORLD_VER + ' · ' + (meta ? '已建成' : '未建造');
     if (mt) {
       mt.innerHTML = meta
         ? '占地 ' + (W * D) + ' m²（' + W + ' × ' + D + '）· 主体高 12 m · 3 层 × 6 间 = 18 间<br>'
           + '每间 5 × 12 = 60 m²（含浴室/电视/落地窗/床/吸顶灯/密码门锁）<br>'
-          + '1F 前台 · 经理 1 名 · 电梯通往 1F/2F/3F'
+          + '1F 前台 · 经理 1 名 · 电梯通往 1F/2F/3F<br><b style="color:#8fe2b3">保护：墙体与设施不可破坏 · 只能从大门进入</b>'
         : '点「建造 / 重建」：以你脚下站立的方块高度为基准整平地块——高的铲平、低的填补，并把门口这段公路抬到同一水平。1 方块 = 1 米。';
     }
     if (rd) {
@@ -10400,6 +10402,7 @@ if(restored){
 }
 window.__wr={state:WRoom,load:wrLoadRooms,enter:wrEnter,exit:wrExitRoom,save:wrSaveNow,create:wrCreateRoom,accept:wrAcceptInvite,invite:wrInviteFriend};
 window.__world={
+  version:WORLD_VER,
   get:function(){return {sim:sim,speed:speed,region:curRegion,showFauna:showFauna,date:env.D,env:env};},
   set:function(s){sim=s;updateEnv(0);updateHUD();renderAll();},
   setSpeed:function(v){speed=v;updateHUD();},
@@ -10500,6 +10503,7 @@ try { window.__hotel = HOTEL; if (window.__world) window.__world.hotel = HOTEL; 
 window.__chunks=function(){return {meshes:chunkMeshes.size,edits:editsCount(),heights:heightMaps.size,queue:meshQueue.length};};
 window.__chunkDbg=function(){try{ensureChunks(player.x,player.z);var q0=meshQueue.length;var made=processQueue(6);var keys=[];chunkMeshes.forEach(function(m,k){keys.push(k);});return {RAD:RAD,CH:CH,cx:player.x>>5,cz:player.z>>5,cur:ck(player.x>>5,player.z>>5),has:chunkMeshes.has(ck(player.x>>5,player.z>>5)),keys:keys,q0:q0,made:made,q:meshQueue.length,meshes:chunkMeshes.size,heights:heightMaps.size};}catch(e){return {err:String((e&&e.stack)||e)};}};
 requestAnimationFrame(function(t){last=t;loop(t);});
+setTimeout(function(){try{toast('映射 + AI 世界 v'+WORLD_VER);}catch(e){}},1600);
 setTimeout(function(){document.getElementById('hint').style.opacity='0';document.getElementById('hint').style.transition='opacity 1.2s';},9000);
 })();
 </script>
