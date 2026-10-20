@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <link rel="icon" href="data:,">
 <title>映射 + AI 世界</title>
-<meta name="version" content="world-v8.4.0">
+<meta name="version" content="world-v8.5.0">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:"PingFang SC","Microsoft YaHei",sans-serif;color:#fff;touch-action:none;user-select:none;-webkit-user-select:none}
@@ -314,7 +314,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
       <button id="btnFront" type="button" title="正面 / 背面视角">↺</button>
     </div>
   </div>
-  <div id="hint">拖动画面看向四周 · 左下摇杆移动<br>对准方块点 <b>挖</b> / <b>放</b> · 点击物种名称看属性<br>点右上 <b>时序</b> 看昼夜节气 · <b>化学</b> 查元素与反应<br>制造 → <b>实体</b>：取出零件 / 车模总装 / 驾驶汽车</div>
+  <div id="hint">拖动画面看向四周 · 左下摇杆移动<br>对准方块点 <b>挖</b> / <b>放</b> · 点击物种名称看属性<br>点右上 <b>时序</b> 看昼夜节气 · <b>化学</b> 查元素与反应<br>制造 → <b>实体</b>：造零件 / 装系统 / 总装 / 拆解</div>
   <div id="cross"></div>
   <div id="hitmark">✕</div>
   <div id="petBar" class="hidden"></div>
@@ -6423,7 +6423,7 @@ var VEH_KEY = 'mapping-world-vehicles-v1';
 var VEH_MAX_PARTS = 48, VEH_MAX_CARS = 4;
 var BENCH_H = 0.60;
 var vParts = [], vCars = [], vBench = null, vDriving = null, vLastCar = null;
-var vSeq = 0, vAcc = 0, vNearCar = null, vNearBench = false, vBarAcc = 0, vPrepBusy = false, vSettleAcc = 0;
+var vSeq = 0, vAcc = 0, vNearCar = null, vNearBench = false, vBarAcc = 0, vPrepBusy = false, vFlowBusy = false, vSettleAcc = 0;
 var vLastColor = '#b23b3b';
 var VEH_COL = {}, VMC = {};
 var VEH_LM = new Float32Array(16), VEH_WM = new Float32Array(16), VEH_RT = new Float32Array(16);
@@ -7193,7 +7193,7 @@ function vBenchStateText() {
   return done === 0 ? '空闲，可备料' : done + '/5 已装';
 }
 function prepAllSystems() {
-  if (vPrepBusy) { toast('正在备料，请稍候'); return false; }
+  if (vPrepBusy || vFlowBusy) { toast('流水线正在运行，请稍候'); return false; }
   if (!vBench) { toast('请先放置总装台'); return false; }
   vPrepBusy = true;
   toast('正在完成 84 道工序，请稍候…');
@@ -7225,6 +7225,77 @@ function installAllNearby() {
   for (var i = 0; i < VSYS.length; i++) if (!vBench.slots[VSYS[i].id] && installSystem(VSYS[i].id)) n++;
   toast(n ? ('已安装 ' + n + ' 个系统') : '没有可安装的系统');
   return n > 0;
+}
+
+/* ---------- 原料 → 零部件 → 系统 流水线 ---------- */
+function vCraftReady() {
+  return !!(window.__craft && __craft.prepare && __craft.assemble && __craft.disassemble);
+}
+function prepareSystemParts(sid) {
+  if (vFlowBusy || vPrepBusy) { toast('流水线正在运行，请稍候'); return false; }
+  if (!vCraftReady()) { toast('制造模块未加载'); return false; }
+  vFlowBusy = true;
+  var ok = false;
+  try { ok = __craft.prepare(sid); } catch (e) {}
+  vFlowBusy = false;
+  refreshSolid();
+  toast(ok ? ('已用原料造齐 ' + vName(sid) + ' 的全部零部件') : ('原料不足，未能造齐 ' + vName(sid) + ' 的零部件'));
+  return ok;
+}
+function prepareAllSystemParts() {
+  if (vFlowBusy || vPrepBusy) { toast('流水线正在运行，请稍候'); return false; }
+  if (!vCraftReady()) { toast('制造模块未加载'); return false; }
+  vFlowBusy = true;
+  toast('正在用原料制造五系统零部件…');
+  setTimeout(function () {
+    var ok = 0;
+    for (var i = 0; i < VSYS.length; i++) {
+      try { if (__craft.prepare(VSYS[i].id)) ok++; } catch (e) {}
+    }
+    vFlowBusy = false;
+    refreshSolid();
+    toast('五系统零部件：' + ok + '/5 套已造齐');
+  }, 80);
+  return true;
+}
+function assembleOneSystem(sid) {
+  if (vFlowBusy || vPrepBusy) { toast('流水线正在运行，请稍候'); return false; }
+  if (!vCraftReady()) { toast('制造模块未加载'); return false; }
+  var ok = false;
+  try { ok = __craft.assemble(sid); } catch (e) {}
+  refreshSolid();
+  toast(ok ? ('已把零部件装配成 ' + vName(sid)) : ('零部件不齐，无法装配 ' + vName(sid)));
+  return ok;
+}
+function assembleAllSystems() {
+  if (vFlowBusy || vPrepBusy) { toast('流水线正在运行，请稍候'); return false; }
+  if (!vCraftReady()) { toast('制造模块未加载'); return false; }
+  var ok = 0;
+  for (var i = 0; i < VSYS.length; i++) {
+    try { if (__craft.assemble(VSYS[i].id)) ok++; } catch (e) {}
+  }
+  refreshSolid();
+  toast('已装配 ' + ok + '/5 个系统');
+  return ok;
+}
+function disassembleOneSystem(sid) {
+  if (!vCraftReady()) { toast('制造模块未加载'); return false; }
+  var ok = false;
+  try { ok = __craft.disassemble(sid); } catch (e) {}
+  refreshSolid();
+  toast(ok ? ('已把 ' + vName(sid) + ' 拆成零部件') : ('制造物品栏里没有可拆的 ' + vName(sid)));
+  return ok;
+}
+function makePartFlow(id) {
+  if (vFlowBusy || vPrepBusy) { toast('流水线正在运行，请稍候'); return false; }
+  if (!window.__craft || !__craft.ensure) { toast('制造模块未加载'); return false; }
+  vFlowBusy = true;
+  var ok = false;
+  try { ok = __craft.ensure(id); } catch (e) {}
+  vFlowBusy = false;
+  refreshSolid();
+  toast(ok ? ('已用原料造出 ' + vName(id) + ' ×1') : ('原料不足，无法制造 ' + vName(id)));
+  return ok;
 }
 
 /* ---------- 汽车 ---------- */
@@ -7263,6 +7334,7 @@ function placeCar() {
 }
 function retractCar(c) {
   if (!c || c === vDriving) { toast('请先下车'); return false; }
+  if (c.onBench) { toast('汽车在总装台上，正在拆解'); return false; }
   var i = vCars.indexOf(c); if (i < 0) return false;
   vCars.splice(i, 1); craftGive('car', 1);
   saveVehicles(); refreshSolid();
@@ -7271,6 +7343,7 @@ function retractCar(c) {
 }
 function summonCar(c) {
   if (!c) return false;
+  if (c.onBench) { toast('汽车在总装台上，先完成拆解'); return false; }
   var spot = vFindCarSpot();
   if (!spot) { toast('前方没有足够平坦的空地'); return false; }
   c.x = spot.x; c.z = spot.z; c.y = spot.y; c.speed = 0;
@@ -7280,6 +7353,7 @@ function summonCar(c) {
 }
 function driveCar(c) {
   if (!c) return false;
+  if (c.onBench) { toast('汽车在总装台上，正在拆解'); return false; }
   if (vDriving) exitCar();
   if (Math.hypot(c.x - player.x, c.z - player.z) > 5.5) { toast('离车太远，先靠近'); return false; }
   vDriving = c; c.speed = 0;
@@ -7322,6 +7396,46 @@ function refuelCar(c) {
   c.fuel = Math.min(100, c.fuel + 30);
   saveVehicles(); refreshSolid();
   toast('已加 30% 汽油 · 当前 ' + Math.round(c.fuel) + '%');
+  return true;
+}
+function nearestCarToBench(r) {
+  if (!vBench) return null;
+  var best = null, bd = r || 12.0;
+  for (var i = 0; i < vCars.length; i++) {
+    var c = vCars[i];
+    if (c === vDriving || c.onBench) continue;
+    var d = Math.hypot(c.x - vBench.x, c.z - vBench.z);
+    if (d < bd) { bd = d; best = c; }
+  }
+  return best;
+}
+function startCarTeardown() {
+  if (!vBench) { toast('请先放置总装台'); return false; }
+  if (vDriving) { toast('先下车再拆解'); return false; }
+  if (countMissingSystems() < VSYS.length) { toast('总装台上还有系统，先拆下或完成总装'); return false; }
+  for (var i = 0; i < vCars.length; i++) {
+    if (vCars[i].onBench) { toast('汽车正在拆解中'); return false; }
+  }
+  var c = nearestCarToBench(12.0);
+  if (!c) { toast('把实体汽车开到总装台 12 m 内'); return false; }
+  c.onBench = true; c.speed = 0;
+  c.x = vBench.x; c.z = vBench.z; c.y = vBench.y + BENCH_H; c.yaw = 0;
+  player.yaw = Math.atan2(-(vBench.x - player.x), -(vBench.z - player.z));
+  vNearCar = null;
+  refreshSolid(); updateVehBar();
+  toast('已把汽车放上总装台，正在拆解系统…');
+  var back = document.getElementById('cfBack');
+  if (back) back.click();
+  setTimeout(function () {
+    if (!c.onBench) return;
+    var idx = vCars.indexOf(c);
+    if (idx < 0) return;
+    vCars.splice(idx, 1);
+    for (var j = 0; j < VSYS.length; j++) craftGive(VSYS[j].id, 1);
+    c.onBench = false;
+    saveVehicles(); refreshSolid(); updateVehBar();
+    toast('拆解完成：5 个系统已放入制造物品栏');
+  }, 2200);
   return true;
 }
 
@@ -7440,6 +7554,7 @@ function updateVehicles(dt) {
   } else {
     for (i = 0; i < vCars.length; i++) {
       c = vCars[i];
+      if (c.onBench) continue;
       var g = carGround(c, c.x, c.z);
       if (Math.abs(g.hi - c.y) > 0.05) c.y += (g.hi - c.y) * Math.min(1, dt * 4);
     }
@@ -7527,6 +7642,13 @@ function ensureVehUI() {
     '#vehBar button:active{opacity:.7}',
     '#cfSolid .vhCard{display:flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.12);border-radius:11px;background:rgba(255,255,255,.04);padding:8px 9px;margin:6px 0}',
     '#cfSolid .vhCard.on{border-color:rgba(143,226,179,.5);background:rgba(143,226,179,.09)}',
+    '#cfSolid .vhCard.sys{align-items:flex-start}',
+    '#cfSolid .vhParts{font-size:9.5px;line-height:1.65;color:#8fa6c4;margin-top:5px;word-break:break-word}',
+    '#cfSolid .vhParts .ok{color:#8fe2b3}',
+    '#cfSolid .vhParts .miss{color:#ff9a8a}',
+    '#cfSolid .vhFlowBtns{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}',
+    '#cfSolid .vhFlowBtns .vhBtn{padding:4px 7px;font-size:10px}',
+    '#cfSolid .vhBtn[disabled]{opacity:.38;pointer-events:none}',
     '#cfSolid .vhIc{width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;font-size:16px;flex:0 0 30px}',
     '#cfSolid .vhMain{flex:1;min-width:0}',
     '#cfSolid .vhMain b{font-size:12px}',
@@ -7604,11 +7726,13 @@ function updateVehLabels() {
     if (c === vDriving) continue;
     var d = Math.hypot(c.x - player.x, c.z - player.z);
     if (d > 26) continue;
-    add(c.x, c.y + 1.95, c.z, 'car', 'data-vcar="' + i + '"', '🚗 汽车 · ' + d.toFixed(0) + ' m' + (c === vDriving ? ' · 驾驶中' : ''));
+    add(c.x, c.y + 1.95, c.z, 'car', 'data-vcar="' + i + '"', '🚗 汽车 · ' + (c.onBench ? '拆解中' : (d.toFixed(0) + ' m' + (c === vDriving ? ' · 驾驶中' : ''))));
   }
   if (vBench) {
     var bd = Math.hypot(vBench.x - player.x, vBench.z - player.z);
-    if (bd < 26) add(vBench.x, vBench.y + 2.25, vBench.z, 'bench', 'data-vbench="1"', '🛠️ 总装台 · ' + vBenchStateText());
+    var bhold = false;
+    for (i = 0; i < vCars.length; i++) if (vCars[i].onBench) bhold = true;
+    if (bd < 26) add(vBench.x, vBench.y + 2.25, vBench.z, 'bench', 'data-vbench="1"', '🛠️ 总装台 · ' + (bhold ? '拆解中…' : vBenchStateText()));
   }
   for (i = 0; i < vParts.length; i++) {
     var p = vParts[i];
@@ -7624,6 +7748,7 @@ function findNearCar() {
   for (var i = 0; i < vCars.length; i++) {
     var c = vCars[i];
     if (c === vDriving) continue;
+    if (c.onBench) continue;
     var d = Math.hypot(c.x - player.x, c.z - player.z);
     if (d < bd) { bd = d; best = c; }
   }
@@ -7646,7 +7771,9 @@ function updateVehBar() {
       title = '<b>🚗 汽车</b> · ' + Math.hypot(c.x - player.x, c.z - player.z).toFixed(1) + ' m<br>油量 ' + Math.round(c.fuel) + '% · 4.50 m 长';
     } else if (vBench && Math.hypot(vBench.x - player.x, vBench.z - player.z) < 7.5) {
       mode = 'bench';
-      title = '<b>🛠️ 总装台</b> · ' + vBenchStateText() + '<br>按车模顺序逐件安装';
+      var teardown = false;
+      for (var ti = 0; ti < vCars.length; ti++) if (vCars[ti].onBench) teardown = true;
+      title = teardown ? '<b>🛠️ 总装台</b> · 拆解中…<br>汽车正在拆成 5 个系统' : ('<b>🛠️ 总装台</b> · ' + vBenchStateText() + '<br>按车模顺序逐件安装');
     }
   }
   var hud = document.getElementById('hud');
@@ -7723,11 +7850,29 @@ function vPriceLine(id, S) {
 }
 function vPartCard(id, S, action) {
   var n = S[id] || 0;
+  var canMake = false;
+  if (n <= 0 && id !== 'car' && !vIsSystem(id)) {
+    try { canMake = !!(window.__craft && window.__craft.recipe && window.__craft.recipe(id)); } catch (e) {}
+  }
+  var act = n > 0 ? (action || 'take') : (canMake ? 'makepart' : (action || 'take'));
+  var label = n > 0 ? '取出' : (canMake ? '用原料造' : '无库存');
   return '<div class="vhCard' + (n > 0 ? ' on' : '') + '">' +
     '<div class="vhIc">' + vIcon(id) + '</div>' +
     '<div class="vhMain"><b>' + vName(id) + '</b><div class="vhMeta">' + vSizeText(id) + ' · 库存 ' + n + '</div></div>' +
-    '<button class="vhBtn' + (n > 0 ? ' ok' : '') + '" data-vh="' + (action || 'take') + '" data-id="' + id + '" type="button">' + (n > 0 ? '取出' : '无库存') + '</button>' +
+    '<button class="vhBtn' + (n > 0 ? ' ok' : '') + '" data-vh="' + act + '" data-id="' + id + '" type="button">' + label + '</button>' +
     '</div>';
+}
+function vRecipeBits(sid) {
+  var rec = null;
+  try { rec = (window.__craft && window.__craft.recipe) ? window.__craft.recipe(sid) : null; } catch (e) {}
+  if (!rec || !rec.length) return { ready: true, line: '' };
+  var okAll = true, bits = [];
+  for (var i = 0; i < rec.length; i++) {
+    var p = rec[i], ok = p.have >= p.n;
+    if (!ok) okAll = false;
+    bits.push('<span class="' + (ok ? 'ok' : 'miss') + '">' + (p.name || p.id) + ' ' + p.have + '/' + p.n + '</span>');
+  }
+  return { ready: okAll, line: '<div class="vhParts">零件/辅料：' + bits.join(' · ') + '</div>' };
 }
 function renderSolid(el) {
   if (!el) return;
@@ -7746,8 +7891,9 @@ function renderSolid(el) {
     var bd = Math.hypot(vBench.x - player.x, vBench.z - player.z);
     h.push('<div class="vhCard on"><div class="vhIc">🛠️</div><div class="vhMain"><b>总装台已放置</b><div class="vhMeta">距你 ' + bd.toFixed(1) + ' m · 已装 ' + (5 - countMissingSystems()) + '/5 系统 · 台面高 0.60 m</div></div><button class="vhBtn warn" data-vh="rmbench" type="button">拆除</button></div>');
   }
-  h.push('<div class="vhLine"><button class="vhBtn main" data-vh="prep" type="button">一键备料（84 道工序）</button><button class="vhBtn" data-vh="installall" type="button">一键安装五个系统</button></div>');
-  h.push('<div class="vhNote">一键备料会递归完成 84 道工序，把五个系统放入制造物品栏；点「安装」逐个装到车模上。也可在下方零件库把任意工序产物取出成实体。</div>');
+  h.push('<div class="vhLine"><button class="vhBtn" data-vh="prepall"' + ((vFlowBusy || vPrepBusy) ? ' disabled' : '') + ' type="button">① 用原料造齐五系统零件</button><button class="vhBtn main" data-vh="assembleall" type="button">② 零件装配五系统</button></div>');
+  h.push('<div class="vhLine"><button class="vhBtn" data-vh="installall" type="button">③ 一键安装五系统</button><button class="vhBtn" data-vh="prep"' + ((vFlowBusy || vPrepBusy) ? ' disabled' : '') + ' type="button">整车一键备料（84 道工序）</button></div>');
+  h.push('<div class="vhNote">①→②→③ 是分步流水线：原料造零部件、零部件装配成系统、系统装到车模。赶时间可直接点「整车一键备料（84 道工序）」，一次由原料出 5 个系统。系统也能拆回零部件。</div>');
 
   /* 五个系统安装位 */
   h.push('<div class="catline" id="vhAssy">车模总装 · 五个系统</div>');
@@ -7758,7 +7904,19 @@ function renderSolid(el) {
       var s = VSYS[i], on = !!vBench.slots[s.id];
       var near = nearPartAt(s.id, vBench.x, vBench.z, 6.5);
       var meta = on ? ('已装到车模 · ' + vSizeText(s.id)) : (s.d + '<br>' + vSizeText(s.id) + ' · 物品栏 ' + (S[s.id] || 0) + ' · 台旁 ' + (near ? 1 : 0));
-      h.push('<div class="vhCard' + (on ? ' on' : '') + '"><div class="vhIc">' + (on ? '✅' : vIcon(s.id)) + '</div><div class="vhMain"><b>' + (i + 1) + '. ' + s.n + '</b><div class="vhMeta">' + meta + '</div></div>' +
+      var rec = vRecipeBits(s.id);
+      var sysStock = S[s.id] || 0;
+      var flow;
+      if (on) {
+        flow = '<div class="vhFlowBtns"><span class="vhNote">已装在台面 · 先点右侧「拆下」，再拆零件</span></div>';
+      } else {
+        flow = '<div class="vhFlowBtns">' +
+          '<button class="vhBtn" data-vh="prepare" data-id="' + s.id + '"' + ((vFlowBusy || vPrepBusy) ? ' disabled' : '') + ' type="button">用原料造零件</button>' +
+          '<button class="vhBtn ' + (rec.ready ? 'main' : '') + '" data-vh="assemble" data-id="' + s.id + '"' + (rec.ready ? '' : ' disabled') + ' type="button">零件装配成系统</button>' +
+          '<button class="vhBtn warn" data-vh="dissys" data-id="' + s.id + '"' + (sysStock > 0 ? '' : ' disabled') + ' type="button">系统拆成零件</button>' +
+          '</div>';
+      }
+      h.push('<div class="vhCard sys' + (on ? ' on' : '') + '"><div class="vhIc">' + (on ? '✅' : vIcon(s.id)) + '</div><div class="vhMain"><b>' + (i + 1) + '. ' + s.n + '</b><div class="vhMeta">' + meta + '</div>' + rec.line + flow + '</div>' +
         (on ? '<button class="vhBtn warn" data-vh="uninstall" data-id="' + s.id + '" type="button">拆下</button>' :
           '<button class="vhBtn main" data-vh="install" data-id="' + s.id + '" type="button">安装</button>') + '</div>');
     }
@@ -7784,6 +7942,30 @@ function renderSolid(el) {
         '<button class="vhBtn" data-vh="summon" data-i="' + k + '" type="button">召到面前</button>' +
         '<button class="vhBtn ok" data-vh="drive" data-i="' + k + '" type="button">驾驶</button>' +
         '<button class="vhBtn warn" data-vh="retract" data-i="' + k + '" type="button">收回</button></div>');
+    }
+  }
+
+  /* 汽车拆解 */
+  h.push('<div class="catline">汽车拆解 · 总装台</div>');
+  if (!vBench) {
+    h.push('<div class="vhNote">先放置总装台。实体汽车开到总装台 12 m 内，就能放上台拆成 5 个系统。</div>');
+  } else {
+    var hold = null;
+    for (var hi = 0; hi < vCars.length; hi++) if (vCars[hi].onBench) hold = vCars[hi];
+    if (hold) {
+      h.push('<div class="vhCard on"><div class="vhIc">🧰</div><div class="vhMain"><b>拆解中…</b><div class="vhMeta">汽车已放上总装台，正在拆成车身 / 动力 / 控制 / 安全 / 内饰</div></div></div>');
+    } else if (countMissingSystems() < VSYS.length) {
+      h.push('<div class="vhNote">总装台上还有 ' + countMissingSystems() + ' 个系统位没拆下，先拆下或完成总装，再拆汽车。</div>');
+    } else {
+      var nc = nearestCarToBench(12.0);
+      if (nc) {
+        var nd = Math.hypot(nc.x - vBench.x, nc.z - vBench.z);
+        h.push('<div class="vhCard"><div class="vhIc">🚗</div><div class="vhMain"><b>实体汽车拆解</b><div class="vhMeta">最近的车距总装台 ' + nd.toFixed(1) + ' m · 拆解后归还 5 个系统</div></div><button class="vhBtn warn" data-vh="teardowncar" type="button">放上总装台拆解</button></div>');
+      } else if (!vCars.length && (S.car || 0) > 0) {
+        h.push('<div class="vhNote">汽车还在制造物品栏，先点上面的「放到世界」，再开到总装台旁拆解。</div>');
+      } else {
+        h.push('<div class="vhNote">把实体汽车开到总装台 12 m 内，再回来这里拆解成系统。</div>');
+      }
     }
   }
 
@@ -7839,6 +8021,13 @@ function bindVehActions() {
     else if (act === 'install') { e.preventDefault(); installSystem(id); }
     else if (act === 'uninstall') { e.preventDefault(); removeSystem(id); }
     else if (act === 'prep') { e.preventDefault(); prepAllSystems(); }
+    else if (act === 'prepall') { e.preventDefault(); prepareAllSystemParts(); }
+    else if (act === 'assembleall') { e.preventDefault(); assembleAllSystems(); }
+    else if (act === 'prepare') { e.preventDefault(); prepareSystemParts(id); }
+    else if (act === 'assemble') { e.preventDefault(); assembleOneSystem(id); }
+    else if (act === 'dissys') { e.preventDefault(); disassembleOneSystem(id); }
+    else if (act === 'makepart') { e.preventDefault(); makePartFlow(id); }
+    else if (act === 'teardowncar') { e.preventDefault(); startCarTeardown(); }
     else if (act === 'installall') { e.preventDefault(); installAllNearby(); }
     else if (act === 'complete') { e.preventDefault(); completeAssembly(); }
     else if (act === 'color') {
@@ -7865,6 +8054,13 @@ window.__vehicle = {
   uninstall: removeSystem,
   installAll: installAllNearby,
   prep: prepAllSystems,
+  prepareParts: prepareSystemParts,
+  prepareAllParts: prepareAllSystemParts,
+  assembleSystem: assembleOneSystem,
+  assembleAllSystems: assembleAllSystems,
+  disassembleSystem: disassembleOneSystem,
+  makePart: makePartFlow,
+  tearDownCar: startCarTeardown,
   complete: completeAssembly,
   dropCar: placeCar,
   summon: function (i) { return summonCar(vCars[i]); },
@@ -7875,7 +8071,7 @@ window.__vehicle = {
   state: function () {
     return {
       bench: vBench ? { x: vBench.x, z: vBench.z, y: vBench.y, color: vBench.color, slots: Object.keys(vBench.slots) } : null,
-      cars: vCars.map(function (c) { return { id: c.id, x: c.x, z: c.z, y: c.y, yaw: c.yaw, fuel: c.fuel, speed: c.speed, color: c.color }; }),
+      cars: vCars.map(function (c) { return { id: c.id, x: c.x, z: c.z, y: c.y, yaw: c.yaw, fuel: c.fuel, speed: c.speed, color: c.color, onBench: !!c.onBench }; }),
       parts: vParts.map(function (p) { return { id: p.id, x: p.x, z: p.z }; }),
       driving: vDriving ? vDriving.id : null,
       lastColor: vLastColor,
@@ -8529,6 +8725,11 @@ setTimeout(function(){document.getElementById('hint').style.opacity='0';document
     take: function (id, n) { n = n || 1; if ((stock[id] || 0) < n) return false; stock[id] -= n; saveStock(); return true; },
     give: function (id, n) { n = n || 1; if (!(id in stock)) return false; stock[id] = (stock[id] || 0) + n; saveStock(); return true; },
     ensure: function (id) { if (!R[id]) return false; lastLog = []; lastLogProduct = id; var ok = ensure(id, 1, lastLog, {}); saveStock(); return ok; },
+    recipe: function (id) { var r = R[id]; if (!r) return null; return r.ins.map(function (x) { return { id: x[0], n: x[1], name: M[x[0]] ? M[x[0]].n : x[0], have: stock[x[0]] || 0 }; }); },
+    partsReady: function (id) { var r = R[id]; if (!r) return false; return r.ins.every(function (x) { return (stock[x[0]] || 0) >= x[1]; }); },
+    prepare: function (id) { var r = R[id]; if (!r) return false; for (var i = 0; i < r.ins.length; i++) { var x = r.ins[i]; if ((stock[x[0]] || 0) < x[1] && !ensure(x[0], x[1], [], {})) { saveStock(); return false; } } saveStock(); return true; },
+    assemble: function (id) { var r = R[id]; if (!r) return false; if (!r.ins.every(function (x) { return (stock[x[0]] || 0) >= x[1]; })) return false; r.ins.forEach(function (x) { stock[x[0]] -= x[1]; }); stock[id] = (stock[id] || 0) + 1; saveStock(); return true; },
+    disassemble: function (id) { var r = R[id]; if (!r || (stock[id] || 0) < 1) return false; stock[id]--; r.ins.forEach(function (x) { stock[x[0]] = (stock[x[0]] || 0) + x[1]; }); saveStock(); return true; },
     refresh: refresh,
     stockLine: stockLine,
     tab: setTab
