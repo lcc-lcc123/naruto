@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <link rel="icon" href="data:,">
 <title>映射 + AI 世界</title>
-<meta name="version" content="world-v9.0.0">
+<meta name="version" content="world-v9.0.1">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:"PingFang SC","Microsoft YaHei",sans-serif;color:#fff;touch-action:none;user-select:none;-webkit-user-select:none}
@@ -152,11 +152,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
 #vcBar button{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);color:#dce7f7;border-radius:999px;padding:7px 11px;font-size:12px;touch-action:manipulation}
 #vcBar button.on{background:#07c160;border-color:#07c160;color:#fff;font-weight:600}
 #vcBar .vcst{font-size:10px;color:#9fb3d8;max-width:36vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#hotelPanel{position:fixed;inset:0;z-index:78;background:rgba(7,11,17,.97);backdrop-filter:blur(16px);display:flex;flex-direction:column;color:#dce7f7}
+#hotelPanel{position:fixed;inset:0;z-index:78;background:rgba(7,11,17,.97);backdrop-filter:blur(16px);display:flex;flex-direction:column;color:#dce7f7;pointer-events:auto;touch-action:auto}
 #hotelPanel .hgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0}
 #hotelPanel .hcell{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);border-radius:10px;padding:7px 8px;font-size:11px;color:#9fb3d8}
 #hotelPanel .hcell b{display:block;font-size:14px;color:#8fe2b3;margin-top:2px;letter-spacing:.08em}
-#hotelKey{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:82;width:min(92vw,320px);background:rgba(10,16,26,.98);border:1px solid rgba(140,180,255,.34);border-radius:16px;padding:14px;color:#dce7f7;box-shadow:0 16px 60px rgba(0,0,0,.7)}
+#hotelKey{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:82;width:min(92vw,320px);background:rgba(10,16,26,.98);border:1px solid rgba(140,180,255,.34);border-radius:16px;padding:14px;color:#dce7f7;box-shadow:0 16px 60px rgba(0,0,0,.7);pointer-events:auto;touch-action:auto}
 #hotelKey.hidden{display:none}
 #hotelKey .hkh{font-size:13px;color:#9fb3d8;text-align:center}
 #hotelKey .hkd{font-size:30px;letter-spacing:.42em;text-align:center;margin:8px 0 4px;color:#8fe2b3;font-variant-numeric:tabular-nums}
@@ -10195,7 +10195,11 @@ var HOTEL = (function () {
   function bind() {
     if (bound) return;
     bound = true;
-    var b = els('hotelBack'); if (b) b.onclick = function () { els('hotelPanel').classList.add('hidden'); };
+    var b = els('hotelBack'); if (b) b.onclick = function (e) {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
+      if (typeof guardNextTap === 'function') guardNextTap(650);
+      setTimeout(function () { els('hotelPanel').classList.add('hidden'); }, 70);
+    };
     var bb = els('hotelBuild'); if (bb) bb.onclick = function () { build({}); };
     var gg = els('hotelGo'); if (gg) gg.onclick = teleportLobby;
     var rr = els('hotelReset'); if (rr) rr.onclick = resetCodes;
@@ -10214,7 +10218,11 @@ var HOTEL = (function () {
       pad.appendChild(clr);
     }
     var ok = els('hkOk'); if (ok) ok.onclick = tryUnlock;
-    var cc = els('hkCancel'); if (cc) cc.onclick = function () { els('hotelKey').classList.add('hidden'); };
+    var cc = els('hkCancel'); if (cc) cc.onclick = function (e) {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
+      if (typeof guardNextTap === 'function') guardNextTap(650);
+      setTimeout(function () { els('hotelKey').classList.add('hidden'); }, 70);
+    };
     var cl = els('hkClear'); if (cl) cl.onclick = function () { keyBuf = ''; renderKey(); };
     var tb = els('btnHotel'); if (tb) tb.onclick = openPanel;
   }
@@ -10259,6 +10267,27 @@ function hotelUse(h) { return HOTEL.use(h); }
 
 var _initAgentsBase = initAgents;
 initAgents = function () { _initAgentsBase.apply(null, arguments); try { HOTEL.ensure(); } catch (e) {} };
+/* ---------- 防误触：关闭浮层后的幽灵点击不再穿透到顶栏「首页」 ---------- */
+var _tapGuardUntil = 0;
+function guardNextTap(ms) { _tapGuardUntil = Date.now() + (ms || 500); }
+document.addEventListener('click', function (e) {
+  if (Date.now() < _tapGuardUntil) { e.preventDefault(); e.stopPropagation(); return; }
+  var t = e.target;
+  if (t && t.closest && t.closest('.wback,.cback,.bback,#aiClose,#chemBack,#spBack,#roomsBack,#bagBack,#hotelBack,#hkCancel,#hkOk')) {
+    guardNextTap(650);
+  }
+}, true);
+document.addEventListener('touchend', function (e) {
+  if (Date.now() < _tapGuardUntil) { e.preventDefault(); e.stopPropagation(); }
+}, true);
+addEventListener('popstate', function () {
+  var open = document.querySelector('#hotelPanel:not(.hidden),#hotelKey:not(.hidden),#rooms:not(.hidden),#bag:not(.hidden),#aiPanel:not(.hidden),#chem:not(.hidden),#species:not(.hidden)');
+  if (open) {
+    open.classList.add('hidden');
+    try { history.pushState({ cw: 1 }, ''); } catch (e) {}
+  }
+});
+
 /* ---------- 启动 ---------- */
 
 resize();
