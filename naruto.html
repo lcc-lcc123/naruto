@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="version" content="naruto-v1.2.0">
+<meta name="version" content="naruto-v1.3.0">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>火影忍者·忍界对决</title>
 <style>
@@ -2299,7 +2299,7 @@ var VC = {
   mic: false, ear: false, stream: null, peers: {}, audios: {},
   seq: 0, pollTimer: 0, pollBusy: false, api: null, onChange: null,
   secure: false, bound: false, lastError: '', ctx: null, dest: null, outStream: null,
-  micStream: null, micSource: null, needAt: {}
+  micStream: null, micSource: null, needAt: {}, watch: 0, retryAt: {}, playWait: false
 };
 function vcSecure() {
   return !!(window.isSecureContext || /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname));
@@ -2311,7 +2311,7 @@ function vcNotify(msg) {
 }
 function vcUpdateUI() {
   var bar = document.getElementById('vcBar');
-  if (bar) bar.classList.toggle('hidden', !VC.active);
+  if (bar) { bar.classList.toggle('hidden', !VC.active); bar.title = '全房间语音：同一房间内不受距离影响，超远距离也能听到'; }
   var m = document.getElementById('vcMicBtn'), e = document.getElementById('vcEarBtn'), s = document.getElementById('vcStatus');
   if (m) {
     m.textContent = VC.mic ? '🎤 开麦中' : '🎤 开麦';
@@ -2397,6 +2397,7 @@ function vcStop(silent) {
   VC.mic = false; VC.ear = false;
   VC.peerList = [];
   if (VC.pollTimer) { clearInterval(VC.pollTimer); VC.pollTimer = 0; }
+  if (VC.watch) { clearInterval(VC.watch); VC.watch = 0; }
   vcShow(false);
   vcUpdateUI();
 }
@@ -2508,8 +2509,11 @@ function vcAttachAudio(st, stream) {
   }
   st.audio.srcObject = stream;
   st.audio.muted = !VC.ear;
+  /* 全房间语音：不做任何距离衰减，开听筒即满音量 */
+  try { st.audio.volume = 1; } catch (e) {}
+  try { if (st.audio.setSinkId) { var sp = st.audio.setSinkId('default'); if (sp && sp.catch) sp.catch(function () {}); } } catch (e) {}
   var pr = st.audio.play();
-  if (pr && pr.catch) pr.catch(function () { vcNotify('浏览器拦截了声音，点一下页面后再开听筒'); });
+  if (pr && pr.catch) pr.catch(function () { vcQueuePlay(); vcNotify('浏览器拦截了声音，点一下页面后再开听筒'); });
 }
 function vcClosePeer(peer, silent) {
   var st = VC.peers[peer];
@@ -2594,6 +2598,7 @@ function vcPollStart() {
   if (VC.pollTimer) clearInterval(VC.pollTimer);
   vcPoll();
   VC.pollTimer = setInterval(vcPoll, 700);
+  vcWatchStart();
 }
 function vcPoll() {
   if (!VC.active || !VC.api || VC.pollBusy) return;
@@ -2648,10 +2653,111 @@ async function vcHandleSignal(m) {
 }
 function vcInfo() {
   var peers = {};
-  for (var p in VC.peers) peers[p] = { state: VC.peers[p].pc.connectionState, signaling: VC.peers[p].pc.signalingState, remoteAudio: !!VC.peers[p].audio };
+  for (var p in VC.peers) peers[p] = {
+    state: VC.peers[p].pc.connectionState,
+    signaling: VC.peers[p].pc.signalingState,
+    remoteAudio: !!VC.peers[p].audio,
+    audioReady: VC.peers[p].audio ? VC.peers[p].audio.readyState : -1,
+    audioPaused: VC.peers[p].audio ? VC.peers[p].audio.paused : null,
+    audioMuted: VC.peers[p].audio ? VC.peers[p].audio.muted : null,
+    volume: VC.peers[p].audio ? VC.peers[p].audio.volume : null
+  };
   return { active: VC.active, mode: VC.mode, room: VC.room, my: VC.my, mic: VC.mic, ear: VC.ear, secure: VC.secure, peers: peers, lastError: VC.lastError };
 }
-window.__vc = { state: VC, toggleMic: vcToggleMic, toggleEar: vcToggleEar, start: vcStart, stop: vcStop, setPeers: vcSetPeers, info: vcInfo };
+
+/* ---- 语音 v2：远距离可听 / 连接自愈 / 诊断 ---- */
+function vcPlayAll() {
+  for (var p in VC.audios) {
+    try {
+      VC.audios[p].muted = !VC.ear;
+      var pr = VC.audios[p].play();
+      if (pr && pr.catch) pr.catch(function () {});
+    } catch (e) {}
+  }
+}
+function vcQueuePlay() {
+  if (VC.playWait) return;
+  VC.playWait = true;
+  var fn = function () {
+    VC.playWait = false;
+    document.removeEventListener('pointerdown', fn, true);
+    document.removeEventListener('touchstart', fn, true);
+    vcPlayAll();
+  };
+  document.addEventListener('pointerdown', fn, true);
+  document.addEventListener('touchstart', fn, true);
+}
+function vcWatchStart() {
+  if (VC.watch) clearInterval(VC.watch);
+  VC.watch = setInterval(vcWatch, 2500);
+}
+function vcWatch() {
+  if (!VC.active) return;
+  if (!VC.mic && !VC.ear) return;
+  var now = Date.now();
+  /* 世界联机：把实时同步里看到的玩家并入语音对端，避免只依赖在线心跳 */
+  if (VC.mode === 'world' && typeof WSYNC !== 'undefined' && WSYNC.remote) {
+    for (var nm in WSYNC.remote) {
+      if (!nm || nm === VC.my) continue;
+      if (VC.peerList.indexOf(nm) < 0) VC.peerList.push(nm);
+    }
+  }
+  vcSyncPeers();
+  VC.peerList.forEach(function (peer) {
+    var st = VC.peers[peer];
+    if (!st) {
+      if (VC.my < peer) { VC.retryAt[peer] = now; vcEnsurePeer(peer); }
+      else if (!VC.retryAt[peer] || now - VC.retryAt[peer] > 6000) {
+        VC.retryAt[peer] = now;
+        vcSignal(peer, 'state', { need: 1, mic: VC.mic, ear: VC.ear });
+      }
+      return;
+    }
+    if (!st.born) st.born = now;
+    var cs = st.pc.connectionState;
+    if (cs === 'connected') { st.connAt = st.connAt || now; st.discAt = 0; return; }
+    if (cs === 'disconnected') { if (!st.discAt) st.discAt = now; }
+    var stuck = (cs === 'disconnected' && now - st.discAt > 5000) || (cs !== 'disconnected' && now - st.born > 15000);
+    if (!stuck) return;
+    if (now - (VC.retryAt[peer] || 0) < 6000) return;
+    VC.retryAt[peer] = now;
+    vcClosePeer(peer, true);
+    if (VC.my < peer) vcEnsurePeer(peer);
+    else vcSignal(peer, 'state', { need: 1, mic: VC.mic, ear: VC.ear });
+  });
+  vcUpdateUI();
+}
+function vcStats(cb) {
+  var out = {}, list = [], p;
+  for (p in VC.peers) list.push(p);
+  if (!list.length) { cb({}); return; }
+  var left = list.length;
+  list.forEach(function (peer) {
+    var st = VC.peers[peer];
+    out[peer] = { state: st.pc.connectionState, bytes: 0, packets: 0, audioTrack: false, audioReady: st.audio ? st.audio.readyState : -1 };
+    if (!st.pc.getStats) { if (--left === 0) cb(out); return; }
+    st.pc.getStats().then(function (rep) {
+      rep.forEach(function (r) {
+        if (r.type === 'inbound-rtp' && (r.kind === 'audio' || r.mediaType === 'audio')) {
+          out[peer].bytes = r.bytesReceived || 0;
+          out[peer].packets = r.packetsReceived || 0;
+          out[peer].audioTrack = true;
+        }
+      });
+    }).catch(function () {}).then(function () { if (--left === 0) cb(out); });
+  });
+}
+function vcDiag() {
+  var d = vcInfo();
+  d.distanceFree = true;
+  d.audios = {};
+  for (var a in VC.audios) d.audios[a] = {
+    ready: VC.audios[a].readyState, paused: VC.audios[a].paused,
+    muted: VC.audios[a].muted, volume: VC.audios[a].volume
+  };
+  return d;
+}
+window.__vc = { state: VC, toggleMic: vcToggleMic, toggleEar: vcToggleEar, start: vcStart, stop: vcStop, setPeers: vcSetPeers, info: vcInfo, watch: vcWatch, stats: vcStats, diag: vcDiag };
 
 function onStartOnlineFight(){
   ON.started=true;

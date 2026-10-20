@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <link rel="icon" href="data:,">
 <title>映射 + AI 世界</title>
-<meta name="version" content="world-v8.8.0">
+<meta name="version" content="world-v8.9.0">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:"PingFang SC","Microsoft YaHei",sans-serif;color:#fff;touch-action:none;user-select:none;-webkit-user-select:none}
@@ -152,6 +152,19 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
 #vcBar button{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);color:#dce7f7;border-radius:999px;padding:7px 11px;font-size:12px;touch-action:manipulation}
 #vcBar button.on{background:#07c160;border-color:#07c160;color:#fff;font-weight:600}
 #vcBar .vcst{font-size:10px;color:#9fb3d8;max-width:36vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#hotelPanel{position:fixed;inset:0;z-index:78;background:rgba(7,11,17,.97);backdrop-filter:blur(16px);display:flex;flex-direction:column;color:#dce7f7}
+#hotelPanel .hgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0}
+#hotelPanel .hcell{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);border-radius:10px;padding:7px 8px;font-size:11px;color:#9fb3d8}
+#hotelPanel .hcell b{display:block;font-size:14px;color:#8fe2b3;margin-top:2px;letter-spacing:.08em}
+#hotelKey{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:82;width:min(92vw,320px);background:rgba(10,16,26,.98);border:1px solid rgba(140,180,255,.34);border-radius:16px;padding:14px;color:#dce7f7;box-shadow:0 16px 60px rgba(0,0,0,.7)}
+#hotelKey.hidden{display:none}
+#hotelKey .hkh{font-size:13px;color:#9fb3d8;text-align:center}
+#hotelKey .hkd{font-size:30px;letter-spacing:.42em;text-align:center;margin:8px 0 4px;color:#8fe2b3;font-variant-numeric:tabular-nums}
+#hotelKey .hkp{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+#hotelKey .hkp button{background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.16);color:#eaf2ff;border-radius:10px;padding:12px 0;font-size:17px}
+#hotelKey .hkr{display:flex;gap:8px;margin-top:10px}
+#hotelKey .hkr button{flex:1;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);color:#dce7f7;border-radius:10px;padding:9px 0;font-size:13px}
+#hotelKey .hkr #hkOk{background:rgba(7,193,96,.26);border-color:rgba(7,193,96,.55);color:#8fe2b3;font-weight:600}
 .whead{display:flex;align-items:center;gap:8px;padding:calc(10px + env(safe-area-inset-top)) 10px 8px;border-bottom:1px solid rgba(255,255,255,.08)}
 .whead .wback{background:none;border:none;color:#dce7f7;font-size:26px;width:34px;line-height:1;padding:0}
 .whead .wtitle{font-size:15px;font-weight:600;flex:1}
@@ -335,6 +348,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
     <button class="tb" id="btnChem">化学</button>
     <button class="tb" id="btnAI">AI</button>
     <button class="tb" id="btnRooms">房间</button>
+    <button class="tb" id="btnHotel">酒店</button>
     <div id="clockChip" role="button" title="打开时序面板">
       <div class="ck1"><span id="ckDate">公元0年1月1日 01:00:01</span><span class="sp" id="ckSpeed">60×</span></div>
       <div class="ck2"><span id="ckTerm">冬 · 小寒</span><b id="ckTemp">—</b><span id="ckLight">光 —</span></div>
@@ -347,7 +361,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
     <button id="vcEarBtn" type="button">🎧 听筒关</button>
     <span id="vcStatus" class="vcst"></span>
   </div>
-  <div id="hint">拖动画面看向四周 · 左下摇杆移动<br>对准方块点 <b>挖</b> / <b>放</b> · 点击物种名称看属性<br>点右上 <b>时序</b> 看昼夜节气 · <b>化学</b> 查元素与反应<br>制造 → <b>实体</b>：造零件 / 装系统 / 总装 / 拆解</div>
+  <div id="hint">拖动画面看向四周 · 左下摇杆移动<br>对准方块点 <b>挖</b> / <b>放</b> · 点击物种名称看属性<br>点右上 <b>时序</b> 看昼夜节气 · <b>化学</b> 查元素与反应<br>点 <b>酒店</b> 建云海酒店 · 对门点「挖」输密码<br>制造 → <b>实体</b>：造零件 / 装系统 / 总装 / 拆解</div>
   <div id="cross"></div>
   <div id="hitmark">✕</div>
   <div id="petBar" class="hidden"></div>
@@ -368,7 +382,28 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
   <div id="info">--</div>
   <div id="hotbar"></div>
   <div id="atomPanel" class="hidden"></div>
-  <div id="aiPanel" class="hidden">
+  <div id="hotelPanel" class="hidden">
+  <div class="whead">
+    <button class="wback" id="hotelBack" type="button">‹</button>
+    <div class="wtitle">云海酒店 · 云海公路</div>
+    <div class="wsub" id="hotelState">未建造</div>
+  </div>
+  <div class="wbody">
+    <div class="note">1 方块 = 1 米，尺寸以世界里的人（身高 1.78 m）为基准。正门朝西，门口接 5 米宽公路。</div>
+    <div class="wrow"><button id="hotelBuild" type="button">建造 / 重建</button><button id="hotelGo" type="button">传送到大堂</button><button id="hotelReset" type="button">重置门锁密码</button></div>
+    <div class="note" id="hotelMetrics"></div>
+    <div id="hotelCodes"></div>
+    <div class="note" id="hotelRoadInfo"></div>
+    <div class="note">开门：走到客房门口，对准门点「挖」→ 输入 4 位密码。电视 / 电梯 / 前台 / 路牌同样用「挖」互动。</div>
+  </div>
+</div>
+<div id="hotelKey" class="hidden">
+  <div class="hkh" id="hkTitle">客房</div>
+  <div class="hkd" id="hkDisp">____</div>
+  <div class="hkp" id="hkPad"></div>
+  <div class="hkr"><button id="hkClear" type="button">清除</button><button id="hkOk" type="button">开锁</button><button id="hkCancel" type="button">取消</button></div>
+</div>
+<div id="aiPanel" class="hidden">
     <div class="ah"><span>AI 世界助手</span><button id="aiClose" type="button">×</button></div>
     <div class="log" id="aiLog"><div>我是本地 AI 助手（无联网）：可以生成建筑、种树、切换昼夜，也能解释任何方块的原子构成。</div></div>
     <div class="cmds">
@@ -378,6 +413,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
       <button data-cmd="walk">带我回到出生点</button>
       <button data-cmd="what">脚下是什么</button>
       <button data-cmd="flat">平整前方地面</button>
+      <button data-cmd="hotel">建云海酒店 + 公路</button>
     </div>
   </div>
   <div id="chem" class="hidden">
@@ -620,7 +656,26 @@ var B={
   19:{n:'红壤块',col:[0.55,0.26,0.18],f:'铁铝氧化物 + 黏土矿物',atoms:[['Fe','#c98a5a',0.45,0.45,0.45],['Al','#b9c0cc',0.68,0.55,0.5],['O','#e05050',0.4,0.7,0.62]]},
   20:{n:'冰',col:[0.66,0.84,0.94],f:'H₂O（固态）',atoms:[['O','#e05050',0.5,0.5,0.5],['H','#f2f6ff',0.32,0.66,0.62],['H','#f2f6ff',0.68,0.66,0.62]]}
 };
+/* ---------- v8.9.0 酒店/公路方块（1 方块 = 1 米） ---------- */
+var HOTEL_BLOCKS={
+ 21:{n:'混凝土',col:[0.74,0.75,0.77],f:'水泥 + 砂 + 骨料（CaO-SiO₂-Al₂O₃-Fe₂O₃ 水化物）',atoms:[['Ca','#8fd6a8',0.5,0.5,0.5],['Si','#c9b18a',0.28,0.66,0.3],['O','#e05050',0.72,0.34,0.7]]},
+ 22:{n:'客房木门',top:[0.58,0.38,0.22],side:[0.45,0.29,0.16],bot:[0.38,0.25,0.14],f:'纤维素 + 树脂（电子锁）',atoms:[['C','#4a4a4a',0.5,0.5,0.5],['O','#e05050',0.3,0.7,0.3],['Fe','#c98a5a',0.72,0.3,0.7]]},
+ 23:{n:'床',top:[0.85,0.90,0.97],side:[0.52,0.58,0.70],bot:[0.35,0.38,0.45],f:'棉麻织物 + 聚氨酯泡沫',atoms:[['C','#4a4a4a',0.5,0.5,0.5],['O','#e05050',0.7,0.5,0.5],['H','#f2f6ff',0.3,0.7,0.3]]},
+ 24:{n:'电视（关）',col:[0.10,0.12,0.16],f:'LCD 玻璃 + 铝边框',atoms:[['Si','#c9b18a',0.5,0.5,0.5],['Al','#b9c0cc',0.3,0.7,0.3],['O','#e05050',0.72,0.3,0.7]]},
+ 25:{n:'电视（开）',col:[0.34,0.76,0.96],f:'LCD 背光（蓝相白光）',atoms:[['Si','#c9b18a',0.5,0.5,0.5],['N','#7aa7ff',0.3,0.7,0.3],['O','#e05050',0.72,0.3,0.7]]},
+ 26:{n:'吸顶灯',col:[1.0,0.93,0.66],f:'LED（GaN 荧光粉）',atoms:[['Ga','#9fb7cc',0.5,0.5,0.5],['N','#7aa7ff',0.3,0.7,0.3],['Y','#e6e0a8',0.7,0.3,0.7]]},
+ 27:{n:'浴室瓷砖',col:[0.90,0.93,0.95],f:'陶瓷釉面（SiO₂-Al₂O₃）',atoms:[['Si','#c9b18a',0.5,0.5,0.5],['O','#e05050',0.3,0.7,0.3],['Al','#b9c0cc',0.7,0.3,0.7]]},
+ 28:{n:'马桶',col:[0.96,0.97,1.0],f:'卫生陶瓷',atoms:[['Si','#c9b18a',0.5,0.5,0.5],['O','#e05050',0.3,0.7,0.3],['Ca','#8fd6a8',0.7,0.3,0.7]]},
+ 29:{n:'洗手台',col:[0.88,0.90,0.93],f:'陶瓷 + 镀铬黄铜龙头',atoms:[['Si','#c9b18a',0.5,0.5,0.5],['Cu','#d08a4a',0.3,0.7,0.3],['Cr','#c8d4de',0.7,0.3,0.7]]},
+ 30:{n:'花洒',col:[0.76,0.81,0.87],f:'不锈钢（Fe-Cr-Ni）',atoms:[['Fe','#c98a5a',0.5,0.5,0.5],['Cr','#c8d4de',0.3,0.7,0.3],['Ni','#a8b8a8',0.7,0.3,0.7]]},
+ 31:{n:'前台台面',top:[0.66,0.47,0.30],side:[0.46,0.31,0.19],bot:[0.36,0.24,0.15],f:'实木 + 石材台面',atoms:[['C','#4a4a4a',0.5,0.5,0.5],['Ca','#8fd6a8',0.3,0.7,0.3],['O','#e05050',0.7,0.3,0.7]]},
+ 32:{n:'走廊地毯',col:[0.46,0.18,0.22],f:'羊毛 / 尼龙纤维',atoms:[['C','#4a4a4a',0.5,0.5,0.5],['N','#7aa7ff',0.3,0.7,0.3],['H','#f2f6ff',0.7,0.3,0.7]]},
+ 33:{n:'电梯按钮',col:[0.95,0.79,0.30],f:'黄铜面板 + LED',atoms:[['Cu','#d08a4a',0.5,0.5,0.5],['Zn','#b9c0cc',0.3,0.7,0.3],['Ga','#9fb7cc',0.7,0.3,0.7]]},
+ 34:{n:'房号 / 路牌',col:[0.14,0.32,0.56],f:'铝合金 + 反光膜',atoms:[['Al','#b9c0cc',0.5,0.5,0.5],['O','#e05050',0.3,0.7,0.3],['Si','#c9b18a',0.7,0.3,0.7]]}
+};
+for(var _hb in HOTEL_BLOCKS)B[_hb]=HOTEL_BLOCKS[_hb];
 var BLOCK_MAT={1:'soil',2:'soil',3:'granite',4:'sand',5:'water',6:'wood',7:'leaves',8:'plank',9:'hematite',10:'coal',11:'limestone',12:'halite',13:'glass',14:'quicklime',15:'slaked',16:'copper',17:'iron',18:'snow',19:'redsoil',20:'ice'};
+BLOCK_MAT[21]='limestone';BLOCK_MAT[22]='wood';BLOCK_MAT[23]='plank';BLOCK_MAT[24]='glass';BLOCK_MAT[25]='glass';BLOCK_MAT[26]='glass';BLOCK_MAT[27]='limestone';BLOCK_MAT[28]='limestone';BLOCK_MAT[29]='limestone';BLOCK_MAT[30]='iron';BLOCK_MAT[31]='plank';BLOCK_MAT[32]='wood';BLOCK_MAT[33]='copper';BLOCK_MAT[34]='iron';
 function solid(t){return t!==0&&t!==5;}
 var blocks=new Uint8Array(WX*WY*WZ);
 function idx(x,y,z){return x+WX*(z+WZ*y);}
@@ -842,7 +897,7 @@ var spawn={x:player.x,y:player.y,z:player.z};
 var npc={x:0,z:0};
 var sel=1;
 var hotbarTypes=[1,2,3,4,6,7,11,9];
-var HOTNAME={1:'草',2:'土',3:'石',4:'沙',6:'木',7:'叶',8:'板',9:'铁矿',10:'煤',11:'石灰石',12:'岩盐',13:'玻璃',14:'生石灰',15:'熟石灰',16:'铜',17:'铁'};
+var HOTNAME={1:'草',2:'土',3:'石',4:'沙',6:'木',7:'叶',8:'板',9:'铁矿',10:'煤',11:'石灰石',12:'岩盐',13:'玻璃',14:'生石灰',15:'熟石灰',16:'铜',17:'铁',21:'混凝土',22:'木门',23:'床',24:'电视',25:'电视(开)',26:'灯',27:'瓷砖',28:'马桶',29:'洗手台',30:'花洒',31:'前台',32:'地毯',33:'电梯',34:'路牌'};
 
 /* ---------- 物品 / 背包 ---------- */
 var ITEMS={
@@ -1221,6 +1276,7 @@ function raycast(maxD){
 function dig(){
   var h=raycast(6);
   if(!h)return toast('前方没有可挖的方块');
+  if(hotelUse(h))return;
   setB(h.x,h.y,h.z,0);
   wsBlock(h.x,h.y,h.z,0);
   buildMesh();
@@ -1391,6 +1447,7 @@ function flatten(){
   buildMesh();aiSay('前方 7×7 的地面已平整，并铺上了草方块。',true);
 }
 function ai(cmd){
+  if(cmd==='hotel'){HOTEL.build({});aiSay('云海酒店已建成：占地 540 m² · 主体高 12 m · 3 层 × 6 间（每间 60 m²），含浴室、电视、落地窗、床、吸顶灯、密码门锁；1F 有前台与酒店经理；5 米宽公路从正门直达世界边缘。',true);return;}
   if(cmd==='house')return buildHouse();
   if(cmd==='tree')return plantTree();
   if(cmd==='flat')return flatten();
@@ -2926,6 +2983,7 @@ function saveWorld(manual,skipRoom){
       inv:{hot:hotbarSlots.map(function(x){return x?{id:x.id,n:x.n}:null;}),bag:bag.map(function(x){return {id:x.id,n:x.n};})},
       player:{x:player.x,y:player.y,z:player.z,yaw:player.yaw,pitch:player.pitch,vy:player.vy},
       blocks:rleEncode(blocks),
+      hotel:(typeof HOTEL!=='undefined'?HOTEL.save():null),
       veh:(function(){try{return JSON.parse(localStorage.getItem(VEH_KEY)||'null');}catch(e){return null;}})()};
     var raw=JSON.stringify(data);
     localStorage.setItem(SAVE_KEY,raw);
@@ -2974,6 +3032,7 @@ function loadWorld(auto){
     spawn={x:player.x,y:player.y,z:player.z};
     npc=npcSpot(player.x,player.z,player.yaw);
     buildMesh();
+    try{if(s.hotel&&typeof HOTEL!=='undefined')HOTEL.load(s.hotel);}catch(e){}
     buildHotbar();
     updateEnv(0);
     syncRegionChips();
@@ -3011,7 +3070,7 @@ var VC = {
   mic: false, ear: false, stream: null, peers: {}, audios: {},
   seq: 0, pollTimer: 0, pollBusy: false, api: null, onChange: null,
   secure: false, bound: false, lastError: '', ctx: null, dest: null, outStream: null,
-  micStream: null, micSource: null, needAt: {}
+  micStream: null, micSource: null, needAt: {}, watch: 0, retryAt: {}, playWait: false
 };
 function vcSecure() {
   return !!(window.isSecureContext || /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname));
@@ -3023,7 +3082,7 @@ function vcNotify(msg) {
 }
 function vcUpdateUI() {
   var bar = document.getElementById('vcBar');
-  if (bar) bar.classList.toggle('hidden', !VC.active);
+  if (bar) { bar.classList.toggle('hidden', !VC.active); bar.title = '全房间语音：同一房间内不受距离影响，超远距离也能听到'; }
   var m = document.getElementById('vcMicBtn'), e = document.getElementById('vcEarBtn'), s = document.getElementById('vcStatus');
   if (m) {
     m.textContent = VC.mic ? '🎤 开麦中' : '🎤 开麦';
@@ -3109,6 +3168,7 @@ function vcStop(silent) {
   VC.mic = false; VC.ear = false;
   VC.peerList = [];
   if (VC.pollTimer) { clearInterval(VC.pollTimer); VC.pollTimer = 0; }
+  if (VC.watch) { clearInterval(VC.watch); VC.watch = 0; }
   vcShow(false);
   vcUpdateUI();
 }
@@ -3220,8 +3280,11 @@ function vcAttachAudio(st, stream) {
   }
   st.audio.srcObject = stream;
   st.audio.muted = !VC.ear;
+  /* 全房间语音：不做任何距离衰减，开听筒即满音量 */
+  try { st.audio.volume = 1; } catch (e) {}
+  try { if (st.audio.setSinkId) { var sp = st.audio.setSinkId('default'); if (sp && sp.catch) sp.catch(function () {}); } } catch (e) {}
   var pr = st.audio.play();
-  if (pr && pr.catch) pr.catch(function () { vcNotify('浏览器拦截了声音，点一下页面后再开听筒'); });
+  if (pr && pr.catch) pr.catch(function () { vcQueuePlay(); vcNotify('浏览器拦截了声音，点一下页面后再开听筒'); });
 }
 function vcClosePeer(peer, silent) {
   var st = VC.peers[peer];
@@ -3306,6 +3369,7 @@ function vcPollStart() {
   if (VC.pollTimer) clearInterval(VC.pollTimer);
   vcPoll();
   VC.pollTimer = setInterval(vcPoll, 700);
+  vcWatchStart();
 }
 function vcPoll() {
   if (!VC.active || !VC.api || VC.pollBusy) return;
@@ -3360,10 +3424,111 @@ async function vcHandleSignal(m) {
 }
 function vcInfo() {
   var peers = {};
-  for (var p in VC.peers) peers[p] = { state: VC.peers[p].pc.connectionState, signaling: VC.peers[p].pc.signalingState, remoteAudio: !!VC.peers[p].audio };
+  for (var p in VC.peers) peers[p] = {
+    state: VC.peers[p].pc.connectionState,
+    signaling: VC.peers[p].pc.signalingState,
+    remoteAudio: !!VC.peers[p].audio,
+    audioReady: VC.peers[p].audio ? VC.peers[p].audio.readyState : -1,
+    audioPaused: VC.peers[p].audio ? VC.peers[p].audio.paused : null,
+    audioMuted: VC.peers[p].audio ? VC.peers[p].audio.muted : null,
+    volume: VC.peers[p].audio ? VC.peers[p].audio.volume : null
+  };
   return { active: VC.active, mode: VC.mode, room: VC.room, my: VC.my, mic: VC.mic, ear: VC.ear, secure: VC.secure, peers: peers, lastError: VC.lastError };
 }
-window.__vc = { state: VC, toggleMic: vcToggleMic, toggleEar: vcToggleEar, start: vcStart, stop: vcStop, setPeers: vcSetPeers, info: vcInfo };
+
+/* ---- 语音 v2：远距离可听 / 连接自愈 / 诊断 ---- */
+function vcPlayAll() {
+  for (var p in VC.audios) {
+    try {
+      VC.audios[p].muted = !VC.ear;
+      var pr = VC.audios[p].play();
+      if (pr && pr.catch) pr.catch(function () {});
+    } catch (e) {}
+  }
+}
+function vcQueuePlay() {
+  if (VC.playWait) return;
+  VC.playWait = true;
+  var fn = function () {
+    VC.playWait = false;
+    document.removeEventListener('pointerdown', fn, true);
+    document.removeEventListener('touchstart', fn, true);
+    vcPlayAll();
+  };
+  document.addEventListener('pointerdown', fn, true);
+  document.addEventListener('touchstart', fn, true);
+}
+function vcWatchStart() {
+  if (VC.watch) clearInterval(VC.watch);
+  VC.watch = setInterval(vcWatch, 2500);
+}
+function vcWatch() {
+  if (!VC.active) return;
+  if (!VC.mic && !VC.ear) return;
+  var now = Date.now();
+  /* 世界联机：把实时同步里看到的玩家并入语音对端，避免只依赖在线心跳 */
+  if (VC.mode === 'world' && typeof WSYNC !== 'undefined' && WSYNC.remote) {
+    for (var nm in WSYNC.remote) {
+      if (!nm || nm === VC.my) continue;
+      if (VC.peerList.indexOf(nm) < 0) VC.peerList.push(nm);
+    }
+  }
+  vcSyncPeers();
+  VC.peerList.forEach(function (peer) {
+    var st = VC.peers[peer];
+    if (!st) {
+      if (VC.my < peer) { VC.retryAt[peer] = now; vcEnsurePeer(peer); }
+      else if (!VC.retryAt[peer] || now - VC.retryAt[peer] > 6000) {
+        VC.retryAt[peer] = now;
+        vcSignal(peer, 'state', { need: 1, mic: VC.mic, ear: VC.ear });
+      }
+      return;
+    }
+    if (!st.born) st.born = now;
+    var cs = st.pc.connectionState;
+    if (cs === 'connected') { st.connAt = st.connAt || now; st.discAt = 0; return; }
+    if (cs === 'disconnected') { if (!st.discAt) st.discAt = now; }
+    var stuck = (cs === 'disconnected' && now - st.discAt > 5000) || (cs !== 'disconnected' && now - st.born > 15000);
+    if (!stuck) return;
+    if (now - (VC.retryAt[peer] || 0) < 6000) return;
+    VC.retryAt[peer] = now;
+    vcClosePeer(peer, true);
+    if (VC.my < peer) vcEnsurePeer(peer);
+    else vcSignal(peer, 'state', { need: 1, mic: VC.mic, ear: VC.ear });
+  });
+  vcUpdateUI();
+}
+function vcStats(cb) {
+  var out = {}, list = [], p;
+  for (p in VC.peers) list.push(p);
+  if (!list.length) { cb({}); return; }
+  var left = list.length;
+  list.forEach(function (peer) {
+    var st = VC.peers[peer];
+    out[peer] = { state: st.pc.connectionState, bytes: 0, packets: 0, audioTrack: false, audioReady: st.audio ? st.audio.readyState : -1 };
+    if (!st.pc.getStats) { if (--left === 0) cb(out); return; }
+    st.pc.getStats().then(function (rep) {
+      rep.forEach(function (r) {
+        if (r.type === 'inbound-rtp' && (r.kind === 'audio' || r.mediaType === 'audio')) {
+          out[peer].bytes = r.bytesReceived || 0;
+          out[peer].packets = r.packetsReceived || 0;
+          out[peer].audioTrack = true;
+        }
+      });
+    }).catch(function () {}).then(function () { if (--left === 0) cb(out); });
+  });
+}
+function vcDiag() {
+  var d = vcInfo();
+  d.distanceFree = true;
+  d.audios = {};
+  for (var a in VC.audios) d.audios[a] = {
+    ready: VC.audios[a].readyState, paused: VC.audios[a].paused,
+    muted: VC.audios[a].muted, volume: VC.audios[a].volume
+  };
+  return d;
+}
+window.__vc = { state: VC, toggleMic: vcToggleMic, toggleEar: vcToggleEar, start: vcStart, stop: vcStop, setPeers: vcSetPeers, info: vcInfo, watch: vcWatch, stats: vcStats, diag: vcDiag };
 
 /* ---------- 世界房间实时同步：只发增量事件，不发快照 ---------- */
 var WSYNC = {
@@ -3427,6 +3592,8 @@ function wsApplyEvents(list) {
     if (!e) continue;
     if (e.type === 'block') {
       try { setB(e.x, e.y, e.z, e.t); needMesh = true; } catch (err) {}
+    } else if (e.type === 'build') {
+      try { HOTEL.remote(e); needMesh = true; } catch (err) {}
     } else if (e.type === 'give') {
       wsReceiveGive(e);
     } else if (e.type && (e.type.indexOf('car_') === 0 || e.type.indexOf('part_') === 0 || e.type.indexOf('bench_') === 0)) {
@@ -6561,7 +6728,7 @@ function bakeHumanRigs(arr, off, dt) {
     var a = humans[i];
     if (!a.alive) continue;
     var rig = updateHumanRig(a, dt);
-    var gy = surfaceY(Math.floor(a.x), Math.floor(a.z)) + 0.02;
+    var gy = (a.indoorY != null ? a.indoorY : surfaceY(Math.floor(a.x), Math.floor(a.z))) + 0.02;
     var yaw = Math.PI / 2 - (a.dir || 0);
     rigRootMat(a.x, gy, a.z, yaw, RIG_SCALE, RIG_ROOT);
     off = bakeRig(arr, off, rig.root, RIG_ROOT, null);
@@ -6633,7 +6800,7 @@ function buildShadowBuffer() {
   for (var i = 0; i < humans.length; i++) {
     var a = humans[i];
     if (!a.alive) continue;
-    var gy = surfaceY(Math.floor(a.x), Math.floor(a.z)) + 0.035;
+    var gy = (a.indoorY != null ? a.indoorY : surfaceY(Math.floor(a.x), Math.floor(a.z))) + 0.035;
     pushShadow(a.x, gy, a.z, 1.05, 0.78);
   }
   if (thirdPerson) pushShadow(player.x, player.y + 0.035, player.z, 1.10, 0.82);
@@ -7174,6 +7341,7 @@ function updateHumans(dt,bio){
   for(var i=0;i<humans.length;i++){
     var a=humans[i];
     if(!a.alive)continue;
+    if(a.fixed)continue;
     a.ageYears+=(bio||0)/365;
     var old=a.stage;a.stage=stageOfHuman(a.ageYears);
     if(a.stage!==old){a.rig3d=null;a.rig3dKey='';}
@@ -7239,7 +7407,7 @@ function updateFaunaLabels(){
   function add(a,labelY){
     if(!a.alive)return;
     if(a.kind==='animal'&&(!a.active||!showFauna))return;
-    var gy=surfaceY(Math.floor(a.x),Math.floor(a.z));
+    var gy=(a.indoorY!=null?a.indoorY:surfaceY(Math.floor(a.x),Math.floor(a.z)));
     var y=gy+labelY;
     var cw=MVP[3]*a.x+MVP[7]*y+MVP[11]*a.z+MVP[15];
     if(cw<=0.01)return;
@@ -9366,6 +9534,454 @@ window.__vehicle = {
   colors: VEH_CAR_COLORS.slice()
 };
 
+/* ================= v8.9.0 云海酒店 · 云海公路 =================
+   尺度：1 方块 = 1 米（玩家身高 1.78 m，眼高 1.62 m）
+   酒店：占地 30 × 18 = 540 m²，主体高 12 m，3 层 × 每层 6 间
+   客房：5 × 12 = 60 m²（毛面积），含浴室/电视/窗/床/灯/密码门
+   公路：5 m 宽平整路面，从酒店正门直达世界边缘
+   ============================================================= */
+var HOTEL = (function () {
+  var X0 = 33, Z0 = 22, W = 30, D = 18, BASE = 8;
+  var FLOORS = 3, ROOM_W = 5, ROOM_D = 12;
+  var ROAD_Z = 34, ROAD_W = 5, ROAD_X1 = 32, ROAD_KM = 30;
+  var meta = null, manager = null, keyRoom = 0, keyBuf = '', bound = false;
+  var doorSeq = {};
+
+  function inW(x, y, z) { return x >= 0 && x < WX && y >= 0 && y < WY && z >= 0 && z < WZ; }
+  function put(x, y, z, t) { if (inW(x, y, z)) setB(x, y, z, t); }
+  function els(id) { return document.getElementById(id); }
+  function roomNo(f, c) { return (f + 1) * 100 + c + 1; }
+  function codeOf(no, seed) { return String(1000 + ((seed * 37 + no * 137 + 7) % 9000)); }
+  function newSeed() { return (Math.floor(Date.now() / 1000) % 89000) + 1000; }
+  function codesOf(seed) {
+    var o = {};
+    for (var f = 0; f < FLOORS; f++) for (var c = 0; c < 6; c++) { var no = roomNo(f, c); o[no] = codeOf(no, seed); }
+    return o;
+  }
+
+  /* ---------- 地形平整 ---------- */
+  function levelArea(x0, z0, w, d, topType) {
+    topType = topType || 21;
+    for (var x = x0; x < x0 + w; x++) for (var z = z0; z < z0 + d; z++) {
+      for (var y = BASE; y < WY; y++) if (getB(x, y, z)) put(x, y, z, 0);
+      for (var y2 = 0; y2 < BASE - 1; y2++) {
+        var b = getB(x, y2, z);
+        if (b === 0 || b === 5) put(x, y2, z, 3);
+      }
+      put(x, BASE - 1, z, topType);
+    }
+  }
+
+  /* ---------- 主体结构 ---------- */
+  function structure() {
+    for (var f = 0; f < FLOORS; f++) {
+      var L = BASE + f * 4;
+      var x, z, y, c, cx, cx2, cz;
+      if (f > 0) for (x = X0; x < X0 + W; x++) for (z = Z0; z < Z0 + D; z++) put(x, L - 1, z, 21);
+      for (x = X0; x < X0 + W; x++) for (y = L; y < L + 3; y++) { put(x, y, Z0, 21); put(x, y, Z0 + D - 1, 21); }
+      for (z = Z0; z < Z0 + D; z++) for (y = L; y < L + 3; y++) { put(X0, y, z, 21); put(X0 + W - 1, y, z, 21); }
+      for (c = 1; c < 6; c++) {
+        var px = X0 + c * ROOM_W;
+        for (z = Z0 + 1; z <= Z0 + ROOM_D; z++) for (y = L; y < L + 3; y++) put(px, y, z, 21);
+      }
+      for (cx = X0 + 1; cx < X0 + W - 1; cx++) for (y = L; y < L + 3; y++) put(cx, y, Z0 + ROOM_D, 21);
+      /* 电梯井前墙：留 1 米门洞 */
+      for (cx2 = X0 + 23; cx2 <= X0 + 27; cx2++) {
+        if (cx2 === X0 + 25) continue;
+        for (y = L; y < L + 3; y++) put(cx2, y, Z0 + 15, 21);
+      }
+      /* 西立面客房侧窗（避免整面空白墙） */
+      var WL = [Z0 + 2, Z0 + 3, Z0 + 7, Z0 + 8, Z0 + 11];
+      for (var wi = 0; wi < WL.length; wi++) { put(X0, L + 1, WL[wi], 13); put(X0, L + 2, WL[wi], 13); }
+      for (cz = Z0 + 15; cz <= Z0 + 16; cz++) for (y = L; y < L + 3; y++) { put(X0 + 23, y, cz, 21); put(X0 + 27, y, cz, 21); }
+      /* 电梯按钮 */
+      put(X0 + 25, L + 1, Z0 + 16, 33);
+    }
+    /* 屋顶板（12 m）+ 女儿墙 */
+    var ry = BASE + 12;
+    for (var tx = X0; tx < X0 + W; tx++) for (var tz = Z0; tz < Z0 + D; tz++) put(tx, BASE + 11, tz, 21);
+    for (var rx = X0; rx < X0 + W; rx++) { put(rx, ry, Z0, 21); put(rx, ry, Z0 + D - 1, 21); }
+    for (var rz = Z0; rz < Z0 + D; rz++) { put(X0, ry, rz, 21); put(X0 + W - 1, ry, rz, 21); }
+    /* 正门（西侧，2 米宽）+ 雨棚 */
+    for (var dz = Z0 + 13; dz <= Z0 + 14; dz++) { put(X0, BASE, dz, 0); put(X0, BASE + 1, dz, 0); }
+    for (var kx = X0 - 3; kx <= X0 - 1; kx++) for (var kz = Z0 + 12; kz <= Z0 + 15; kz++) put(kx, BASE + 3, kz, 21);
+    /* 正门上方店招（蓝色标牌带） */
+    for (var uz = Z0 + 11; uz <= Z0 + 15; uz++) put(X0, BASE + 4, uz, 34);
+  }
+
+  /* ---------- 把动物 / 植物 / 路人移出酒店占地 ---------- */
+  function clearInside() {
+    var pad = 1;
+    function inside(x, z) { return x > X0 - pad && x < X0 + W + pad && z > Z0 - pad && z < Z0 + D + pad; }
+    var i;
+    for (i = 0; i < fauna.length; i++) {
+      var a = fauna[i];
+      if (a && a.alive && inside(a.x, a.z)) { a.x = Math.max(3, X0 - 10); a.z = Math.max(3, Math.min(WZ - 4, Z0 + 6 + (i % 6))); }
+    }
+    for (i = 0; i < flora.length; i++) {
+      var p = flora[i];
+      if (p && p.alive && inside(p.x, p.z)) { p.x = Math.max(3, X0 - 13); p.z = Math.max(3, Math.min(WZ - 4, Z0 + 2 + i)); }
+    }
+    for (i = 0; i < humans.length; i++) {
+      var h = humans[i];
+      if (h && h.alive && !h.hotelManager && inside(h.x, h.z)) { h.x = Math.max(3, X0 - 8); h.z = Math.max(3, Math.min(WZ - 4, Z0 + 3 + i)); }
+    }
+  }
+
+  /* ---------- 客房内部 ---------- */
+  function rooms() {
+    for (var f = 0; f < FLOORS; f++) {
+      var L = BASE + f * 4;
+      for (var c = 0; c < 6; c++) {
+        var px = X0 + c * ROOM_W;
+        var xEnd = Math.min(px + 4, X0 + W - 2);
+        var fx, fz, wx;
+        for (fx = px + 1; fx <= xEnd; fx++) for (fz = Z0 + 1; fz <= Z0 + ROOM_D - 1; fz++) put(fx, L - 1, fz, f === 0 ? 8 : 21);
+        /* 门 + 房号牌 */
+        put(px + 2, L, Z0 + ROOM_D, 22);
+        put(px + 2, L + 1, Z0 + ROOM_D, 22);
+        put(px + 2, L + 2, Z0 + ROOM_D, 34);
+        /* 落地窗 */
+        for (wx = px + 1; wx <= Math.min(px + 3, X0 + W - 2); wx++) { put(wx, L + 1, Z0, 13); put(wx, L + 2, Z0, 13); }
+        /* 床 2 × 2 */
+        for (var bx = px + 1; bx <= px + 2; bx++) for (var bz = Z0 + 2; bz <= Z0 + 3; bz++) put(bx, L, bz, 23);
+        /* 吸顶灯 */
+        put(px + 2, L + 2, Z0 + 6, 26);
+        /* 浴室隔墙 + 门洞 */
+        for (var bwx = px + 1; bwx <= Math.min(px + 3, X0 + W - 2); bwx++) for (var by = L; by < L + 3; by++) put(bwx, by, Z0 + 9, 27);
+        put(px + 3, L, Z0 + 9, 0);
+        put(px + 3, L + 1, Z0 + 9, 0);
+        /* 电视（嵌在隔墙上，朝床） */
+        put(px + 1, L + 1, Z0 + 9, 24);
+        /* 浴室地砖与洁具 */
+        for (var tx = px + 1; tx <= Math.min(px + 3, X0 + W - 2); tx++) for (var tz = Z0 + 10; tz <= Z0 + ROOM_D - 1; tz++) put(tx, L - 1, tz, 27);
+        put(px + 1, L, Z0 + ROOM_D - 1, 28);
+        put(px + 3, L + 1, Z0 + ROOM_D - 1, 29);
+        put(px + 2, L + 2, Z0 + 10, 30);
+      }
+      /* 走廊地毯 */
+      for (var cx = X0 + 1; cx < X0 + W - 1; cx++) for (var cz = Z0 + 13; cz <= Z0 + 14; cz++) put(cx, L - 1, cz, 32);
+    }
+    /* 前台台面 + 北墙招牌 */
+    for (var dx = X0 + 4; dx <= X0 + 11; dx++) put(dx, BASE, Z0 + 15, 31);
+    for (var sx = X0 + 5; sx <= X0 + 9; sx++) put(sx, BASE + 2, Z0 + 17, 34);
+  }
+
+  /* ---------- 公路 ---------- */
+  function road() {
+    levelArea(1, ROAD_Z, ROAD_X1, ROAD_W, 3);
+    for (var lx = 2; lx <= ROAD_X1 - 2; lx += 4) put(lx, BASE - 1, ROAD_Z + 2, 12);
+    for (var ex = 1; ex <= ROAD_X1; ex++) { put(ex, BASE - 1, ROAD_Z, 21); put(ex, BASE - 1, ROAD_Z + ROAD_W - 1, 21); }
+    put(2, BASE, ROAD_Z + 4, 34);
+    put(ROAD_X1 - 1, BASE, ROAD_Z + 4, 34);
+  }
+
+  /* ---------- 酒店经理 ---------- */
+  function ensureManager() {
+    var mx = X0 + 7.5, mz = Z0 + 16.5;
+    var found = null;
+    for (var i = 0; i < humans.length; i++) if (humans[i] && humans[i].hotelManager) { found = humans[i]; break; }
+    if (!found) {
+      found = {
+        id: 'hmgr', kind: 'human', type: '酒店经理', sex: '男', ageYears: 41, stage: '中年',
+        strength: 62, hp: 130, maxHp: 130, energy: 92, state: '值守', drive: '工作',
+        ethnic: '汉族', occ: '前台管理', atlas: ATLAS_OCC[10], atlasName: '前台管理',
+        culture: '酒店服务', lookSeed: 77, x: mx, z: mz, dir: Math.PI, t: 0,
+        alive: true, cooldown: 0, gestation: 0, pregnant: false, children: 0,
+        hue: 12, attack: 8, defense: 6, recovery: 3, fixed: true, hotelManager: true,
+        indoorY: BASE
+      };
+      humans.push(found);
+    }
+    found.x = mx; found.z = mz; found.dir = Math.PI; found.state = '值守';
+    found.fixed = true; found.alive = true; found.indoorY = BASE;
+    manager = found;
+    return found;
+  }
+
+  /* ---------- 建造 ---------- */
+  function buildBlocks(seed) {
+    levelArea(X0, Z0, W, D, 21);
+    road();
+    structure();
+    rooms();
+    return seed;
+  }
+
+  function build(opts) {
+    opts = opts || {};
+    if (!opts.remote && typeof WSYNC !== 'undefined' && WSYNC.on && !WSYNC.host) {
+      toast('联机房间里只有房主可以建造 / 重建酒店');
+      return null;
+    }
+    var seed = parseInt(opts.seed, 10) || newSeed();
+    buildBlocks(seed);
+    meta = {
+      v: 1, built: true, x0: X0, z0: Z0, w: W, d: D, base: BASE, floors: FLOORS,
+      rooms: FLOORS * 6, seed: seed,
+      codes: opts.codes || codesOf(seed),
+      road: { width: ROAD_W, designKm: ROAD_KM, builtM: ROAD_X1 }
+    };
+    ensureManager();
+    clearInside();
+    try { buildMesh(); } catch (e) {}
+    try {
+      if (typeof collides === 'function' && collides(player.x, player.y, player.z)) {
+        player.x = X0 + 7.5; player.z = Z0 + 13.5; player.y = BASE + 0.06; player.vy = 0;
+      }
+    } catch (e) {}
+    if (!opts.remote) {
+      try { saveWorld(false); } catch (e) {}
+      try { wsBuildPush(); } catch (e) {}
+      toast('云海酒店已建成：3 层 × 6 间，共 18 间客房，正门直通 5 米宽公路');
+    }
+    renderPanel();
+    return meta;
+  }
+
+  function wsBuildPush() {
+    if (typeof WSYNC === 'undefined' || !WSYNC.on || !meta) return;
+    WSYNC.pending.push({ type: 'build', kind: 'hotel', seed: meta.seed, codes: meta.codes });
+  }
+
+  function ensure() {
+    if (!meta || !meta.built) return;
+    ensureManager();
+    if (getB(X0, BASE + 1, Z0) !== 21) {
+      buildBlocks(meta.seed);
+      try { buildMesh(); } catch (e) {}
+    }
+  }
+
+  /* ---------- 门锁 / 电视 / 电梯 ---------- */
+  function roomFromDoor(h) {
+    if (h.z !== Z0 + ROOM_D) return 0;
+    var c = (h.x - X0 - 2) / ROOM_W;
+    if (c !== Math.floor(c) || c < 0 || c > 5) return 0;
+    var f = Math.floor((h.y - BASE) / 4);
+    if (f < 0 || f > 2) return 0;
+    return roomNo(f, c);
+  }
+
+  function doorCells(no) {
+    var f = Math.floor(no / 100) - 1, c = (no % 100) - 1;
+    if (f < 0 || f > 2 || c < 0 || c > 5) return null;
+    var L = BASE + f * 4, dx = X0 + c * ROOM_W + 2, dz = Z0 + ROOM_D;
+    return { x: dx, z: dz, y0: L, y1: L + 1 };
+  }
+
+  function unlockDoor(no) {
+    var p = doorCells(no);
+    if (!p) return false;
+    var token = (doorSeq[no] = (doorSeq[no] || 0) + 1);
+    put(p.x, p.y0, p.z, 0); put(p.x, p.y1, p.z, 0);
+    try { wsBlock(p.x, p.y0, p.z, 0); wsBlock(p.x, p.y1, p.z, 0); } catch (e) {}
+    try { buildMesh(); } catch (e) {}
+    setTimeout(function () {
+      if (doorSeq[no] !== token) return;
+      put(p.x, p.y0, p.z, 22); put(p.x, p.y1, p.z, 22);
+      try { wsBlock(p.x, p.y0, p.z, 22); wsBlock(p.x, p.y1, p.z, 22); } catch (e) {}
+      try { buildMesh(); } catch (e) {}
+    }, 4000);
+    return true;
+  }
+
+  function toggleTV(h) {
+    var next = h.b === 24 ? 25 : 24;
+    put(h.x, h.y, h.z, next);
+    try { wsBlock(h.x, h.y, h.z, next); } catch (e) {}
+    try { buildMesh(); } catch (e) {}
+    toast(next === 25 ? '电视已打开' : '电视已关闭');
+    return true;
+  }
+
+  function elevator(h) {
+    var f = Math.floor((h.y - 1 - BASE) / 4);
+    if (f < 0 || f > 2) return false;
+    var nf = (f + 1) % FLOORS;
+    player.x = X0 + 25.5;
+    player.z = Z0 + 15.5;
+    player.y = BASE + nf * 4 + 0.06;
+    player.vy = 0;
+    toast('电梯：' + (f + 1) + 'F → ' + (nf + 1) + 'F');
+    return true;
+  }
+
+  function use(h) {
+    if (!h || !h.b) return false;
+    if (h.b === 22) {
+      var no = roomFromDoor(h);
+      if (!no) return false;
+      openKeypad(no);
+      return true;
+    }
+    if (h.b === 24 || h.b === 25) return toggleTV(h);
+    if (h.b === 33) return elevator(h);
+    if (h.b === 31) { openPanel(); return true; }
+    if (h.b === 34) {
+      var no2 = roomFromDoor(h);
+      if (no2) toast('房号牌：' + no2 + ' · 电子门锁（点「挖」输入密码）');
+      else toast('云海公路：设计里程 ' + ROAD_KM + ' km · 路宽 ' + ROAD_W + ' m · 本段实建 ' + ROAD_X1 + ' m');
+      return true;
+    }
+    return false;
+  }
+
+  /* ---------- UI ---------- */
+  function openPanel() {
+    bind();
+    renderPanel();
+    var p = els('hotelPanel');
+    if (p) p.classList.remove('hidden');
+  }
+
+  function renderPanel() {
+    var st = els('hotelState'), mt = els('hotelMetrics'), rd = els('hotelRoadInfo');
+    if (st) st.textContent = meta ? '已建成' : '未建造';
+    if (mt) {
+      mt.innerHTML = meta
+        ? '占地 ' + (W * D) + ' m²（' + W + ' × ' + D + '）· 主体高 12 m · 3 层 × 6 间 = 18 间<br>'
+          + '每间 5 × 12 = 60 m²（含浴室/电视/落地窗/床/吸顶灯/密码门锁）<br>'
+          + '1F 前台 · 经理 1 名 · 电梯通往 1F/2F/3F'
+        : '点「建造 / 重建」在出生点东侧建造酒店。1 方块 = 1 米，尺寸与世界里的人一致。';
+    }
+    if (rd) {
+      rd.innerHTML = '云海公路：设计 ' + ROAD_KM + ' km · 宽 ' + ROAD_W + ' m · 5 m 宽平整路面从正门直达世界边缘'
+        + (meta && meta.road ? '（本段实建 ' + meta.road.builtM + ' m）' : '')
+        + '<br>世界为 64 × 64 格，30 km 需要 30,000 格；当前只铺到世界边界，里程牌按设计值标注。';
+    }
+    renderCodes();
+  }
+
+  function renderCodes() {
+    var box = els('hotelCodes');
+    if (!box) return;
+    if (!meta) { box.innerHTML = ''; return; }
+    var h = '<div class="catline">客房密码（点击「开锁」后在门边输入）</div><div class="hgrid">';
+    for (var f = 0; f < FLOORS; f++) for (var c = 0; c < 6; c++) {
+      var no = roomNo(f, c);
+      h += '<div class="hcell">' + no + ' 房<b>' + (meta.codes[no] || '--') + '</b></div>';
+    }
+    h += '</div>';
+    box.innerHTML = h;
+  }
+
+  function renderKey() {
+    var d = els('hkDisp');
+    if (d) d.textContent = (keyBuf + '____').slice(0, 4);
+  }
+
+  function openKeypad(no) {
+    keyRoom = no; keyBuf = '';
+    bind();
+    var t = els('hkTitle');
+    if (t) t.textContent = '客房 ' + no + ' · 电子门锁';
+    renderKey();
+    var p = els('hotelKey');
+    if (p) p.classList.remove('hidden');
+  }
+
+  function tryUnlock() {
+    var code = meta && meta.codes ? meta.codes[keyRoom] : '';
+    if (!code) { toast('门锁未初始化'); return; }
+    if (keyBuf === code) {
+      var p = els('hotelKey'); if (p) p.classList.add('hidden');
+      unlockDoor(keyRoom);
+      toast('门锁已开：' + keyRoom + ' 房');
+    } else {
+      keyBuf = '';
+      renderKey();
+      toast('密码错误');
+    }
+  }
+
+  function resetCodes() {
+    if (!meta) { toast('还没有建造酒店'); return; }
+    if (typeof WSYNC !== 'undefined' && WSYNC.on && !WSYNC.host) { toast('只有房主可以重置门锁密码'); return; }
+    var seed = newSeed();
+    meta.seed = seed;
+    meta.codes = codesOf(seed);
+    renderPanel();
+    try { saveWorld(false); } catch (e) {}
+    if (typeof WSYNC !== 'undefined' && WSYNC.on) WSYNC.pending.push({ type: 'build', kind: 'codes', codes: meta.codes });
+    toast('全部客房密码已重置');
+  }
+
+  function teleportLobby() {
+    if (!meta) { toast('还没有建造酒店'); return; }
+    player.x = X0 + 7.5;
+    player.z = Z0 + 13.5;
+    player.y = BASE + 0.06;
+    player.vy = 0;
+    toast('已传送到云海酒店大堂');
+  }
+
+  function bind() {
+    if (bound) return;
+    bound = true;
+    var b = els('hotelBack'); if (b) b.onclick = function () { els('hotelPanel').classList.add('hidden'); };
+    var bb = els('hotelBuild'); if (bb) bb.onclick = function () { build({}); };
+    var gg = els('hotelGo'); if (gg) gg.onclick = teleportLobby;
+    var rr = els('hotelReset'); if (rr) rr.onclick = resetCodes;
+    var pad = els('hkPad');
+    if (pad) {
+      var keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
+      keys.forEach(function (k) {
+        var btn = document.createElement('button');
+        btn.type = 'button'; btn.textContent = k;
+        btn.onclick = function () { if (keyBuf.length < 4) { keyBuf += k; renderKey(); } };
+        pad.appendChild(btn);
+      });
+      var clr = document.createElement('button');
+      clr.type = 'button'; clr.textContent = '⌫';
+      clr.onclick = function () { keyBuf = keyBuf.slice(0, -1); renderKey(); };
+      pad.appendChild(clr);
+    }
+    var ok = els('hkOk'); if (ok) ok.onclick = tryUnlock;
+    var cc = els('hkCancel'); if (cc) cc.onclick = function () { els('hotelKey').classList.add('hidden'); };
+    var cl = els('hkClear'); if (cl) cl.onclick = function () { keyBuf = ''; renderKey(); };
+    var tb = els('btnHotel'); if (tb) tb.onclick = openPanel;
+  }
+
+  /* ---------- 同步 ---------- */
+  function remote(e) {
+    if (!e || e.type !== 'build') return;
+    if (e.kind === 'codes') { if (meta) { meta.codes = e.codes || meta.codes; renderPanel(); } return; }
+    if (e.kind === 'hotel') {
+      meta = null;
+      build({ seed: e.seed, codes: e.codes, remote: true });
+    }
+  }
+
+  function load(m) {
+    meta = m && m.built ? m : null;
+    ensure();
+    renderPanel();
+  }
+
+  function status() {
+    var info = {
+      built: !!(meta && meta.built), base: BASE, x0: X0, z0: Z0, w: W, d: D,
+      floors: FLOORS, rooms: FLOORS * 6, height: 12, roomArea: 60,
+      road: { width: ROAD_W, designKm: ROAD_KM, builtM: ROAD_X1 },
+      codes: meta ? meta.codes : null,
+      manager: manager ? { id: manager.id, x: manager.x, z: manager.z, state: manager.state } : null
+    };
+    return info;
+  }
+
+  setTimeout(bind, 0);
+  return {
+    build: build, ensure: ensure, load: load, save: function () { return meta; },
+    use: use, remote: remote, open: openPanel, status: status,
+    resetCodes: resetCodes, teleport: teleportLobby, keypad: openKeypad,
+    unlock: unlockDoor, config: { X0: X0, Z0: Z0, W: W, D: D, BASE: BASE, ROAD_Z: ROAD_Z, ROAD_W: ROAD_W, ROAD_KM: ROAD_KM }
+  };
+})();
+function hotelUse(h) { return HOTEL.use(h); }
+
+var _initAgentsBase = initAgents;
+initAgents = function () { _initAgentsBase.apply(null, arguments); try { HOTEL.ensure(); } catch (e) {} };
 /* ---------- 启动 ---------- */
 
 resize();
@@ -9482,6 +10098,7 @@ window.__world={
       humans:humans.map(function(a){var r=getHumanRig(a),q=r.spec||{};return {id:a.id,sex:a.sex,ethnic:a.ethnic,occ:a.occ,stage:a.stage,boxes:r.boxes,action:r.motion.name,spec:{c1:q.c1,c2:q.c2,c3:q.c3,c4:q.c4,top:q.top,head:q.head,extra:q.extra,gender:q.gender,age:q.age}};})};
   }
 };
+try { window.__hotel = HOTEL; if (window.__world) window.__world.hotel = HOTEL; } catch (e) {}
 requestAnimationFrame(function(t){last=t;loop(t);});
 setTimeout(function(){document.getElementById('hint').style.opacity='0';document.getElementById('hint').style.transition='opacity 1.2s';},9000);
 })();
