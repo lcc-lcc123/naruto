@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <link rel="icon" href="data:,">
 <title>映射 + AI 世界</title>
-<meta name="version" content="world-v9.0.2">
+<meta name="version" content="world-v9.0.3">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:"PingFang SC","Microsoft YaHei",sans-serif;color:#fff;touch-action:none;user-select:none;-webkit-user-select:none}
@@ -1386,7 +1386,14 @@ function endDrag(e){if(drag&&drag.id===e.pointerId)drag=null;}
 canvas.addEventListener('pointerup',endDrag);
 canvas.addEventListener('pointercancel',endDrag);
 canvas.addEventListener('contextmenu',function(e){e.preventDefault();});
-addEventListener('mousedown',function(e){if(e.target!==canvas)return;if(e.button===0)dig();else if(e.button===2)place();});
+var _touchAt=0;
+canvas.addEventListener('touchstart',function(){_touchAt=Date.now();},{passive:true});
+var _coarse=(window.matchMedia&&matchMedia('(pointer: coarse)').matches);
+addEventListener('mousedown',function(e){
+  if(e.target!==canvas)return;
+  if(_coarse||Date.now()-_touchAt<900)return;   /* 触摸屏：只能用「挖 / 放」按钮 */
+  if(e.button===0)dig();else if(e.button===2)place();
+});
 addEventListener('keydown',function(e){if(e.key.toLowerCase()==='e')dig();if(e.key.toLowerCase()==='q')place();});
 
 /* 摇杆: 摇杆头限制在圆盘内 + 190px 触控区 + 盘外落点浮动 */
@@ -1470,8 +1477,10 @@ function updatePlayer(dt){
   var nx=player.x+mx;
   var nz=player.z+mz;
   if(flyMode){
+    var _fx0=player.x,_fz0=player.z;
     player.x=Math.max(2,Math.min(WX-3,nx));
     player.z=Math.max(2,Math.min(WZ-3,nz));
+    if(typeof hotelFlyGuard==='function')hotelFlyGuard(_fx0,_fz0);
     var vv=0;
     if(holdUp||keys[' '])vv+=1;
     if(holdDown||keys['shift'])vv-=1;
@@ -1579,10 +1588,21 @@ function raycast(maxD){
   }
   return null;
 }
+function canDig(){
+  if(sel==null)return true;                 // 空手
+  if(typeof sel==='number')return false;    // 手持方块不能挖
+  var d=itemDef(sel);
+  if(!d)return true;
+  return /镐|斧|铲|锹|锄|锤|刀|凿|钻/.test(String(d.n||''));
+}
 function dig(){
+  window.__digTry=(window.__digTry||0)+1;
+  if(!canDig()){toast('空手或镐 / 斧 / 铲 / 刀等工具才能挖');return;}
   var h=raycast(6);
   if(!h)return toast('前方没有可挖的方块');
   if(hotelUse(h))return;
+  if(typeof hotelProtected==='function'&&hotelProtected(h.x,h.z)){toast('酒店设施与墙壁受保护，不能破坏');return;}
+  window.__digOk=(window.__digOk||0)+1;
   setB(h.x,h.y,h.z,0);
   wsBlock(h.x,h.y,h.z,0);
   buildMesh();
@@ -10037,6 +10057,24 @@ var HOTEL = (function () {
     try { heightMaps.clear(); } catch (e) {}
     try { clearAllMeshes(); } catch (e) {}
   }
+  function protectedAt(x, z) {
+    if (!meta || !meta.built) return false;
+    return x >= X0 && x < X0 + W && z >= Z0 && z < Z0 + D;
+  }
+  function flyGuard(ox, oz) {
+    if (!meta || !meta.built) return false;
+    if (player.y > BASE + 13.5) return false;          /* 屋顶以上：允许飞越 */
+    var inNow = player.x > X0 && player.x < X0 + W && player.z > Z0 && player.z < Z0 + D;
+    if (!inNow) return false;
+    var wasIn = ox > X0 && ox < X0 + W && oz > Z0 && oz < Z0 + D;
+    if (!wasIn) {                                      /* 从墙外飞进来：挡回去 */
+      player.x = ox; player.z = oz;
+      toast('酒店只能从大门进入');
+      return true;
+    }
+    if (flyMode) { setFly(false); toast('酒店内禁止飞行'); }   /* 已在里面：强制落地 */
+    return true;
+  }
   function keepOut() {
     if (!meta || !meta.built) return;
     var pad = 2;
@@ -10300,7 +10338,7 @@ var HOTEL = (function () {
 
   setTimeout(bind, 0);
   return {
-    build: build, ensure: ensure, load: load, save: function () { return meta; }, keepOut: keepOut, roadLevel: applyRoadLevel,
+    build: build, ensure: ensure, load: load, save: function () { return meta; }, keepOut: keepOut, roadLevel: applyRoadLevel, protectedAt: protectedAt, flyGuard: flyGuard,
     use: use, remote: remote, open: openPanel, status: status,
     resetCodes: resetCodes, teleport: teleportLobby, keypad: openKeypad,
     unlock: unlockDoor, config: { X0: X0, Z0: Z0, W: W, D: D, BASE: BASE, ROAD_Z: ROAD_Z, ROAD_W: ROAD_W, ROAD_KM: ROAD_KM }
@@ -10308,6 +10346,8 @@ var HOTEL = (function () {
 })();
 function hotelUse(h) { return HOTEL.use(h); }
 function hotelKeepOut() { try { HOTEL.keepOut(); } catch (e) {} }
+function hotelProtected(x, z) { try { return HOTEL.protectedAt(x, z); } catch (e) { return false; } }
+function hotelFlyGuard(ox, oz) { try { return HOTEL.flyGuard(ox, oz); } catch (e) { return false; } }
 
 var _initAgentsBase = initAgents;
 initAgents = function () { _initAgentsBase.apply(null, arguments); try { HOTEL.ensure(); } catch (e) {} };
