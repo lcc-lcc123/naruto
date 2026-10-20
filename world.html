@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <link rel="icon" href="data:,">
 <title>映射 + AI 世界</title>
-<meta name="version" content="world-v8.9.0">
+<meta name="version" content="world-v9.0.0">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:"PingFang SC","Microsoft YaHei",sans-serif;color:#fff;touch-action:none;user-select:none;-webkit-user-select:none}
@@ -616,17 +616,17 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
 <script>
 (function(){
 'use strict';
-var WX=64,WZ=64,WY=28,SEA=8;
+var WX=6000,WZ=6000,WY=100,SEA=26;
 /* 八地域地形生成参数：基准高度 / 起伏 / 植被密度 / 地表类型 */
 var REGION_GEN={
-  ne:{base:8,amp:7,scale:0.085,tree:0.010,conifer:true,surface:'grass',snowLine:21},
-  hb:{base:7,amp:5,scale:0.085,tree:0.006,conifer:false,surface:'grass',snowLine:99},
-  hd:{base:6,amp:4,scale:0.090,tree:0.010,conifer:false,surface:'grass',snowLine:99},
-  hz:{base:8,amp:5,scale:0.085,tree:0.012,conifer:false,surface:'grass',snowLine:99},
-  hn:{base:7,amp:4,scale:0.090,tree:0.014,conifer:false,surface:'red',snowLine:99},
-  xn:{base:10,amp:10,scale:0.100,tree:0.008,conifer:true,surface:'grass',snowLine:20,ridge:true},
-  xb:{base:7,amp:3,scale:0.075,tree:0.001,conifer:false,surface:'sand',snowLine:99},
-  qz:{base:13,amp:8,scale:0.110,tree:0.0005,conifer:true,surface:'snow',snowLine:15,ridge:true}
+  ne:{base:40,amp:24,scale:0.011,tree:0.012,conifer:true,surface:'grass',snowLine:58},
+  hb:{base:36,amp:18,scale:0.012,tree:0.008,conifer:false,surface:'grass',snowLine:99},
+  hd:{base:34,amp:16,scale:0.013,tree:0.012,conifer:false,surface:'grass',snowLine:99},
+  hz:{base:36,amp:18,scale:0.012,tree:0.014,conifer:false,surface:'grass',snowLine:99},
+  hn:{base:36,amp:16,scale:0.013,tree:0.015,conifer:false,surface:'red',snowLine:99},
+  xn:{base:42,amp:30,scale:0.014,tree:0.010,conifer:true,surface:'grass',snowLine:56,ridge:true},
+  xb:{base:30,amp:10,scale:0.010,tree:0.001,conifer:false,surface:'sand',snowLine:99},
+  qz:{base:52,amp:24,scale:0.016,tree:0.0008,conifer:true,surface:'snow',snowLine:48,ridge:true}
 };
 var RG=REGION_GEN.hb;
 var canvas=document.getElementById('gl');
@@ -677,105 +677,210 @@ for(var _hb in HOTEL_BLOCKS)B[_hb]=HOTEL_BLOCKS[_hb];
 var BLOCK_MAT={1:'soil',2:'soil',3:'granite',4:'sand',5:'water',6:'wood',7:'leaves',8:'plank',9:'hematite',10:'coal',11:'limestone',12:'halite',13:'glass',14:'quicklime',15:'slaked',16:'copper',17:'iron',18:'snow',19:'redsoil',20:'ice'};
 BLOCK_MAT[21]='limestone';BLOCK_MAT[22]='wood';BLOCK_MAT[23]='plank';BLOCK_MAT[24]='glass';BLOCK_MAT[25]='glass';BLOCK_MAT[26]='glass';BLOCK_MAT[27]='limestone';BLOCK_MAT[28]='limestone';BLOCK_MAT[29]='limestone';BLOCK_MAT[30]='iron';BLOCK_MAT[31]='plank';BLOCK_MAT[32]='wood';BLOCK_MAT[33]='copper';BLOCK_MAT[34]='iron';
 function solid(t){return t!==0&&t!==5;}
-var blocks=new Uint8Array(WX*WY*WZ);
-function idx(x,y,z){return x+WX*(z+WZ*y);}
-function getB(x,y,z){if(x<0||x>=WX||y<0||y>=WY||z<0||z>=WZ)return 0;return blocks[x+WX*(z+WZ*y)];}
-function setB(x,y,z,t){if(x<0||x>=WX||y<0||y>=WY||z<0||z>=WZ)return;blocks[x+WX*(z+WZ*y)]=t;}
-function hash2(x,z){var n=Math.imul(x,374761393)+Math.imul(z,668265263);n=Math.imul(n^(n>>>13),1274126177);return ((n^(n>>>16))>>>0)/4294967295;}
-function noise2(x,z){
-  var xi=Math.floor(x),zi=Math.floor(z),xf=x-xi,zf=z-zi;
-  var u=xf*xf*(3-2*xf),v=zf*zf*(3-2*zf);
-  var a=hash2(xi,zi),b=hash2(xi+1,zi),c=hash2(xi,zi+1),d=hash2(xi+1,zi+1);
-  return a*(1-u)*(1-v)+b*u*(1-v)+c*(1-u)*v+d*u*v;
+/* ================= 6000 × 6000 × 100 分块稀疏世界（v9.0.0） =================
+   - 地形按需程序化生成，不预分配 36 亿方块
+   - 只把玩家改动（setB）按 32×32 区块稀疏记录
+   - 每个区块单独建网格，按视距加载/卸载
+   ============================================================================ */
+var CH = 32, VIEW_RAD = 3;
+var worldEdits = new Map();    // 区块 key -> Map(局部索引 -> 方块)
+var heightMaps = new Map();    // 区块 key -> Int16Array(1024) 地表高度
+var chunkMeshes = new Map();   // 区块 key -> {cx,cz,op,nOp,wa,nWa}
+var meshQueue = [], meshQueued = {}, dirtyChunks = {};
+var HOTEL_X0 = 3000, HOTEL_Z0 = 2960;
+var ROAD = { x0: 2, x1: HOTEL_X0 - 1, z0: HOTEL_Z0 + 12, w: 5 };
+
+function ck(cx, cz) { return cx * 1000 + cz; }
+function hash2(x, z) {
+  var n = Math.imul(x, 374761393) + Math.imul(z, 668265263);
+  n = Math.imul(n ^ (n >>> 13), 1274126177);
+  return ((n ^ (n >>> 16)) >>> 0) / 4294967295;
 }
-function heightAt(x,z){
-  var s=RG.scale||0.085;
-  var n=noise2(x*s,z*s)*0.68+noise2(x*s*2.4+11,z*s*2.4+7)*0.32;
-  if(RG.ridge)n=n*(0.55+0.90*noise2(x*0.05+31,z*0.05+17));
-  n=Math.max(0,Math.min(1,n));
-  return Math.max(2,Math.min(WY-3,Math.floor(RG.base+n*RG.amp)));
+function noise2(x, z) {
+  var xi = Math.floor(x), zi = Math.floor(z), xf = x - xi, zf = z - zi;
+  var u = xf * xf * (3 - 2 * xf), v = zf * zf * (3 - 2 * zf);
+  var a = hash2(xi, zi), b = hash2(xi + 1, zi), c = hash2(xi, zi + 1), d = hash2(xi + 1, zi + 1);
+  return a * (1 - u) * (1 - v) + b * u * (1 - v) + c * (1 - u) * v + d * u * v;
 }
-function genWorld(){
-  blocks.fill(0);
-  for(var x=0;x<WX;x++)for(var z=0;z<WZ;z++){
-    var h=heightAt(x,z);
-    var top;
-    if(h<SEA)top=4;
-    else if(RG.surface==='sand')top=4;
-    else if(RG.surface==='red')top=19;
-    else if(RG.surface==='snow'||h>=(RG.snowLine||99))top=18;
-    else top=1;
-    var sub=(top===4)?4:(top===18?3:2);
-    for(var y=0;y<=h;y++){
-      var t=y===h?top:(y>h-3?sub:3);
-      if(h<SEA&&y>=h)t=4;
-      setB(x,y,z,t);
-    }
-    if(h<SEA)for(var w=h+1;w<=SEA;w++)setB(x,w,z,5);
+function inRoad(x, z) { return x >= ROAD.x0 && x <= ROAD.x1 && z >= ROAD.z0 && z < ROAD.z0 + ROAD.w; }
+
+function naturalH(x, z) {
+  var s = RG.scale || 0.012;
+  var n = noise2(x * s, z * s) * 0.68 + noise2(x * s * 2.6 + 11, z * s * 2.6 + 7) * 0.32;
+  if (RG.ridge) n = n * (0.55 + 0.9 * noise2(x * s * 0.45 + 31, z * s * 0.45 + 17));
+  n = Math.max(0, Math.min(1, n));
+  return Math.max(2, Math.min(WY - 4, Math.floor(RG.base + n * RG.amp)));
+}
+/* 公路纵断面：沿中线 ±15 m 取平均再取整，保证 5 m 宽横断面完全水平 */
+function roadH(x) {
+  var sum = 0, n = 0;
+  for (var d = -15; d <= 15; d += 5) { sum += naturalH(x + d, ROAD.z0 + 2); n++; }
+  var h = Math.round(sum / n);
+  return Math.max(SEA + 1, Math.min(WY - 8, h));
+}
+function heightAt(x, z) { return inRoad(x, z) ? roadH(x) : naturalH(x, z); }
+
+function chunkH(cx, cz) {
+  var k = ck(cx, cz), hm = heightMaps.get(k);
+  if (hm) return hm;
+  hm = new Int16Array(CH * CH);
+  var x0 = cx * CH, z0 = cz * CH;
+  for (var z = 0; z < CH; z++) for (var x = 0; x < CH; x++) {
+    var X = x0 + x, Z = z0 + z;
+    hm[x + (z << 5)] = (X < WX && Z < WZ) ? heightAt(X, Z) : 0;
   }
-  // 树
-  for(var x2=3;x2<WX-3;x2++)for(var z2=3;z2<WZ-3;z2++){
-    if(hash2(x2+101,z2+57)<(1-(RG.tree||0.006)))continue;
-    if(Math.abs(x2-WX/2)<10&&Math.abs(z2-WZ/2)<10)continue;
-    var hh=heightAt(x2,z2);
-    if(hh<=SEA+1)continue;
-    var th=4+Math.floor(hash2(x2,z2)*2);
-    for(var y2=1;y2<=th;y2++)setB(x2,hh+y2,z2,6);
-    if(RG.conifer){
-      // 针叶树：分层圆锥冠
-      for(var cy=1;cy<=th;cy++){
-        var rr=Math.max(1,Math.floor((th-cy)/1.6)+1);
-        for(var dxc=-rr;dxc<=rr;dxc++)for(var dzc=-rr;dzc<=rr;dzc++){
-          if(Math.abs(dxc)+Math.abs(dzc)>rr+1)continue;
-          if(getB(x2+dxc,hh+cy,z2+dzc)===0)setB(x2+dxc,hh+cy,z2+dzc,7);
+  if (heightMaps.size > 5000) heightMaps.clear();
+  heightMaps.set(k, hm);
+  return hm;
+}
+function hAt(x, z) { return chunkH(x >> 5, z >> 5)[(x & 31) + ((z & 31) << 5)]; }
+
+function baseAt(x, y, z, h) {
+  if (inRoad(x, z)) {
+    if (y > h) return 0;
+    if (y === h) return (z === ROAD.z0 + 2 && (x % 16 === 0 || x % 16 === 1)) ? 12 : 3;
+    return 3;
+  }
+  if (h < SEA) {
+    if (y <= h) {
+      if (y === h) return 4;
+      return (y > h - 3) ? 4 : 3;
+    }
+    if (y <= SEA) return 5;
+    return 0;
+  }
+  if (y > h) return 0;
+  if (y === h) {
+    if (RG.surface === 'sand') return 4;
+    if (RG.surface === 'red') return 19;
+    if (RG.surface === 'snow' || h >= (RG.snowLine || 999)) return 18;
+    return 1;
+  }
+  var d = h - y;
+  var surf = RG.surface === 'sand' ? 4 : (RG.surface === 'red' ? 19 : 2);
+  if (d <= 3) return surf;
+  var r = hash2(x * 3 + y * 7, z * 5 + y * 11);
+  if (y < SEA - 6 && r > 0.9955) return 9;
+  if (y < SEA - 1 && r > 0.9905) return 10;
+  if (r > 0.9875 && r <= 0.9905 && y < h - 4) return 11;
+  return 3;
+}
+
+function getB(x, y, z) {
+  if (x < 0 || x >= WX || y < 0 || y >= WY || z < 0 || z >= WZ) return 0;
+  var cx = x >> 5, cz = z >> 5, k = ck(cx, cz);
+  var e = worldEdits.get(k);
+  var li = (x & 31) + ((z & 31) << 5) + (y << 10);
+  if (e) {
+    var v = e.get(li);
+    if (v !== undefined) return v;
+  }
+  var hm = chunkH(cx, cz);
+  return baseAt(x, y, z, hm[(x & 31) + ((z & 31) << 5)]);
+}
+function setB(x, y, z, t) {
+  if (x < 0 || x >= WX || y < 0 || y >= WY || z < 0 || z >= WZ) return;
+  var cx = x >> 5, cz = z >> 5, k = ck(cx, cz);
+  var e = worldEdits.get(k);
+  if (!e) { e = new Map(); worldEdits.set(k, e); }
+  e.set((x & 31) + ((z & 31) << 5) + (y << 10), t);
+  markDirty(cx, cz);
+  var lx = x & 31, lz = z & 31;
+  if (lx === 0) markDirty(cx - 1, cz);
+  if (lx === 31) markDirty(cx + 1, cz);
+  if (lz === 0) markDirty(cx, cz - 1);
+  if (lz === 31) markDirty(cx, cz + 1);
+}
+function markDirty(cx, cz) {
+  if (cx < 0 || cz < 0 || (cx << 5) >= WX || (cz << 5) >= WZ) return;
+  dirtyChunks[ck(cx, cz)] = 1;
+}
+function clearAllMeshes() {
+  chunkMeshes.forEach(function (m) {
+    if (m.op) { try { gl.deleteBuffer(m.op); } catch (e) {} }
+    if (m.wa) { try { gl.deleteBuffer(m.wa); } catch (e) {} }
+  });
+  chunkMeshes.clear();
+  meshQueue.length = 0;
+  meshQueued = {};
+}
+/* 兼容旧调用：重新生成世界 = 清空所有改动 */
+function genWorld() {
+  worldEdits.clear();
+  heightMaps.clear();
+  dirtyChunks = {};
+  clearAllMeshes();
+}
+
+/* ---------- 区块数据（地形 + 树 + 改动） ---------- */
+function putLocal(data, cx, cz, X, Y, Z, t) {
+  var lx = X - (cx << 5), lz = Z - (cz << 5);
+  if (lx < 0 || lx >= CH || lz < 0 || lz >= CH || Y < 0 || Y >= WY) return;
+  var i = lx + (lz << 5) + (Y << 10);
+  if (data[i] === 0) data[i] = t;
+}
+function stampTrees(data, cx, cz) {
+  var x0 = cx << 5, z0 = cz << 5;
+  var dens = RG.tree || 0.008;
+  for (var rz = z0 - 2; rz < z0 + CH + 2; rz++) for (var rx = x0 - 2; rx < x0 + CH + 2; rx++) {
+    if (rx < 2 || rz < 2 || rx >= WX - 2 || rz >= WZ - 2) continue;
+    if (inRoad(rx, rz)) continue;
+    if (hash2(rx + 101, rz + 57) < 1 - dens) continue;
+    var h = heightAt(rx, rz);
+    if (h <= SEA + 1) continue;
+    var th = 4 + Math.floor(hash2(rx, rz) * 3);
+    var y, dx, dz;
+    for (y = 1; y <= th; y++) putLocal(data, cx, cz, rx, h + y, rz, 6);
+    if (RG.conifer) {
+      for (var cy = 1; cy <= th; cy++) {
+        var rr = Math.max(1, Math.floor((th - cy) / 1.6) + 1);
+        for (dx = -rr; dx <= rr; dx++) for (dz = -rr; dz <= rr; dz++) {
+          if (Math.abs(dx) + Math.abs(dz) > rr + 1) continue;
+          putLocal(data, cx, cz, rx + dx, h + cy, rz + dz, 7);
         }
       }
-      setB(x2,hh+th+1,z2,7);
-    }else{
-      for(var dx=-2;dx<=2;dx++)for(var dz=-2;dz<=2;dz++)for(var dy=-1;dy<=1;dy++){
-        if(Math.abs(dx)+Math.abs(dz)+Math.abs(dy)<3)continue;
-        if(Math.abs(dx)===2&&Math.abs(dz)===2)continue;
-        if(getB(x2+dx,hh+th+dy,z2+dz)===0)setB(x2+dx,hh+th+dy,z2+dz,7);
+      putLocal(data, cx, cz, rx, h + th + 1, rz, 7);
+    } else {
+      for (dx = -2; dx <= 2; dx++) for (dz = -2; dz <= 2; dz++) for (var dy = -1; dy <= 1; dy++) {
+        if (Math.abs(dx) + Math.abs(dz) + Math.abs(dy) < 3) continue;
+        if (Math.abs(dx) === 2 && Math.abs(dz) === 2) continue;
+        putLocal(data, cx, cz, rx + dx, h + th + dy, rz + dz, 7);
       }
-      setB(x2,hh+th+1,z2,7);
+      putLocal(data, cx, cz, rx, h + th + 1, rz, 7);
     }
   }
-  // ---- 矿脉：按现实成矿深度近似 ----
-  for(var ox=2;ox<WX-2;ox++)for(var oz=1;oz<WZ-1;oz++){
-    var oh=heightAt(ox,oz);
-    // 石灰石：中浅层沉积
-    if(hash2(ox+7,oz+91)>0.972&&oh>SEA+1){
-      var ly=Math.max(2,oh-4-Math.floor(hash2(ox*3,oz*7)*3));
-      for(var dx3=-1;dx3<=1;dx3++)for(var dz3=-1;dz3<=1;dz3++){
-        if(getB(ox+dx3,ly,oz+dz3)===3)setB(ox+dx3,ly,oz+dz3,11);
-      }
+}
+function buildChunkData(cx, cz) {
+  var data = new Uint8Array(CH * CH * WY);
+  var hm = chunkH(cx, cz), x0 = cx << 5, z0 = cz << 5;
+  for (var z = 0; z < CH; z++) for (var x = 0; x < CH; x++) {
+    var X = x0 + x, Z = z0 + z, h = hm[x + (z << 5)], base = x + (z << 5), y;
+    if (inRoad(X, Z)) {
+      var mark = (Z === ROAD.z0 + 2) && ((X % 16 === 0) || (X % 16 === 1));
+      for (y = 0; y < h; y++) data[base + (y << 10)] = 3;
+      data[base + (h << 10)] = mark ? 12 : 3;
+      continue;
     }
-    // 煤：浅中层
-    if(hash2(ox+31,oz+17)>0.985&&oh>SEA+3){
-      var cy=3+Math.floor(hash2(ox*3,oz*5)*(oh-5));
-      for(var dx=0;dx<2;dx++)for(var dz=0;dz<2;dz++)for(var dy=0;dy<2;dy++){
-        if(getB(ox+dx,cy+dy,oz+dz)===3)setB(ox+dx,cy+dy,oz+dz,10);
-      }
+    var top, sub;
+    if (h < SEA || RG.surface === 'sand') { top = 4; sub = 4; }
+    else if (RG.surface === 'red') { top = 19; sub = 19; }
+    else if (RG.surface === 'snow' || h >= (RG.snowLine || 999)) { top = 18; sub = 3; }
+    else { top = 1; sub = 2; }
+    for (y = 0; y <= h; y++) {
+      data[base + (y << 10)] = (y === h) ? top : (y > h - 3 ? sub : 3);
     }
-    // 赤铁矿：深层
-    if(hash2(ox+101,oz+53)>0.988&&oh>6){
-      var fy=2+Math.floor(hash2(ox*7,oz*11)*(oh-6));
-      for(var dx2=0;dx2<2;dx2++)for(var dz2=0;dz2<2;dz2++)for(var dy2=0;dy2<2;dy2++){
-        if(getB(ox+dx2,fy+dy2,oz+dz2)===3)setB(ox+dx2,fy+dy2,oz+dz2,9);
-      }
-    }
-    // 岩盐：海平面附近、近水
-    var nearWater=false;
-    for(var wx=-2;wx<=2&&!nearWater;wx++)for(var wz=-2;wz<=2;wz++){
-      if(heightAt(ox+wx,oz+wz)<SEA){nearWater=true;break;}
-    }
-    if(nearWater&&hash2(ox+13,oz+29)>0.972&&oh>SEA){
-      var sy2=Math.max(2,SEA-3+Math.floor(hash2(ox*2,oz*3)*3));
-      for(var dx4=0;dx4<2;dx4++)for(var dz4=0;dz4<2;dz4++){
-        if(getB(ox+dx4,sy2,oz+dz4)===3)setB(ox+dx4,sy2,oz+dz4,12);
-      }
+    if (h < SEA) for (y = h + 1; y <= SEA; y++) data[base + (y << 10)] = 5;
+    for (y = 2; y < h - 4; y += 3) {
+      var r = hash2(X * 3 + y * 7, Z * 5 + y * 11);
+      if (y < SEA - 6 && r > 0.9955) data[base + (y << 10)] = 9;
+      else if (y < SEA - 1 && r > 0.9905) data[base + (y << 10)] = 10;
+      else if (r > 0.9875 && r <= 0.9905) data[base + (y << 10)] = 11;
     }
   }
+  stampTrees(data, cx, cz);
+  var e = worldEdits.get(ck(cx, cz));
+  if (e) e.forEach(function (t, li) { data[li] = t; });
+  return data;
 }
 
 /* ---------- 矩阵 ---------- */
@@ -817,7 +922,7 @@ function prog(vs,fs){var p=gl.createProgram();gl.attachShader(p,sh(gl.VERTEX_SHA
 
 var P_BLOCK=prog(
 'attribute vec3 aPos;attribute vec3 aCol;uniform mat4 uMVP;uniform vec3 uEye;varying vec3 vC;varying float vF;'+
-'void main(){vC=aCol;gl_Position=uMVP*vec4(aPos,1.0);float d=length(aPos-uEye);vF=clamp((d-20.0)/26.0,0.0,0.88);}',
+'void main(){vC=aCol;gl_Position=uMVP*vec4(aPos,1.0);float d=length(aPos-uEye);vF=clamp((d-46.0)/62.0,0.0,0.95);}',
 'precision mediump float;varying vec3 vC;varying float vF;uniform vec3 uSky;uniform float uDim;uniform float uAlpha;'+
 'void main(){vec3 c=vC*uDim;gl_FragColor=vec4(mix(c,uSky,vF),uAlpha);}');
 var P_PT=prog(
@@ -839,42 +944,232 @@ var FACES=[
  {n:[0,0,1],v:[[0,0,1],[1,0,1],[1,1,1],[0,1,1]],sh:0.9},
  {n:[0,0,-1],v:[[1,0,0],[0,0,0],[0,1,0],[1,1,0]],sh:0.78}
 ];
-var mesh={opaque:null,water:null,nOpaque:0,nWater:0};
-function buf(arr){var b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(arr),gl.STATIC_DRAW);return b;}
-function buildMesh(){
-  var p=[],c=[],wp=[],wc=[];
-  for(var y=0;y<WY;y++)for(var z=0;z<WZ;z++)for(var x=0;x<WX;x++){
-    var t=getB(x,y,z);if(!t)continue;
-    var def=B[t];
-    var isW=t===5;
-    for(var fi=0;fi<6;fi++){
-      var f=FACES[fi],nx=x+f.n[0],ny=y+f.n[1],nz=z+f.n[2];
-      var nb=getB(nx,ny,nz);
-      if(isW){if(nb!==0)continue;}
-      else{if(nb!==0&&nb!==5)continue;}
-      var base;
-      if(def.top&&f.n[1]===1)base=def.top;
-      else if(def.bot&&f.n[1]===-1)base=def.bot;
-      else if(def.side)base=def.side;
-      else base=def.col;
-      var vv=hash2(x*7+y*13,z*7+y*3),varf=0.93+0.07*vv;
-      var cr=base[0]*varf*f.sh,cg=base[1]*varf*f.sh,cb=base[2]*varf*f.sh;
-      var arr=isW?wp:p, arrc=isW?wc:c;
-      for(var k=0;k<6;k++){
-        var vi=(k===0||k===3)?0:(k===1?1:(k===2?2:2));
-        var order=[0,1,2,0,2,3];
-        vi=order[k];
-        var vt=f.v[vi];
-        arr.push(x+vt[0],y+vt[1],z+vt[2],f.n[0],f.n[1],f.n[2],cr,cg,cb);
-        arrc.push(1);
+var chunkMeshCount = 0;
+function buf(arr) { var b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(arr), gl.STATIC_DRAW); return b; }
+
+function buildChunkMesh(cx, cz) {
+  cx = cx | 0; cz = cz | 0;
+  var k = ck(cx, cz), x0 = cx << 5, z0 = cz << 5;
+  var data = buildChunkData(cx, cz);
+  var hm = chunkH(cx, cz), maxH = 0, i;
+  for (i = 0; i < hm.length; i++) if (hm[i] > maxH) maxH = hm[i];
+  var top = Math.min(WY - 1, maxH + 9);
+  var p = [], wp = [];
+  for (var z = 0; z < CH; z++) for (var x = 0; x < CH; x++) {
+    var X = x0 + x, Z = z0 + z;
+    for (var y = 0; y <= top; y++) {
+      var t = data[x + (z << 5) + (y << 10)];
+      if (!t) continue;
+      var def = B[t];
+      if (!def) continue;
+      var isW = t === 5;
+      for (var fi = 0; fi < 6; fi++) {
+        var f = FACES[fi];
+        var nx = X + f.n[0], ny = y + f.n[1], nz = Z + f.n[2];
+        var nb;
+        if (nx >= x0 && nx < x0 + CH && nz >= z0 && nz < z0 + CH) {
+          nb = (ny < 0 || ny >= WY) ? 0 : data[(nx - x0) + ((nz - z0) << 5) + (ny << 10)];
+        } else nb = getB(nx, ny, nz);
+        if (isW) { if (nb !== 0) continue; }
+        else { if (nb !== 0 && nb !== 5) continue; }
+        var base;
+        if (def.top && f.n[1] === 1) base = def.top;
+        else if (def.bot && f.n[1] === -1) base = def.bot;
+        else if (def.side) base = def.side;
+        else base = def.col;
+        var vv = hash2(x * 7 + y * 13, z * 7 + y * 3), varf = 0.93 + 0.07 * vv;
+        var cr = base[0] * varf * f.sh, cg = base[1] * varf * f.sh, cb = base[2] * varf * f.sh;
+        var arr = isW ? wp : p;
+        var order = [0, 1, 2, 0, 2, 3];
+        for (var q = 0; q < 6; q++) {
+          var vt = f.v[order[q]];
+          arr.push(X + vt[0], y + vt[1], Z + vt[2], f.n[0], f.n[1], f.n[2], cr, cg, cb);
+        }
       }
     }
   }
-  if(mesh.opaque){gl.deleteBuffer(mesh.opaque);mesh.opaque=null;}
-  if(mesh.water){gl.deleteBuffer(mesh.water);mesh.water=null;}
-  mesh.nOpaque=p.length/9;mesh.nWater=wp.length/9;
-  if(mesh.nOpaque)mesh.opaque=buf(p);
-  if(mesh.nWater)mesh.water=buf(wp);
+  var m = chunkMeshes.get(k);
+  if (!m) { m = { cx: cx, cz: cz }; chunkMeshes.set(k, m); }
+  if (m.op) { try { gl.deleteBuffer(m.op); } catch (e) {} m.op = null; }
+  if (m.wa) { try { gl.deleteBuffer(m.wa); } catch (e) {} m.wa = null; }
+  m.nOp = p.length / 9; m.nWa = wp.length / 9;
+  if (m.nOp) m.op = buf(p);
+  if (m.nWa) m.wa = buf(wp);
+  chunkMeshCount = chunkMeshes.size;
+  return m;
+}
+
+function ensureChunks(px, pz) {
+  var ccx = px >> 5, ccz = pz >> 5, dx, dz;
+  for (dz = -VIEW_RAD; dz <= VIEW_RAD; dz++) for (dx = -VIEW_RAD; dx <= VIEW_RAD; dx++) {
+    var cx = ccx + dx, cz = ccz + dz;
+    if (cx < 0 || cz < 0 || (cx << 5) >= WX || (cz << 5) >= WZ) continue;
+    var k = ck(cx, cz);
+    if (chunkMeshes.has(k) || meshQueued[k]) continue;
+    meshQueued[k] = 1;
+    meshQueue.push([cx, cz]);
+  }
+  chunkMeshes.forEach(function (m, k) {
+    if (Math.abs(m.cx - ccx) > VIEW_RAD + 2 || Math.abs(m.cz - ccz) > VIEW_RAD + 2) {
+      if (m.op) { try { gl.deleteBuffer(m.op); } catch (e) {} }
+      if (m.wa) { try { gl.deleteBuffer(m.wa); } catch (e) {} }
+      chunkMeshes.delete(k);
+    }
+  });
+}
+function processQueue(n) {
+  var t0 = (window.performance && performance.now) ? performance.now() : Date.now();
+  var made = 0;
+  while (meshQueue.length && made < n) {
+    var q = meshQueue.shift();
+    delete meshQueued[ck(q[0], q[1])];
+    buildChunkMesh(q[0], q[1]);
+    made++;
+    var t = (window.performance && performance.now) ? performance.now() : Date.now();
+    if (t - t0 > 5) break;
+  }
+  return made;
+}
+/* 兼容旧调用：重建脏区块 + 补附近区块 */
+function buildMesh() {
+  var d = dirtyChunks;
+  dirtyChunks = {};
+  for (var kk in d) {
+    var m = chunkMeshes.get(Number(kk));
+    if (m) buildChunkMesh(m.cx, m.cz);
+  }
+  ensureChunks(player.x, player.z);
+  processQueue(2);
+}
+function warmChunks() {
+  ensureChunks(player.x, player.z);
+  for (var i = 0; i < 9; i++) processQueue(1);
+}
+var FR = [];
+function frustumFromMVP(m) {
+  FR[0] = [m[3] + m[0], m[7] + m[4], m[11] + m[8], m[15] + m[12]];
+  FR[1] = [m[3] - m[0], m[7] - m[4], m[11] - m[8], m[15] - m[12]];
+  FR[2] = [m[3] + m[1], m[7] + m[5], m[11] + m[9], m[15] + m[13]];
+  FR[3] = [m[3] - m[1], m[7] - m[5], m[11] - m[9], m[15] - m[13]];
+  FR[4] = [m[3] + m[2], m[7] + m[6], m[11] + m[10], m[15] + m[14]];
+  FR[5] = [m[3] - m[2], m[7] - m[6], m[11] - m[10], m[15] - m[14]];
+}
+function boxVisible(x0, z0) {
+  var x1 = x0 + CH, z1 = z0 + CH;
+  for (var i = 0; i < 6; i++) {
+    var q = FR[i];
+    var x = q[0] > 0 ? x1 : x0;
+    var y = q[1] > 0 ? WY : 0;
+    var z = q[2] > 0 ? z1 : z0;
+    if (q[0] * x + q[1] * y + q[2] * z + q[3] < 0) return false;
+  }
+  return true;
+}
+function drawChunkOpaque(eye, dim, mvp) {
+  frustumFromMVP(mvp);
+  gl.useProgram(P_BLOCK);
+  gl.uniformMatrix4fv(UB.mvp, false, mvp);
+  gl.uniform3f(UB.eye, eye[0], eye[1], eye[2]);
+  gl.uniform3f(UB.sky, env.sky[0], env.sky[1], env.sky[2]);
+  gl.uniform1f(UB.dim, dim);
+  gl.uniform1f(UB.alpha, 1);
+  gl.disable(gl.BLEND);
+  var lim = (VIEW_RAD * CH + CH);
+  chunkMeshes.forEach(function (m) {
+    if (!m.op || !m.nOp) return;
+    var cx = (m.cx << 5) + 16, cz = (m.cz << 5) + 16;
+    var dx = cx - eye[0], dz = cz - eye[2];
+    if (dx * dx + dz * dz > lim * lim) return;
+    if (!boxVisible(m.cx << 5, m.cz << 5)) return;
+    gl.bindBuffer(gl.ARRAY_BUFFER, m.op);
+    gl.vertexAttribPointer(BLpos, 3, gl.FLOAT, false, 36, 0);
+    gl.vertexAttribPointer(BLcol, 3, gl.FLOAT, false, 36, 24);
+    gl.enableVertexAttribArray(BLpos); gl.enableVertexAttribArray(BLcol);
+    gl.drawArrays(gl.TRIANGLES, 0, m.nOp);
+  });
+}
+function drawChunkWater(eye, dim, mvp) {
+  frustumFromMVP(mvp);
+  var any = false;
+  chunkMeshes.forEach(function (m) { if (m.wa && m.nWa) any = true; });
+  if (!any) return;
+  gl.useProgram(P_BLOCK);
+  gl.uniformMatrix4fv(UB.mvp, false, mvp);
+  gl.uniform3f(UB.eye, eye[0], eye[1], eye[2]);
+  gl.uniform3f(UB.sky, env.sky[0], env.sky[1], env.sky[2]);
+  gl.uniform1f(UB.dim, dim);
+  gl.uniform1f(UB.alpha, 0.55);
+  gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  gl.depthMask(false);
+  var lim = (VIEW_RAD * CH + CH);
+  chunkMeshes.forEach(function (m) {
+    if (!m.wa || !m.nWa) return;
+    var cx = (m.cx << 5) + 16, cz = (m.cz << 5) + 16;
+    var dx = cx - eye[0], dz = cz - eye[2];
+    if (dx * dx + dz * dz > lim * lim) return;
+    if (!boxVisible(m.cx << 5, m.cz << 5)) return;
+    gl.bindBuffer(gl.ARRAY_BUFFER, m.wa);
+    gl.vertexAttribPointer(BLpos, 3, gl.FLOAT, false, 36, 0);
+    gl.vertexAttribPointer(BLcol, 3, gl.FLOAT, false, 36, 24);
+    gl.enableVertexAttribArray(BLpos); gl.enableVertexAttribArray(BLcol);
+    gl.drawArrays(gl.TRIANGLES, 0, m.nWa);
+  });
+  gl.depthMask(true);
+  gl.disable(gl.BLEND);
+}
+
+/* ---------- 改动存档（只存玩家改过的方块） ---------- */
+function editsCount() {
+  var n = 0;
+  worldEdits.forEach(function (e) { n += e.size; });
+  return n;
+}
+function serializeEdits() {
+  var out = [];
+  worldEdits.forEach(function (e, k) {
+    if (!e.size) return;
+    var lis = [];
+    e.forEach(function (t, li) { lis.push(li); });
+    lis.sort(function (a, b) { return a - b; });
+    var parts = [];
+    for (var i = 0; i < lis.length; i++) parts.push(lis[i].toString(36) + ':' + e.get(lis[i]).toString(36));
+    out.push([Math.floor(k / 1000), k % 1000, parts.join(',')]);
+  });
+  return out;
+}
+function loadEdits(arr) {
+  worldEdits.clear();
+  (arr || []).forEach(function (row) {
+    if (!row || row.length < 3) return;
+    var e = new Map();
+    String(row[2] || '').split(',').forEach(function (s) {
+      if (!s) return;
+      var a = s.split(':'), li = parseInt(a[0], 36), t = parseInt(a[1], 36);
+      if (li >= 0 && li < CH * CH * WY && t >= 0 && t < 256) e.set(li, t);
+    });
+    if (e.size) worldEdits.set(Number(row[0]) * 1000 + Number(row[1]), e);
+  });
+  heightMaps.clear();
+  dirtyChunks = {};
+  clearAllMeshes();
+}
+/* 旧 64×64×28 存档迁移：表面以上整体抬高到新地形高度 */
+var legacyShift = null;
+function migrateLegacy(str) {
+  var ow = 64, oh = 28, od = 64;
+  var arr = rleDecode(str, ow * oh * od);
+  if (!arr) return false;
+  var dy = Math.round(naturalH(3000, 3000) - 8);
+  var ox = 3000 - 32, oz = 3000 - 32;
+  legacyShift = { dx: ox, dy: dy, dz: oz };
+  worldEdits.clear();
+  for (var y = 6; y < oh; y++) for (var z = 0; z < od; z++) for (var x = 0; x < ow; x++) {
+    var t = arr[x + ow * (z + od * y)];
+    if (!t) continue;
+    setB(x + ox, y + dy, z + oz, t);
+  }
+  heightMaps.clear();
+  return true;
 }
 
 /* ---------- 角色模型 ---------- */
@@ -891,7 +1186,7 @@ var cubeVerts=(function(){
 })();
 
 /* ---------- 玩家 ---------- */
-var player={x:WX/2+0.5,y:SEA+3,z:WZ/2+0.5,vy:0,yaw:0.6,pitch:-0.12,onGround:false,moving:false,running:false,animOverride:null};
+var player={x:HOTEL_X0-17.5,y:SEA+12,z:ROAD.z0+2.5,vy:0,yaw:0.6,pitch:-0.12,onGround:false,moving:false,running:false,animOverride:null};
 var thirdPerson=false,atomMode=false,camOrbit=0,debugCam=null;
 var spawn={x:player.x,y:player.y,z:player.z};
 var npc={x:0,z:0};
@@ -1381,32 +1676,19 @@ function forwardSpot(n){
   return [Math.floor(player.x+d[0]*n),Math.floor(player.y),Math.floor(player.z+d[2]*n)];
 }
 function surfaceY(x,z){
-  for(var y=WY-1;y>=0;y--){var b=getB(x,y,z);if(b&&b!==5)return y+1;}
-  return SEA+1;
+  x=Math.floor(x);z=Math.floor(z);
+  var h=hAt(x,z);
+  for(var y=Math.min(WY-1,h+48);y>h;y--){var b=getB(x,y,z);if(b&&b!==5)return y+1;}
+  return h+1;
 }
 function npcSpot(px,pz,yaw){
   return {x:px+Math.sin(yaw)*7-Math.cos(yaw)*3.5,z:pz+Math.cos(yaw)*7+Math.sin(yaw)*3.5};
 }
 function pickSpawn(){
-  var cx=WX>>1,cz=WZ>>1;
-  for(var r=0;r<18;r++){
-    for(var dx=-r;dx<=r;dx++)for(var dz=-r;dz<=r;dz++){
-      var x=cx+dx,z=cz+dz;
-      if(x<2||z<2||x>WX-3||z>WZ-3)continue;
-      var top=surfaceY(x,z);
-      if(top<=SEA+1)continue;
-      var tb=getB(x,top-1,z);
-      if(tb!==1&&tb!==4&&tb!==18&&tb!==19)continue;
-      var clear=true;
-      for(var ax=-1;ax<=1&&clear;ax++)for(var az=-1;az<=1&&clear;az++){
-        for(var ay=0;ay<5;ay++){
-          if(getB(x+ax,top+ay,z+az)!==0){clear=false;break;}
-        }
-      }
-      if(clear)return {x:x+0.5,y:top+0.02,z:z+0.5};
-    }
-  }
-  return {x:cx+0.5,y:surfaceY(cx,cz)+0.05,z:cz+0.5};
+  var x=HOTEL_X0-18,z=ROAD.z0+2;
+  var h=heightAt(x,z);
+  for(var y=Math.min(WY-2,h+10);y>h-14;y--){ if(getB(x,y,z)){ h=y; break; } }
+  return {x:x+0.5,y:h+1.02,z:z+0.5};
 }
 function buildHouse(){
   var p=forwardSpot(4),bx=p[0],bz=p[2],by=surfaceY(bx,bz);
@@ -1471,7 +1753,7 @@ function resize(){
   var w=Math.floor(innerWidth*dpr),h=Math.floor(innerHeight*dpr);
   if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}
   gl.viewport(0,0,w,h);
-  proj=mPersp(70*Math.PI/180,innerWidth/innerHeight,0.08,150);
+  proj=mPersp(70*Math.PI/180,innerWidth/innerHeight,0.08,340);
 }
 addEventListener('resize',resize);
 
@@ -1479,6 +1761,7 @@ function glChk(tag){var e=gl.getError();if(e&&window.console)console.log('GLERR'
 var last=0,frame=0,tick=0;
 function loop(ts){
   var dt=Math.min(0.05,(ts-last)/1000||0.016);last=ts;
+  window.__frames=(window.__frames||0)+1;
   updatePlayer(dt);
   updateVehicles(dt);
   updateEnv(dt);
@@ -1519,19 +1802,9 @@ function loop(ts){
   gl.cullFace(gl.BACK);
 
   var dim=atomMode?0.32:env.dim;
-  if(mesh.opaque&&mesh.nOpaque){
-    gl.useProgram(P_BLOCK);
-    gl.bindBuffer(gl.ARRAY_BUFFER,mesh.opaque);
-    gl.vertexAttribPointer(BLpos,3,gl.FLOAT,false,36,0);
-    gl.vertexAttribPointer(BLcol,3,gl.FLOAT,false,36,24);
-    gl.enableVertexAttribArray(BLpos);gl.enableVertexAttribArray(BLcol);
-    gl.uniformMatrix4fv(UB.mvp,false,MVP);
-    gl.uniform3f(UB.eye,eye[0],eye[1],eye[2]);
-    gl.uniform3f(UB.sky,sky[0],sky[1],sky[2]);
-    gl.uniform1f(UB.dim,dim);
-    gl.uniform1f(UB.alpha,1);
-    gl.drawArrays(gl.TRIANGLES,0,mesh.nOpaque);
-  }
+  ensureChunks(player.x,player.z);
+  if((frame&1)===0)processQueue(1);
+  drawChunkOpaque(eye,dim,MVP);
 
   // 角色软阴影
   drawShadows(eye, MVP);
@@ -1540,23 +1813,7 @@ function loop(ts){
   window.__dbg={p:[player.x,player.y,player.z],eye:eye,tp:thirdPerson,off:nRig*9,sim:sim,date:env.D,env:{alt:env.alt,temp:env.temp,light:env.light,solar:env.solar,weather:env.w.n,term:env.term.now?env.term.now.n:null,season:env.season.n,region:curRegion},fauna:{total:fauna.length,active:fauna.filter(function(a){return a.active;}).length,names:fauna.map(function(a){return a.def.n;}),show:showFauna},agents:{animals:fauna.length,plants:flora.length,humans:humans.length}};
 
   // 水
-  if(mesh.water&&mesh.nWater){
-    gl.useProgram(P_BLOCK);
-    gl.bindBuffer(gl.ARRAY_BUFFER,mesh.water);
-    gl.vertexAttribPointer(BLpos,3,gl.FLOAT,false,36,0);
-    gl.vertexAttribPointer(BLcol,3,gl.FLOAT,false,36,24);
-    gl.enableVertexAttribArray(BLpos);gl.enableVertexAttribArray(BLcol);
-    gl.uniformMatrix4fv(UB.mvp,false,MVP);
-    gl.uniform3f(UB.eye,eye[0],eye[1],eye[2]);
-    gl.uniform3f(UB.sky,sky[0],sky[1],sky[2]);
-    gl.uniform1f(UB.dim,dim);
-    gl.uniform1f(UB.alpha,0.55);
-    gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
-    gl.depthMask(false);
-    gl.drawArrays(gl.TRIANGLES,0,mesh.nWater);
-    gl.depthMask(true);
-    gl.disable(gl.BLEND);
-  }
+  drawChunkWater(eye,dim,MVP);
 
   // 原子
   if(atomMode&&atomBuf){
@@ -2335,7 +2592,11 @@ function renderDist(){
     return '<div class="arow"><span class="sym">'+e[1]+'</span><span class="ab"><i style="width:'+w+'%"></i></span><span class="pc">'+(e[9]>=1000?(e[9]/10000).toFixed(2)+' %':e[9]+' ppm')+'</span></div>';
   }).join('');
   var counts={},tot=0;
-  for(var i=0;i<blocks.length;i++){var t=blocks[i];if(t){counts[t]=(counts[t]||0)+1;tot++;}}
+  var _px=Math.floor(player.x),_pz=Math.floor(player.z);
+  for(var _z=_pz-32;_z<=_pz+32;_z++)for(var _x=_px-32;_x<=_px+32;_x++){
+    var _h=hAt(_x,_z);
+    for(var _y=0;_y<=Math.min(WY-1,_h+2);_y++){var t=getB(_x,_y,_z);if(t){counts[t]=(counts[t]||0)+1;tot++;}}
+  }
   var dep=[
     ['草方块 / 泥土','地表 0–1 层，腐殖土（O、Si、Al、Fe、C）'],
     ['花岗岩（石头）','地下 0–15 m，石英 + 长石 + 云母'],
@@ -2887,35 +3148,38 @@ function phaseTick(){
   if(!env)return {changed:0,freeze:0,meltIce:0,meltSnow:0,snowAdd:0};
   if(worldRegion!==curRegion){phaseInfo='预览地域：地形未切换，暂不相变';return {changed:0,freeze:0,meltIce:0,meltSnow:0,snowAdd:0};}
   var changed=0,freeze=0,meltIce=0,meltSnow=0,snowAdd=0;
-  for(var y=0;y<WY;y++)for(var z=0;z<WZ;z++)for(var x=0;x<WX;x++){
-    var b=getB(x,y,z);
-    if(b!==5&&b!==20&&b!==18)continue;
-    if(getB(x,y+1,z)!==0)continue;
-    var t=env.temp-Math.max(0,(y-SEA))*1.2;
-    if(b===5&&t<=-1){setB(x,y,z,20);freeze++;changed++;}
-    else if(b===20&&t>=1){setB(x,y,z,5);meltIce++;changed++;}
-    else if(b===18&&t>=2.5){
-      var below=getB(x,y-1,z),repl;
-      if(below===1)repl=1;
-      else if(below===4)repl=4;
-      else if(below===19)repl=19;
-      else if(below===5||below===20)repl=5;
-      else if(below===2)repl=(y-1===heightAt(x,z)?1:2);
-      else repl=3;
-      setB(x,y,z,repl);meltSnow++;changed++;
+  var px=Math.floor(player.x),pz=Math.floor(player.z);
+  var x0=Math.max(1,px-8),x1=Math.min(WX-2,px+8),z0=Math.max(1,pz-8),z1=Math.min(WZ-2,pz+8);
+  for(var z=z0;z<=z1;z++)for(var x=x0;x<=x1;x++){
+    var h=hAt(x,z);
+    for(var y=Math.max(1,h-3);y<=Math.min(WY-2,h+1);y++){
+      var b=getB(x,y,z);
+      if(b!==5&&b!==20&&b!==18)continue;
+      if(getB(x,y+1,z)!==0)continue;
+      var t=env.temp-Math.max(0,(y-SEA))*1.2;
+      if(changed>=6)continue;
+      if(b===5&&t<=-1){setB(x,y,z,20);freeze++;changed++;}
+      else if(b===20&&t>=1){setB(x,y,z,5);meltIce++;changed++;}
+      else if(b===18&&t>=2.5){
+        var below=getB(x,y-1,z),repl;
+        if(below===1)repl=1;
+        else if(below===4)repl=4;
+        else if(below===19)repl=19;
+        else if(below===5||below===20)repl=5;
+        else if(below===2)repl=(y-1===naturalH(x,z)?1:2);
+        else repl=3;
+        setB(x,y,z,repl);meltSnow++;changed++;
+      }
     }
   }
-  // 降雪堆积：只铺一层，避免无限堆高
   if(env.w.n==='雪'){
-    var budget=280;
-    for(var y2=0;y2<WY-1&&budget>0;y2++)for(var z2=0;z2<WZ&&budget>0;z2++)for(var x2=0;x2<WX&&budget>0;x2++){
-      var b2=getB(x2,y2,z2);
-      if(b2===0||b2===18||b2===5)continue;
-      if(getB(x2,y2+1,z2)!==0)continue;
-      var t2=env.temp-Math.max(0,(y2-SEA))*1.2;
-      if(t2<=-0.5&&hash2(x2*7+y2*13,z2*7+31)<0.03){
-        setB(x2,y2+1,z2,18);snowAdd++;changed++;budget--;
-      }
+    var budget=8;
+    for(var z2=z0;z2<=z1&&budget>0;z2++)for(var x2=x0;x2<=x1&&budget>0;x2++){
+      var h2=hAt(x2,z2),b2=getB(x2,h2,z2);
+      if(b2===0||b2===5)continue;
+      if(getB(x2,h2+1,z2)!==0)continue;
+      var t2=env.temp-Math.max(0,(h2-SEA))*1.2;
+      if(t2<=-0.5&&hash2(x2*7+h2*13,z2*7+31)<0.10){setB(x2,h2+1,z2,18);snowAdd++;changed++;budget--;}
     }
   }
   if(changed){buildMesh();phaseInfo='结冰 '+freeze+' · 融冰 '+meltIce+' · 融雪 '+meltSnow+' · 降雪 '+snowAdd;}
@@ -2982,7 +3246,7 @@ function saveWorld(manual,skipRoom){
     var data={v:1,ts:Date.now(),sim:sim,speed:speed,region:worldRegion,sel:sel,showFauna:showFauna,fly:flyMode,
       inv:{hot:hotbarSlots.map(function(x){return x?{id:x.id,n:x.n}:null;}),bag:bag.map(function(x){return {id:x.id,n:x.n};})},
       player:{x:player.x,y:player.y,z:player.z,yaw:player.yaw,pitch:player.pitch,vy:player.vy},
-      blocks:rleEncode(blocks),
+      wv:2,edits:serializeEdits(),
       hotel:(typeof HOTEL!=='undefined'?HOTEL.save():null),
       veh:(function(){try{return JSON.parse(localStorage.getItem(VEH_KEY)||'null');}catch(e){return null;}})()};
     var raw=JSON.stringify(data);
@@ -3005,9 +3269,19 @@ function loadWorld(auto){
   if(!raw){if(!auto)saveInfoText('没有可读取的存档');return false;}
   try{
     var s=JSON.parse(raw);
-    var arr=s&&s.blocks?rleDecode(s.blocks,blocks.length):null;
-    if(!arr)throw new Error('存档方块数据损坏');
-    blocks.set(arr);
+    if(s.hotel&&(s.hotel.x0!==HOTEL_X0||s.hotel.z0!==HOTEL_Z0))s.hotel=null;
+    if(s&&s.edits){
+      loadEdits(s.edits);
+    }else if(s&&s.blocks){
+      if(!migrateLegacy(s.blocks))throw new Error('旧存档方块数据损坏');
+      if(s.player){
+        s.player.x=(+s.player.x||32)+legacyShift.dx;
+        s.player.z=(+s.player.z||32)+legacyShift.dz;
+        s.player.y=(+s.player.y||9)+legacyShift.dy;
+      }
+    }else{
+      genWorld();
+    }
     curRegion=(s.region&&REGIONS[s.region])?s.region:'hb';
     worldRegion=curRegion;
     RG=REGION_GEN[curRegion]||REGION_GEN.hb;
@@ -3032,6 +3306,7 @@ function loadWorld(auto){
     spawn={x:player.x,y:player.y,z:player.z};
     npc=npcSpot(player.x,player.z,player.yaw);
     buildMesh();
+    warmChunks();
     try{if(s.hotel&&typeof HOTEL!=='undefined')HOTEL.load(s.hotel);}catch(e){}
     buildHotbar();
     updateEnv(0);
@@ -9541,9 +9816,9 @@ window.__vehicle = {
    公路：5 m 宽平整路面，从酒店正门直达世界边缘
    ============================================================= */
 var HOTEL = (function () {
-  var X0 = 33, Z0 = 22, W = 30, D = 18, BASE = 8;
+  var X0 = HOTEL_X0, Z0 = HOTEL_Z0, W = 30, D = 18, BASE = 40;
   var FLOORS = 3, ROOM_W = 5, ROOM_D = 12;
-  var ROAD_Z = 34, ROAD_W = 5, ROAD_X1 = 32, ROAD_KM = 30;
+  var ROAD_Z = ROAD.z0, ROAD_W = ROAD.w, ROAD_X1 = ROAD.x1, ROAD_KM = 30;
   var meta = null, manager = null, keyRoom = 0, keyBuf = '', bound = false;
   var doorSeq = {};
 
@@ -9563,8 +9838,8 @@ var HOTEL = (function () {
   function levelArea(x0, z0, w, d, topType) {
     topType = topType || 21;
     for (var x = x0; x < x0 + w; x++) for (var z = z0; z < z0 + d; z++) {
-      for (var y = BASE; y < WY; y++) if (getB(x, y, z)) put(x, y, z, 0);
-      for (var y2 = 0; y2 < BASE - 1; y2++) {
+      for (var y = BASE; y < Math.min(WY, BASE + 40); y++) if (getB(x, y, z)) put(x, y, z, 0);
+      for (var y2 = Math.max(0, BASE - 10); y2 < BASE - 1; y2++) {
         var b = getB(x, y2, z);
         if (b === 0 || b === 5) put(x, y2, z, 3);
       }
@@ -9669,11 +9944,11 @@ var HOTEL = (function () {
 
   /* ---------- 公路 ---------- */
   function road() {
-    levelArea(1, ROAD_Z, ROAD_X1, ROAD_W, 3);
-    for (var lx = 2; lx <= ROAD_X1 - 2; lx += 4) put(lx, BASE - 1, ROAD_Z + 2, 12);
-    for (var ex = 1; ex <= ROAD_X1; ex++) { put(ex, BASE - 1, ROAD_Z, 21); put(ex, BASE - 1, ROAD_Z + ROAD_W - 1, 21); }
-    put(2, BASE, ROAD_Z + 4, 34);
-    put(ROAD_X1 - 1, BASE, ROAD_Z + 4, 34);
+    /* 公路由地形程序化生成（5 m 宽、横断面水平），这里只立两块路牌 */
+    var y1 = heightAt(4, ROAD_Z + 4) + 1;
+    var y2 = heightAt(ROAD_X1 - 10, ROAD_Z + 4) + 1;
+    put(4, y1, ROAD_Z + 4, 34);
+    put(ROAD_X1 - 10, y2, ROAD_Z + 4, 34);
   }
 
   /* ---------- 酒店经理 ---------- */
@@ -9715,6 +9990,7 @@ var HOTEL = (function () {
       return null;
     }
     var seed = parseInt(opts.seed, 10) || newSeed();
+    BASE = roadH(X0 - 1) + 1;
     buildBlocks(seed);
     meta = {
       v: 1, built: true, x0: X0, z0: Z0, w: W, d: D, base: BASE, floors: FLOORS,
@@ -9848,7 +10124,7 @@ var HOTEL = (function () {
     if (rd) {
       rd.innerHTML = '云海公路：设计 ' + ROAD_KM + ' km · 宽 ' + ROAD_W + ' m · 5 m 宽平整路面从正门直达世界边缘'
         + (meta && meta.road ? '（本段实建 ' + meta.road.builtM + ' m）' : '')
-        + '<br>世界为 64 × 64 格，30 km 需要 30,000 格；当前只铺到世界边界，里程牌按设计值标注。';
+        + '<br>世界 6000 × 6000 格、高 100 格（1 格 = 1 米，即 6 km × 6 km）；30 km 需要 30,000 格，本世界实建 ' + ROAD_X1 + ' m。';
     }
     renderCodes();
   }
@@ -9955,6 +10231,7 @@ var HOTEL = (function () {
 
   function load(m) {
     meta = m && m.built ? m : null;
+    if (meta && meta.base) BASE = meta.base;
     ensure();
     renderPanel();
   }
@@ -9991,6 +10268,7 @@ player.x=sp.x;player.y=sp.y;player.z=sp.z;player.vy=0;
 spawn={x:sp.x,y:sp.y,z:sp.z};
 npc=npcSpot(sp.x,sp.z,player.yaw);
 buildMesh();
+warmChunks();
 buildHotbar();
 updateEnv(0);
 buildRegionChips();
@@ -10019,7 +10297,14 @@ window.__world={
   getBlock:function(x,y,z){return getB(x,y,z);},
   phase:function(){
     var r=phaseTick(),c={ice:0,water:0,snow:0};
-    for(var i=0;i<blocks.length;i++){if(blocks[i]===20)c.ice++;else if(blocks[i]===5)c.water++;else if(blocks[i]===18)c.snow++;}
+    var px=Math.floor(player.x),pz=Math.floor(player.z);
+    for(var zz=pz-24;zz<=pz+24;zz++)for(var xx=px-24;xx<=px+24;xx++){
+      var hh=hAt(xx,zz);
+      for(var yy=Math.max(0,hh-2);yy<=Math.min(WY-1,hh+1);yy++){
+        var bb=getB(xx,yy,zz);
+        if(bb===20)c.ice++;else if(bb===5)c.water++;else if(bb===18)c.snow++;
+      }
+    }
     return {r:r,counts:c,info:phaseInfo};
   },
   applyTerrain:function(){applyRegionTerrain();},
@@ -10099,6 +10384,8 @@ window.__world={
   }
 };
 try { window.__hotel = HOTEL; if (window.__world) window.__world.hotel = HOTEL; } catch (e) {}
+window.__chunks=function(){return {meshes:chunkMeshes.size,edits:editsCount(),heights:heightMaps.size,queue:meshQueue.length};};
+window.__chunkDbg=function(){try{ensureChunks(player.x,player.z);var q0=meshQueue.length;var made=processQueue(6);var keys=[];chunkMeshes.forEach(function(m,k){keys.push(k);});return {RAD:RAD,CH:CH,cx:player.x>>5,cz:player.z>>5,cur:ck(player.x>>5,player.z>>5),has:chunkMeshes.has(ck(player.x>>5,player.z>>5)),keys:keys,q0:q0,made:made,q:meshQueue.length,meshes:chunkMeshes.size,heights:heightMaps.size};}catch(e){return {err:String((e&&e.stack)||e)};}};
 requestAnimationFrame(function(t){last=t;loop(t);});
 setTimeout(function(){document.getElementById('hint').style.opacity='0';document.getElementById('hint').style.transition='opacity 1.2s';},9000);
 })();
