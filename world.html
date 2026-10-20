@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <link rel="icon" href="data:,">
 <title>映射 + AI 世界</title>
-<meta name="version" content="world-v9.0.1">
+<meta name="version" content="world-v9.0.2">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:"PingFang SC","Microsoft YaHei",sans-serif;color:#fff;touch-action:none;user-select:none;-webkit-user-select:none}
@@ -394,7 +394,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
     <div class="note" id="hotelMetrics"></div>
     <div id="hotelCodes"></div>
     <div class="note" id="hotelRoadInfo"></div>
-    <div class="note">开门：走到客房门口，对准门点「挖」→ 输入 4 位密码。电视 / 电梯 / 前台 / 路牌同样用「挖」互动。</div>
+    <div class="note">开门：走到客房门口，对准门点「挖」→ 输入 4 位密码。电视 / 电梯 / 前台 / 路牌同样用「挖」互动。<br>门禁：动物与路人默认不得进入酒店区域；被你驯服（邀请）的动物可以进入。</div>
   </div>
 </div>
 <div id="hotelKey" class="hidden">
@@ -689,6 +689,7 @@ var chunkMeshes = new Map();   // 区块 key -> {cx,cz,op,nOp,wa,nWa}
 var meshQueue = [], meshQueued = {}, dirtyChunks = {};
 var HOTEL_X0 = 3000, HOTEL_Z0 = 2960;
 var ROAD = { x0: 2, x1: HOTEL_X0 - 1, z0: HOTEL_Z0 + 12, w: 5 };
+var roadOverride = null;   // { x1, len, h } 酒店门口一段公路与酒店同高
 
 function ck(cx, cz) { return cx * 1000 + cz; }
 function hash2(x, z) {
@@ -712,10 +713,20 @@ function naturalH(x, z) {
   return Math.max(2, Math.min(WY - 4, Math.floor(RG.base + n * RG.amp)));
 }
 /* 公路纵断面：沿中线 ±15 m 取平均再取整，保证 5 m 宽横断面完全水平 */
-function roadH(x) {
+function roadHN(x) {
   var sum = 0, n = 0;
   for (var d = -15; d <= 15; d += 5) { sum += naturalH(x + d, ROAD.z0 + 2); n++; }
-  var h = Math.round(sum / n);
+  return Math.round(sum / n);
+}
+function roadH(x) {
+  var h = roadHN(x);
+  if (roadOverride) {
+    var d = roadOverride.x1 - x;
+    if (d >= 0 && d <= roadOverride.len) {
+      var t = Math.min(1, d / (roadOverride.ramp || 40));   // 0=门口同高，1=坡道尽头接原地形
+      h = Math.round(roadOverride.h * (1 - t) + h * t);
+    }
+  }
   return Math.max(SEA + 1, Math.min(WY - 8, h));
 }
 function heightAt(x, z) { return inRoad(x, z) ? roadH(x) : naturalH(x, z); }
@@ -7667,6 +7678,7 @@ function updateAgents(dt){
   updateFauna(dt,bio);
   updateFlora(dt,bio);
   updateHumans(dt,bio);
+  try { if (typeof hotelKeepOut === 'function') hotelKeepOut(); } catch (e) {}
 }
 function fastForward(days){
   var n=Math.max(1,Math.ceil(days/10)),d=days/n;
@@ -9838,8 +9850,8 @@ var HOTEL = (function () {
   function levelArea(x0, z0, w, d, topType) {
     topType = topType || 21;
     for (var x = x0; x < x0 + w; x++) for (var z = z0; z < z0 + d; z++) {
-      for (var y = BASE; y < Math.min(WY, BASE + 40); y++) if (getB(x, y, z)) put(x, y, z, 0);
-      for (var y2 = Math.max(0, BASE - 10); y2 < BASE - 1; y2++) {
+      for (var y = BASE; y < Math.min(WY, BASE + 44); y++) if (getB(x, y, z)) put(x, y, z, 0);
+      for (var y2 = Math.max(0, BASE - 64); y2 < BASE - 1; y2++) {
         var b = getB(x, y2, z);
         if (b === 0 || b === 5) put(x, y2, z, 3);
       }
@@ -9990,7 +10002,10 @@ var HOTEL = (function () {
       return null;
     }
     var seed = parseInt(opts.seed, 10) || newSeed();
-    BASE = roadH(X0 - 1) + 1;
+    var pb = (opts.base != null) ? (opts.base | 0) : surfaceY(Math.floor(player.x), Math.floor(player.z));
+    if (!(pb > SEA + 1 && pb < WY - 22)) pb = surfaceY(Math.floor(player.x), Math.floor(player.z));
+    BASE = Math.max(SEA + 2, Math.min(WY - 22, pb));
+    applyRoadLevel(BASE - 1);
     buildBlocks(seed);
     meta = {
       v: 1, built: true, x0: X0, z0: Z0, w: W, d: D, base: BASE, floors: FLOORS,
@@ -10000,7 +10015,7 @@ var HOTEL = (function () {
     };
     ensureManager();
     clearInside();
-    try { buildMesh(); } catch (e) {}
+    try { buildMesh(); warmChunks(); } catch (e) {}
     try {
       if (typeof collides === 'function' && collides(player.x, player.y, player.z)) {
         player.x = X0 + 7.5; player.z = Z0 + 13.5; player.y = BASE + 0.06; player.vy = 0;
@@ -10015,9 +10030,35 @@ var HOTEL = (function () {
     return meta;
   }
 
+  function applyRoadLevel(h) {
+    var nat = roadHN(X0 - 1);
+    var ramp = Math.max(40, Math.min(160, 40 + 6 * Math.abs(h - nat)));
+    roadOverride = { x1: X0 - 1, len: ramp + 20, ramp: ramp, h: h | 0 };
+    try { heightMaps.clear(); } catch (e) {}
+    try { clearAllMeshes(); } catch (e) {}
+  }
+  function keepOut() {
+    if (!meta || !meta.built) return;
+    var pad = 2;
+    var x0 = X0 - pad, x1 = X0 + W + pad, z0 = Z0 - pad, z1 = Z0 + D + pad;
+    function pushOut(a) {
+      if (!a || !a.alive || a.hotelManager || a.tamed || a.invited) return;
+      if (a.x <= x0 || a.x >= x1 || a.z <= z0 || a.z >= z1) return;
+      var dl = a.x - x0, dr = x1 - a.x, dn = a.z - z0, ds = z1 - a.z;
+      var m = Math.min(dl, dr, dn, ds);
+      if (m === dl) a.x = x0 - 0.6;
+      else if (m === dr) a.x = x1 + 0.6;
+      else if (m === dn) a.z = z0 - 0.6;
+      else a.z = z1 + 0.6;
+      a.dir = Math.atan2((z0 + z1) / 2 - a.z, (x0 + x1) / 2 - a.x);
+    }
+    for (var i = 0; i < fauna.length; i++) pushOut(fauna[i]);
+    for (var j = 0; j < humans.length; j++) pushOut(humans[j]);
+    for (var k = 0; k < flora.length; k++) pushOut(flora[k]);
+  }
   function wsBuildPush() {
     if (typeof WSYNC === 'undefined' || !WSYNC.on || !meta) return;
-    WSYNC.pending.push({ type: 'build', kind: 'hotel', seed: meta.seed, codes: meta.codes });
+    WSYNC.pending.push({ type: 'build', kind: 'hotel', seed: meta.seed, codes: meta.codes, base: meta.base });
   }
 
   function ensure() {
@@ -10119,7 +10160,7 @@ var HOTEL = (function () {
         ? '占地 ' + (W * D) + ' m²（' + W + ' × ' + D + '）· 主体高 12 m · 3 层 × 6 间 = 18 间<br>'
           + '每间 5 × 12 = 60 m²（含浴室/电视/落地窗/床/吸顶灯/密码门锁）<br>'
           + '1F 前台 · 经理 1 名 · 电梯通往 1F/2F/3F'
-        : '点「建造 / 重建」在出生点东侧建造酒店。1 方块 = 1 米，尺寸与世界里的人一致。';
+        : '点「建造 / 重建」：以你脚下站立的方块高度为基准整平地块——高的铲平、低的填补，并把门口这段公路抬到同一水平。1 方块 = 1 米。';
     }
     if (rd) {
       rd.innerHTML = '云海公路：设计 ' + ROAD_KM + ' km · 宽 ' + ROAD_W + ' m · 5 m 宽平整路面从正门直达世界边缘'
@@ -10233,14 +10274,16 @@ var HOTEL = (function () {
     if (e.kind === 'codes') { if (meta) { meta.codes = e.codes || meta.codes; renderPanel(); } return; }
     if (e.kind === 'hotel') {
       meta = null;
-      build({ seed: e.seed, codes: e.codes, remote: true });
+      build({ seed: e.seed, codes: e.codes, base: e.base, remote: true });
     }
   }
 
   function load(m) {
     meta = m && m.built ? m : null;
     if (meta && meta.base) BASE = meta.base;
+    if (meta) applyRoadLevel(BASE - 1);
     ensure();
+    try { buildMesh(); warmChunks(); } catch (e) {}
     renderPanel();
   }
 
@@ -10257,13 +10300,14 @@ var HOTEL = (function () {
 
   setTimeout(bind, 0);
   return {
-    build: build, ensure: ensure, load: load, save: function () { return meta; },
+    build: build, ensure: ensure, load: load, save: function () { return meta; }, keepOut: keepOut, roadLevel: applyRoadLevel,
     use: use, remote: remote, open: openPanel, status: status,
     resetCodes: resetCodes, teleport: teleportLobby, keypad: openKeypad,
     unlock: unlockDoor, config: { X0: X0, Z0: Z0, W: W, D: D, BASE: BASE, ROAD_Z: ROAD_Z, ROAD_W: ROAD_W, ROAD_KM: ROAD_KM }
   };
 })();
 function hotelUse(h) { return HOTEL.use(h); }
+function hotelKeepOut() { try { HOTEL.keepOut(); } catch (e) {} }
 
 var _initAgentsBase = initAgents;
 initAgents = function () { _initAgentsBase.apply(null, arguments); try { HOTEL.ensure(); } catch (e) {} };

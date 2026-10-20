@@ -1,4 +1,4 @@
-// 极简云服务端 v3.6.1 (Node.js 零依赖)
+// 极简云服务端 v3.6.2 (Node.js 零依赖)
 // = 完整聊天(好友/群聊/已读/撤回/文件) + 火影联机信令 + 排行榜 + 门户
 // 用法: node server.js --port=3777 --datadir=./data
 'use strict';
@@ -292,7 +292,7 @@ async function handle(req, res) {
   }
 
   // ---------- 基础 ----------
-  if (p === '/api/status') { ok(res, { ok: true, app: '极简聊天云服务端', version: '3.6.1' }); return; }
+  if (p === '/api/status') { ok(res, { ok: true, app: '极简聊天云服务端', version: '3.6.2' }); return; }
 
   if (p === '/api/register') {
     const b = JSON.parse(((await readBody(req)) || '{}').toString());
@@ -680,6 +680,8 @@ async function handle(req, res) {
         if (kind === 'hotel') {
           const sd = Number(e.seed);
           item.seed = isFinite(sd) ? Math.max(1, Math.min(999999, Math.floor(sd))) : 1;
+          const bs = Number(e.base);
+          if (isFinite(bs)) item.base = Math.max(0, Math.min(480, Math.floor(bs)));
         }
         if (e.codes && typeof e.codes === 'object') {
           const codes = {};
@@ -1213,7 +1215,7 @@ let httpsStarted = false;
 
 const server = http.createServer(handle);
 server.listen(PORT, '0.0.0.0', function () {
-  console.log('NarutoCloud v3.6.1 listening on http://0.0.0.0:' + PORT + ' datadir=' + DATADIR);
+  console.log('NarutoCloud v3.6.2 listening on http://0.0.0.0:' + PORT + ' datadir=' + DATADIR);
 });
 
 // 自签名证书: 首次访问需在浏览器里点“高级 → 继续前往”
