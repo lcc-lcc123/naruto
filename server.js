@@ -1,4 +1,4 @@
-// 极简云服务端 v3.4.0 (Node.js 零依赖)
+// 极简云服务端 v3.5.0 (Node.js 零依赖)
 // = 完整聊天(好友/群聊/已读/撤回/文件) + 火影联机信令 + 排行榜 + 门户
 // 用法: node server.js --port=3777 --datadir=./data
 'use strict';
@@ -32,6 +32,7 @@ const fsRooms = {};   // 火影帧同步房间: id -> {a,b,frames:{},next}
 const worldPresence = {}; // 世界房间在线心跳: roomId -> {name:{at,x,z,sim,mic,ear}}
 const voiceBox = {};      // 语音信令收件箱: name -> [{seq,from,room,kind,data,time}]
 let voiceSeq = 0;
+const worldSync = {};     // 世界房间实时同步: roomId -> {seq,events,players,sim,speed,region,host}
 const stateFile = path.join(DATADIR, 'state.json');
 function loadState() {
   try {
@@ -291,7 +292,7 @@ async function handle(req, res) {
   }
 
   // ---------- 基础 ----------
-  if (p === '/api/status') { ok(res, { ok: true, app: '极简聊天云服务端', version: '3.4.0' }); return; }
+  if (p === '/api/status') { ok(res, { ok: true, app: '极简聊天云服务端', version: '3.5.0' }); return; }
 
   if (p === '/api/register') {
     const b = JSON.parse(((await readBody(req)) || '{}').toString());
@@ -637,6 +638,95 @@ async function handle(req, res) {
     const list = (voiceBox[name] || []).filter(function (m) { return m.seq > after; }).slice(-100);
     lastSeen[name] = now();
     return ok(res, { ok: true, messages: list, latest: voiceSeq });
+  }
+
+
+  // ---------- 世界房间实时同步（时间/汽车/方块/玩家位置） ----------
+  if (p === '/api/world/rooms/sync' && req.method === 'POST') {
+    const name = auth(req);
+    if (!name) return fail(res, 401, '请先登录');
+    let b = {};
+    try { b = JSON.parse(((await readBody(req, 1024 * 1024)) || '{}').toString()); } catch (e) { return fail(res, 400, '请求格式错误'); }
+    const r = worldRoomById(String(b.id || ''));
+    if (!r) return fail(res, 404, '房间不存在');
+    if (!worldCanOpen(r, name)) return fail(res, 403, '你不在该房间');
+    let st = worldSync[r.id];
+    if (!st) st = worldSync[r.id] = { seq: 0, events: [], players: {}, sim: null, speed: null, region: null, host: r.owner };
+    const t = now();
+    const p = b.player;
+    if (p && typeof p === 'object') {
+      st.players[name] = {
+        name: name,
+        x: Number(p.x) || 0, y: Number(p.y) || 0, z: Number(p.z) || 0,
+        yaw: Number(p.yaw) || 0, pitch: Number(p.pitch) || 0,
+        anim: String(p.anim || 'idle').slice(0, 12),
+        theme: String(p.theme || 'kuro').slice(0, 12),
+        at: t
+      };
+    }
+    const incoming = Array.isArray(b.events) ? b.events.slice(0, 80) : [];
+    for (let i = 0; i < incoming.length; i++) {
+      const e = incoming[i];
+      if (!e || typeof e !== 'object') continue;
+      const typ = String(e.type || '');
+      if (typ === 'block') {
+        const x = Number(e.x) | 0, y = Number(e.y) | 0, z = Number(e.z) | 0, bt = Number(e.t) | 0;
+        if (x < -512 || x > 512 || y < -64 || y > 256 || z < -512 || z > 512 || bt < 0 || bt > 255) continue;
+        st.events.push({ seq: ++st.seq, from: name, type: 'block', x: x, y: y, z: z, t: bt, time: t });
+      } else if (typ === 'give') {
+        const to = String(e.to || ''), kind = (e.kind === 'craft' ? 'craft' : 'inv');
+        const item = String(e.item || '').slice(0, 40), nn = Math.max(1, Math.min(999, Number(e.n) | 0));
+        if (!to || to === name || !item || !nn) continue;
+        if ((r.members || []).indexOf(to) < 0) continue;
+        st.events.push({ seq: ++st.seq, from: name, type: 'give', to: to, kind: kind, item: item, n: nn, time: t });
+      } else if (typ === 'car_add' || typ === 'car_move') {
+        const car = e.car;
+        if (!car || typeof car !== 'object' || !car.id) continue;
+        let raw = ''; try { raw = JSON.stringify(car); } catch (err) { continue; }
+        if (raw.length > 8000) continue;
+        st.events.push({ seq: ++st.seq, from: name, type: typ, id: String(car.id).slice(0, 40), car: car, time: t });
+      } else if (typ === 'car_del') {
+        const id = String(e.id || ''); if (!id) continue;
+        st.events.push({ seq: ++st.seq, from: name, type: 'car_del', id: id, time: t });
+      } else if (typ === 'part_add' || typ === 'part_move') {
+        const part = e.part;
+        if (!part || typeof part !== 'object' || !part.id) continue;
+        let raw = ''; try { raw = JSON.stringify(part); } catch (err) { continue; }
+        if (raw.length > 4000) continue;
+        st.events.push({ seq: ++st.seq, from: name, type: typ, id: String(part.id).slice(0, 40), part: part, time: t });
+      } else if (typ === 'part_del') {
+        const id = String(e.id || ''); if (!id) continue;
+        st.events.push({ seq: ++st.seq, from: name, type: 'part_del', id: id, time: t });
+      } else if (typ === 'bench_set') {
+        const bench = e.bench;
+        if (!bench || typeof bench !== 'object') continue;
+        let raw = ''; try { raw = JSON.stringify(bench); } catch (err) { continue; }
+        if (raw.length > 4000) continue;
+        st.events.push({ seq: ++st.seq, from: name, type: 'bench_set', bench: bench, time: t });
+      } else if (typ === 'bench_del') {
+        st.events.push({ seq: ++st.seq, from: name, type: 'bench_del', time: t });
+      }
+    }
+    if (st.events.length > 400) st.events.splice(0, st.events.length - 400);
+    const recent = t - 60000;
+    st.events = st.events.filter(function (e) { return e.time >= recent; });
+    if (r.owner === name) {
+      if (isFinite(Number(b.sim))) st.sim = Number(b.sim);
+      if (isFinite(Number(b.speed))) st.speed = Number(b.speed);
+      if (b.region) st.region = String(b.region).slice(0, 12);
+    }
+    const cutoff = t - 20000;
+    for (const n in st.players) if (st.players[n].at < cutoff) delete st.players[n];
+    const after = parseInt(b.after || '0', 10) || 0;
+    const events = st.events.filter(function (e) { return e.seq > after && e.from !== name && (!e.to || e.to === name); });
+    const players = [];
+    for (const n in st.players) if (n !== name) players.push(st.players[n]);
+    lastSeen[name] = now();
+    return ok(res, {
+      ok: true, seq: st.seq,
+      sim: st.sim, speed: st.speed, region: st.region,
+      events: events, players: players
+    });
   }
 
   // ---------- 群聊 ----------
@@ -1104,7 +1194,7 @@ let httpsStarted = false;
 
 const server = http.createServer(handle);
 server.listen(PORT, '0.0.0.0', function () {
-  console.log('NarutoCloud v3.4.0 listening on http://0.0.0.0:' + PORT + ' datadir=' + DATADIR);
+  console.log('NarutoCloud v3.5.0 listening on http://0.0.0.0:' + PORT + ' datadir=' + DATADIR);
 });
 
 // 自签名证书: 首次访问需在浏览器里点“高级 → 继续前往”

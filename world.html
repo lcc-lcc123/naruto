@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <link rel="icon" href="data:,">
 <title>映射 + AI 世界</title>
-<meta name="version" content="world-v8.7.0">
+<meta name="version" content="world-v8.8.0">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:"PingFang SC","Microsoft YaHei",sans-serif;color:#fff;touch-action:none;user-select:none;-webkit-user-select:none}
@@ -567,7 +567,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
       <div id="roomsList"><div class="note">正在读取房间...</div></div>
       <div class="wsec" id="roomsFriendsTitle">通讯录好友</div>
       <div id="roomsFriends" class="note">在联机房间点「邀请」后，这里会列出好友。</div>
-      <div class="note">房间存档保存在服务器，按账号隔离。联机房间多人进入时共用同一份存档，适合轮流建设；同一时间多人编辑会以最后一次保存为准，暂不做实时同屏同步。</div>
+      <div class="wsec">房间内给予物品（仅联机）</div>
+      <div class="wrow"><span class="lab">给</span><select id="giveTo"></select><select id="giveKind"><option value="inv">背包/快捷栏</option><option value="craft">制造库存</option></select><button id="giveRefreshBtn" type="button">刷新</button></div>
+      <div class="wrow"><select id="giveItem"></select><input id="giveNum" type="number" min="1" max="999" value="1"><button id="giveBtn" type="button">给予</button></div>
+      <div class="note" id="giveMsg">物品栏/制造库存按玩家私有；只转移选中物品。</div>
+      <div class="note">房间存档按账号隔离，联机房间共享世界；时间由房主控制，方块、汽车、玩家位置/建模实时增量同步；物品栏、快捷栏和制造库存是每个玩家私有的。</div>
       <div class="note">联机房间可开麦/听筒。语音必须使用 HTTPS：https://服务器地址:3778/world（HTTP 3777 浏览器会禁止麦克风；首次需信任自签证书）。</div>
     </div>
   </div>
@@ -1218,6 +1222,7 @@ function dig(){
   var h=raycast(6);
   if(!h)return toast('前方没有可挖的方块');
   setB(h.x,h.y,h.z,0);
+  wsBlock(h.x,h.y,h.z,0);
   buildMesh();
   toast('挖掉了 '+B[h.b].n);
 }
@@ -1230,6 +1235,7 @@ function place(){
   var px=player.x,py=player.y,pz=player.z;
   if(x+1>px-0.3&&x<px+0.3&&y+1>py&&y<py+1.78&&z+1>pz-0.3&&z<pz+0.3)return toast('这里会卡住自己');
   setB(x,y,z,sel);
+  wsBlock(x,y,z,sel);
   buildMesh();
   toast('放了一个 '+B[sel].n);
 }
@@ -2258,7 +2264,7 @@ function placeSubstance(id){
   var d=lookVec(),x=Math.floor(player.x+d[0]*3),z=Math.floor(player.z+d[2]*3);
   var y=surfaceY(x,z);
   for(var yy=y;yy<Math.min(WY-2,y+6);yy++){if(getB(x,yy,z)===0){y=yy;break;}}
-  setB(x,y,z,m.block);buildMesh();
+  setB(x,y,z,m.block); wsBlock(x,y,z,m.block); buildMesh();
   closeChem();
   toast('已把『'+m.n+'』放入世界（'+B[m.block].n+'）');
 }
@@ -3359,6 +3365,267 @@ function vcInfo() {
 }
 window.__vc = { state: VC, toggleMic: vcToggleMic, toggleEar: vcToggleEar, start: vcStart, stop: vcStop, setPeers: vcSetPeers, info: vcInfo };
 
+/* ---------- 世界房间实时同步：只发增量事件，不发快照 ---------- */
+var WSYNC = {
+  on: false, room: '', host: false, timer: 0, busy: false, seq: 0,
+  players: {}, remote: {}, pending: [], carDelSeq: {},
+  veh: { cars: {}, parts: {}, bench: '' },
+  lastRigCount: 0
+};
+function wsStart(room) {
+  wsStop();
+  if (!room || !WRoom || !WRoom.token) return;
+  WSYNC.on = true;
+  WSYNC.room = room.id;
+  WSYNC.host = (room.owner === WRoom.name);
+  WSYNC.seq = 0;
+  WSYNC.players = {};
+  WSYNC.remote = {};
+  WSYNC.pending = [];
+  WSYNC.carDelSeq = {};
+  wsVehInit();
+  WSYNC.timer = setInterval(wsTick, 250);
+  setTimeout(wsTick, 80);
+}
+function wsStop() {
+  WSYNC.on = false;
+  if (WSYNC.timer) { clearInterval(WSYNC.timer); WSYNC.timer = 0; }
+  WSYNC.remote = {};
+  WSYNC.players = {};
+  WSYNC.pending = [];
+  WSYNC.lastRigCount = 0;
+}
+function wsPlayerState() {
+  var anim = !player.onGround ? 'jump' : (player.moving ? (player.running ? 'run' : 'walk') : 'idle');
+  return { x: player.x, y: player.y, z: player.z, yaw: player.yaw, pitch: player.pitch, anim: anim, theme: playerNinjaTheme };
+}
+function wsTick() {
+  if (!WSYNC.on || WSYNC.busy || !WRoom.room || !WRoom.token) return;
+  WSYNC.busy = true;
+  var vev = wsVehDiff();
+  for (var vi = 0; vi < vev.length; vi++) WSYNC.pending.push(vev[vi]);
+  var events = WSYNC.pending.splice(0, 50);
+  var body = { id: WSYNC.room, after: WSYNC.seq, player: wsPlayerState(), events: events };
+  if (WSYNC.host) { body.sim = sim; body.speed = speed; body.region = worldRegion; }
+  wrApi('/api/world/rooms/sync', body).then(function (r) {
+    if (!r || !r.ok) return;
+    WSYNC.seq = Number(r.seq) || WSYNC.seq;
+    if (!WSYNC.host) {
+      if (typeof r.speed === 'number' && r.speed !== speed) { speed = r.speed; updateHUD(); }
+      if (typeof r.sim === 'number' && isFinite(r.sim) && Math.abs(sim - r.sim) > 0.75) {
+        sim = r.sim; updateEnv(0); updateHUD();
+      }
+    }
+    wsApplyEvents(r.events || []);
+    wsApplyPlayers(r.players || []);
+  }).catch(function () {}).finally(function () { WSYNC.busy = false; });
+}
+function wsApplyEvents(list) {
+  var needMesh = false, needVeh = false;
+  for (var i = 0; i < list.length; i++) {
+    var e = list[i];
+    if (!e) continue;
+    if (e.type === 'block') {
+      try { setB(e.x, e.y, e.z, e.t); needMesh = true; } catch (err) {}
+    } else if (e.type === 'give') {
+      wsReceiveGive(e);
+    } else if (e.type && (e.type.indexOf('car_') === 0 || e.type.indexOf('part_') === 0 || e.type.indexOf('bench_') === 0)) {
+      if (wsApplyVehEvent(e)) needVeh = true;
+    }
+  }
+  if (needMesh) { try { buildMesh(); } catch (e) {} }
+  if (needVeh) wsAfterVeh();
+}
+function wsApplyPlayers(list) {
+  var nowT = Date.now(), seen = {};
+  for (var i = 0; i < list.length; i++) {
+    var p = list[i];
+    if (!p || !p.name || p.name === WRoom.name) continue;
+    seen[p.name] = 1;
+    var a = WSYNC.remote[p.name];
+    if (!a) {
+      a = WSYNC.remote[p.name] = {
+        name: p.name, x: p.x, y: p.y, z: p.z, yaw: p.yaw,
+        tx: p.x, ty: p.y, tz: p.z, tyaw: p.yaw,
+        anim: p.anim || 'idle', theme: p.theme || 'kuro',
+        rig: null, seen: nowT
+      };
+      if (WSYNC.host) wsResyncVeh();
+    } else {
+      a.tx = p.x; a.ty = p.y; a.tz = p.z; a.tyaw = p.yaw;
+      a.anim = p.anim || 'idle';
+      a.theme = p.theme || 'kuro';
+      a.seen = nowT;
+    }
+  }
+  for (var n in WSYNC.remote) {
+    if (!seen[n] && nowT - (WSYNC.remote[n].seen || 0) > 6000) delete WSYNC.remote[n];
+  }
+}
+function wsBlock(x, y, z, t) {
+  if (!WSYNC.on) return;
+  if (WSYNC.pending.length > 120) WSYNC.pending.shift();
+  WSYNC.pending.push({ type: 'block', x: x, y: y, z: z, t: t });
+}
+function wsGive(to, kind, item, n) {
+  if (!WSYNC.on || !to || to === WRoom.name) return false;
+  WSYNC.pending.push({ type: 'give', to: to, kind: kind === 'craft' ? 'craft' : 'inv', item: String(item), n: Math.max(1, n | 0) });
+  return true;
+}
+function wsCarAdd(c) {
+  if (!WSYNC.on || !c) return;
+  WSYNC.pending.push({ type: 'car_add', id: c.id, car: wsCarData(c) });
+}
+function wsCarDel(id) {
+  if (!WSYNC.on || !id) return;
+  WSYNC.pending.push({ type: 'car_del', id: id });
+}
+function wsReceiveGive(e) {
+  if (!e || e.to !== WRoom.name) return;
+  var ok = false;
+  if (e.kind === 'craft') ok = craftGive(e.item, e.n);
+  else ok = addItem(e.item, e.n);
+  var nm = e.kind === 'craft' ? vName(e.item) : itemName(e.item);
+  toast((e.from || '玩家') + (ok ? ' 给了你 ' : ' 想给你 ') + nm + ' ×' + e.n + (ok ? '' : '（背包已满）'));
+}
+/* ---- 车辆增量：新增/删除/移动单实体，不发整车快照 ---- */
+function wsCarData(c) { return { id: c.id, x: c.x, y: c.y, z: c.z, yaw: c.yaw, fuel: c.fuel, hp: c.hp, color: c.color }; }
+function wsPartData(p) { return { id: p.id, x: p.x, y: p.y, z: p.z, yaw: p.yaw }; }
+function wsBenchData(b) { return b ? { x: b.x, y: b.y, z: b.z, slots: b.slots, color: b.color } : null; }
+function wsHash(o) { try { return JSON.stringify(o); } catch (e) { return ''; } }
+function wsVehInit() {
+  var cars = {}, parts = {};
+  for (var i = 0; i < vCars.length; i++) cars[vCars[i].id] = wsHash(wsCarData(vCars[i]));
+  for (var j = 0; j < vParts.length; j++) parts[vParts[j].id] = wsHash(wsPartData(vParts[j]));
+  WSYNC.veh = { cars: cars, parts: parts, bench: wsHash(wsBenchData(vBench)) };
+}
+function wsVehDiff() {
+  var ev = [], cars = {}, parts = {}, i, id, h, old;
+  for (i = 0; i < vCars.length; i++) {
+    var c = vCars[i], cd = wsCarData(c); h = wsHash(cd); cars[c.id] = h;
+    old = WSYNC.veh.cars[c.id];
+    if (!old) ev.push({ type: 'car_add', id: c.id, car: cd });
+    else if (old !== h) ev.push({ type: 'car_move', id: c.id, car: cd });
+  }
+  for (id in WSYNC.veh.cars) if (!(id in cars)) ev.push({ type: 'car_del', id: id });
+  for (i = 0; i < vParts.length; i++) {
+    var p = vParts[i], pd = wsPartData(p); h = wsHash(pd); parts[p.id] = h;
+    old = WSYNC.veh.parts[p.id];
+    if (!old) ev.push({ type: 'part_add', id: p.id, part: pd });
+    else if (old !== h) ev.push({ type: 'part_move', id: p.id, part: pd });
+  }
+  for (id in WSYNC.veh.parts) if (!(id in parts)) ev.push({ type: 'part_del', id: id });
+  var bd = wsBenchData(vBench), bh = wsHash(bd);
+  if (bh !== WSYNC.veh.bench) {
+    if (bd) ev.push({ type: 'bench_set', bench: bd });
+    else ev.push({ type: 'bench_del' });
+  }
+  WSYNC.veh = { cars: cars, parts: parts, bench: bh };
+  return ev;
+}
+function wsResyncVeh() {
+  if (!WSYNC.on || !WSYNC.host) return;
+  for (var i = 0; i < vCars.length; i++) WSYNC.pending.push({ type: 'car_add', id: vCars[i].id, car: wsCarData(vCars[i]) });
+  for (var j = 0; j < vParts.length; j++) WSYNC.pending.push({ type: 'part_add', id: vParts[j].id, part: wsPartData(vParts[j]) });
+  if (vBench) WSYNC.pending.push({ type: 'bench_set', bench: wsBenchData(vBench) });
+  wsVehInit();
+}
+function wsApplyVehEvent(e) {
+  var i, id = e.id, seq = +e.seq || 0;
+  if (id && WSYNC.carDelSeq[id] && seq && seq <= WSYNC.carDelSeq[id]) return false;
+  if (e.type === 'car_add') {
+    if (!e.car || !e.car.id) return false;
+    for (i = 0; i < vCars.length; i++) if (vCars[i].id === e.car.id) { wsCopyVeh(vCars[i], e.car); return true; }
+    vCars.push(e.car);
+    return true;
+  }
+  if (e.type === 'car_move') {
+    if (!e.car || !e.car.id) return false;
+    for (i = 0; i < vCars.length; i++) if (vCars[i].id === e.car.id) { wsCopyVeh(vCars[i], e.car); return true; }
+    return false;
+  }
+  if (e.type === 'car_del') {
+    if (id) WSYNC.carDelSeq[id] = Math.max(WSYNC.carDelSeq[id] || 0, seq);
+    for (i = 0; i < vCars.length; i++) if (vCars[i].id === id) {
+      if (vDriving === vCars[i]) vDriving = null;
+      vCars.splice(i, 1); return true;
+    }
+    return false;
+  }
+  if (e.type === 'part_add') {
+    if (!e.part || !e.part.id) return false;
+    for (i = 0; i < vParts.length; i++) if (vParts[i].id === e.part.id) { wsCopyVeh(vParts[i], e.part); return true; }
+    vParts.push(e.part);
+    return true;
+  }
+  if (e.type === 'part_move') {
+    if (!e.part || !e.part.id) return false;
+    for (i = 0; i < vParts.length; i++) if (vParts[i].id === e.part.id) { wsCopyVeh(vParts[i], e.part); return true; }
+    return false;
+  }
+  if (e.type === 'part_del') {
+    for (i = 0; i < vParts.length; i++) if (vParts[i].id === id) { vParts.splice(i, 1); return true; }
+    return false;
+  }
+  if (e.type === 'bench_set') { vBench = e.bench; return true; }
+  if (e.type === 'bench_del') { vBench = null; return true; }
+  return false;
+}
+function wsCopyVeh(dst, src) {
+  for (var k in src) if (k !== 'id') dst[k] = src[k];
+}
+function wsAfterVeh() {
+  try {
+    localStorage.setItem(VEH_KEY, JSON.stringify({
+      v: 1, color: vLastColor,
+      bench: wsBenchData(vBench),
+      cars: vCars,
+      parts: vParts
+    }));
+  } catch (e) {}
+  try { refreshSolid(); updateVehBar(); } catch (e) {}
+  wsVehInit();
+}
+/* ---- 远端玩家建模 ---- */
+function bakeRemoteRigs(arr, off, dt) {
+  var count = 0;
+  for (var n in WSYNC.remote) {
+    var a = WSYNC.remote[n];
+    if (!a.rig) { a.rig = NINJA3D.build('adult'); a.rig.motion = { name: 'idle', t: 0 }; }
+    var k = Math.min(1, dt * 12);
+    a.x += (a.tx - a.x) * k; a.y += (a.ty - a.y) * k; a.z += (a.tz - a.z) * k;
+    var dyaw = ((a.tyaw - a.yaw + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
+    a.yaw += dyaw * Math.min(1, dt * 10);
+    NINJA3D.applyPose(a.rig, a.anim || 'idle', dt, 1);
+    rigRootMat(a.x, a.y + 0.02, a.z, a.yaw + Math.PI, RIG_SCALE, RIG_ROOT);
+    off = bakeRig(arr, off, a.rig.root, RIG_ROOT, NINJA3D.THEMES[a.theme] || NINJA3D.THEMES.kuro);
+    count++;
+  }
+  WSYNC.lastRigCount = count;
+  return off;
+}
+function wsRemoteLabelHTML() {
+  if (!WSYNC.on) return '';
+  var html = '';
+  for (var n in WSYNC.remote) {
+    var a = WSYNC.remote[n], y = a.y + 2.0;
+    var cw = MVP[3] * a.x + MVP[7] * y + MVP[11] * a.z + MVP[15];
+    if (cw <= 0.01) continue;
+    var cx = MVP[0] * a.x + MVP[4] * y + MVP[8] * a.z + MVP[12];
+    var cy = MVP[1] * a.x + MVP[5] * y + MVP[9] * a.z + MVP[13];
+    var sx = (cx / cw * 0.5 + 0.5) * innerWidth, sy = (1 - (cy / cw * 0.5 + 0.5)) * innerHeight;
+    if (sx < 10 || sx > innerWidth - 10 || sy < 10 || sy > innerHeight - 10) continue;
+    html += '<div class="fl" style="left:' + sx.toFixed(0) + 'px;top:' + sy.toFixed(0) + 'px;border-color:#8fd6ff;color:#dff3ff">👤 ' + n + '</div>';
+  }
+  return html;
+}
+function wsInfo() {
+  var remote = {};
+  for (var n in WSYNC.remote) remote[n] = { x: WSYNC.remote[n].x, y: WSYNC.remote[n].y, z: WSYNC.remote[n].z, anim: WSYNC.remote[n].anim };
+  return { on: WSYNC.on, room: WSYNC.room, host: WSYNC.host, seq: WSYNC.seq, remote: remote, rigs: WSYNC.lastRigCount, cars: vCars.length, carIds: vCars.map(function (c) { return c.id; }), parts: vParts.length, bench: !!vBench };
+}
+window.__wsync = { state: WSYNC, start: wsStart, stop: wsStop, info: wsInfo, block: wsBlock, give: wsGive, applyEvent: function (list) { wsApplyEvents(list); }, debugSetCars: function (list) { vCars = list || []; }, debugDiff: wsVehDiff, debugInitVeh: wsVehInit };
+
 /* ---------- 账号世界房间：单机存档 / 联机邀请 ---------- */
 var WR_ACC_KEY = 'mapping-world-account-v1';
 var WRoom = {
@@ -3477,6 +3744,62 @@ function wrRenderRooms() {
   if (list) list.innerHTML = h;
   wrRenderFriends();
 }
+function wrGiveItems(kind) {
+  var out = [], seen = {}, i, id, n;
+  if (kind === 'craft') {
+    var stock = {};
+    try { stock = window.__craft ? (__craft.stock() || {}) : {}; } catch (e) {}
+    for (id in stock) {
+      n = +stock[id] || 0;
+      if (n > 0) out.push({ id: id, n: n, name: (typeof M !== 'undefined' && M[id] ? M[id].n : (typeof vName === 'function' ? vName(id) : id)) });
+    }
+  } else {
+    function add(id, n) {
+      if (!n || seen[id]) return;
+      var def = null; try { def = itemDef(id); } catch (e) {}
+      if (def && def.block) return;
+      seen[id] = 1;
+      out.push({ id: id, n: n, name: itemName(id) });
+    }
+    for (i = 0; i < hotbarSlots.length; i++) if (hotbarSlots[i]) add(hotbarSlots[i].id, hotbarSlots[i].n);
+    for (i = 0; i < bag.length; i++) add(bag[i].id, bag[i].n);
+  }
+  return out;
+}
+function wrRenderGive() {
+  var to = document.getElementById('giveTo'), kindEl = document.getElementById('giveKind'),
+    itemEl = document.getElementById('giveItem'), btn = document.getElementById('giveBtn'), msg = document.getElementById('giveMsg');
+  if (!to || !kindEl || !itemEl || !btn) return;
+  var room = WRoom.room, coop = !!(room && room.mode === 'coop');
+  var prevTo = to.value, prevItem = itemEl.value;
+  var members = (room && room.members) ? room.members.filter(function (n) { return n !== WRoom.name; }) : [];
+  to.innerHTML = members.length ? members.map(function (n) { return '<option value="' + wrEsc(n) + '">' + wrEsc(n) + '</option>'; }).join('') : '<option value="">（没有其他成员）</option>';
+  if (prevTo) { try { to.value = prevTo; } catch (e) {} }
+  var items = wrGiveItems(kindEl.value);
+  itemEl.innerHTML = items.length ? items.map(function (x) { return '<option value="' + wrEsc(x.id) + '">' + wrEsc(x.name) + ' ×' + x.n + '</option>'; }).join('') : '<option value="">（没有可给予物品）</option>';
+  if (prevItem) { try { itemEl.value = prevItem; } catch (e) {} }
+  btn.disabled = !coop || !items.length || !members.length;
+  kindEl.disabled = !coop;
+  if (msg) msg.textContent = coop ? '物品栏/制造库存按玩家私有；只转移选中物品给房间成员。' : '进入联机房间后可给予物品。';
+}
+function wrGiveSelected() {
+  if (!WRoom.room || WRoom.room.mode !== 'coop') return toast('只有联机房间可以给予物品');
+  var to = document.getElementById('giveTo').value;
+  var kind = document.getElementById('giveKind').value;
+  var item = document.getElementById('giveItem').value;
+  var n = parseInt(document.getElementById('giveNum').value, 10) || 0;
+  if (!to || !item || n < 1) return toast('请选择玩家、物品和数量');
+  var have = kind === 'craft' ? craftGet(item) : countItem(item);
+  if (have < n) return toast('数量不足');
+  var removed = kind === 'craft' ? craftTake(item, n) : consumeItem(item, n);
+  if (!removed) return toast('扣除物品失败');
+  if (typeof wsGive !== 'function' || !wsGive(to, kind, item, n)) {
+    if (kind === 'craft') craftGive(item, n); else addItem(item, n);
+    return toast('房间同步未开启，物品未转移');
+  }
+  toast('已给予 ' + to + '：' + (kind === 'craft' ? vName(item) : itemName(item)) + ' ×' + n);
+  wrRenderGive();
+}
 function wrRenderFriends() {
   var box = document.getElementById('roomsFriends');
   if (!box) return;
@@ -3530,7 +3853,7 @@ function wrLoadRooms() {
     if (WRoom.room) {
       var cur = wrFind(WRoom.room.id);
       if (cur) WRoom.room = cur;
-      else { WRoom.room = null; WRoom.version = 0; wrStopPresence(); }
+      else { WRoom.room = null; WRoom.version = 0; try { vcStop(); wsStop(); } catch (e) {} wrStopPresence(); }
     }
     wrRenderRooms();
   });
@@ -3582,7 +3905,7 @@ async function wrLogout(silent) {
   if (WRoom.token) { try { wrApi('/api/logout', {}); } catch (e) {} }
   WRoom.token = ''; WRoom.name = ''; WRoom.room = null; WRoom.version = 0;
   WRoom.rooms = []; WRoom.friends = []; WRoom.inviteRoom = '';
-  try { vcStop(); } catch (e) {}
+  try { vcStop(); wsStop(); } catch (e) {}
   wrStopPresence();
   if (WRoom.pingTimer) { clearInterval(WRoom.pingTimer); WRoom.pingTimer = 0; }
   if (WRoom.listTimer) { clearInterval(WRoom.listTimer); WRoom.listTimer = 0; }
@@ -3615,7 +3938,7 @@ async function wrEnter(id) {
   if (!room) return;
   WRoom.busy = true;
   try {
-    try { vcStop(); } catch (e) {}
+    try { vcStop(); wsStop(); } catch (e) {}
     if (WRoom.room && WRoom.room.id !== id) await wrSaveNow(true);
     var r = await wrApi('/api/world/rooms/save?id=' + encodeURIComponent(id));
     if (!r || !r.ok) { toast('进入房间失败：' + ((r && r.error) || '网络错误')); return; }
@@ -3626,8 +3949,9 @@ async function wrEnter(id) {
     if (WRoom.room.mode === 'coop') {
       try {
         vcStart({ mode: 'world', room: WRoom.room.id, my: WRoom.name, api: wrApi, peers: (WRoom.room.members && WRoom.room.members.length ? WRoom.room.members : (WRoom.room.online || [])), onChange: function () { wrPresence(); } });
+        wsStart(WRoom.room);
       } catch (e) {}
-    } else { try { vcStop(); } catch (e) {} }
+    } else { try { vcStop(); wsStop(); } catch (e) {} }
     wrStartPresence();
     document.getElementById('rooms').classList.add('hidden');
     wrRenderRooms();
@@ -3637,7 +3961,15 @@ async function wrEnter(id) {
 function wrApplySave(save) {
   try {
     if (save && save.veh) localStorage.setItem(VEH_KEY, JSON.stringify(save.veh));
-    localStorage.setItem(SAVE_KEY, JSON.stringify(save));
+    var merged = {};
+    for (var k in save) merged[k] = save[k];
+    // 房间存档只共享世界；物品栏、快捷栏、玩家位置/朝向始终属于本玩家
+    merged.inv = {
+      hot: hotbarSlots.map(function (x) { return x ? { id: x.id, n: x.n } : null; }),
+      bag: bag.map(function (x) { return { id: x.id, n: x.n }; })
+    };
+    merged.player = { x: player.x, y: player.y, z: player.z, yaw: player.yaw, pitch: player.pitch };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(merged));
     restoreVehicles();
     if (typeof refreshSolid === 'function') refreshSolid();
     if (typeof updateVehBar === 'function') updateVehBar();
@@ -3651,7 +3983,7 @@ async function wrExitRoom() {
   if (!WRoom.room) return;
   var nm = WRoom.room.name;
   await wrSaveNow(true);
-  try { vcStop(); } catch (e) {}
+  try { vcStop(); wsStop(); } catch (e) {}
   WRoom.room = null; WRoom.version = 0;
   wrStopPresence();
   wrRenderRooms();
@@ -3670,6 +4002,7 @@ function wrUpload(raw, manual) {
   if (WRoom.uploading) { WRoom.pending = raw; return Promise.resolve(false); }
   var data;
   try { data = JSON.parse(raw); } catch (e) { return Promise.resolve(false); }
+  try { delete data.inv; delete data.player; } catch (e) {}
   WRoom.uploading = true;
   return wrApi('/api/world/rooms/save', { id: WRoom.room.id, save: data, baseVersion: WRoom.version }).then(function (r) {
     WRoom.uploading = false;
@@ -3823,6 +4156,9 @@ function wrBind() {
     var b = e.target.closest('[data-wr-invite]');
     if (b) wrInviteFriend(b.getAttribute('data-wr-invite'));
   });
+  $('giveKind').addEventListener('change', wrRenderGive);
+  $('giveRefreshBtn').addEventListener('click', wrRenderGive);
+  $('giveBtn').addEventListener('click', wrGiveSelected);
   addEventListener('pagehide', wrBeaconSave);
   addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && !$('rooms').classList.contains('hidden')) closeRooms();
@@ -6301,6 +6637,12 @@ function buildShadowBuffer() {
     pushShadow(a.x, gy, a.z, 1.05, 0.78);
   }
   if (thirdPerson) pushShadow(player.x, player.y + 0.035, player.z, 1.10, 0.82);
+  if (typeof WSYNC !== 'undefined' && WSYNC.on) {
+    for (var rn in WSYNC.remote) {
+      var ra = WSYNC.remote[rn];
+      pushShadow(ra.x, ra.y + 0.035, ra.z, 1.10, 0.82);
+    }
+  }
 }
 function drawShadows(eyeVec, mvp) {
   buildShadowBuffer();
@@ -6327,6 +6669,7 @@ function drawRigCharacters(dt, eyeVec, mvp) {
   var off = 0;
   off = bakeHumanRigs(rigArr, off, dt);
   off = bakePlayerRig(rigArr, off, dt);
+  off = bakeRemoteRigs(rigArr, off, dt);
   off = bakeVehicleRigs(rigArr, off, dt);
   off = bakeAnimalRigs(rigArr, off, dt);
   off = bakePlantRigs(rigArr, off, dt);
@@ -6919,7 +7262,7 @@ function updateFaunaLabels(){
     if(!p.alive)continue;
     if(Math.hypot(p.x-player.x,p.z-player.z)<20)add(p,0.55+0.9*p.growth);
   }
-  box.innerHTML=html;
+  box.innerHTML=html+wsRemoteLabelHTML();
 }
 /* ---------- 物种详情 ---------- */
 function findAgent(id){
@@ -8262,6 +8605,7 @@ function placeCar() {
     yaw: player.yaw, speed: 0, fuel: 100, hp: 100, color: vLastColor || '#b23b3b', lit: false
   };
   vCars.push(c);
+  wsCarAdd(c);
   player.yaw = Math.atan2(-(c.x - player.x), -(c.z - player.z));
   saveVehicles(); refreshSolid();
   toast('汽车已放到世界：4.50 m 长，和 1.78 m 高的人对照放置');
@@ -8271,7 +8615,7 @@ function retractCar(c) {
   if (!c || c === vDriving) { toast('请先下车'); return false; }
   if (c.onBench) { toast('汽车在总装台上，正在拆解'); return false; }
   var i = vCars.indexOf(c); if (i < 0) return false;
-  vCars.splice(i, 1); craftGive('car', 1);
+  vCars.splice(i, 1); wsCarDel(c.id); craftGive('car', 1);
   saveVehicles(); refreshSolid();
   toast('汽车已收回制造物品栏');
   return true;
@@ -8366,6 +8710,7 @@ function startCarTeardown() {
     var idx = vCars.indexOf(c);
     if (idx < 0) return;
     vCars.splice(idx, 1);
+    wsCarDel(c.id);
     for (var j = 0; j < VSYS.length; j++) craftGive(VSYS[j].id, 1);
     c.onBench = false;
     saveVehicles(); refreshSolid(); updateVehBar();
@@ -9054,7 +9399,7 @@ window.__world={
   setRegion:function(k){selectRegion(k);},
   save:function(){return saveWorld(true);},
   load:function(){return loadWorld(false);},
-  setBlock:function(x,y,z,t){setB(x,y,z,t);buildMesh();},
+  setBlock:function(x,y,z,t){setB(x,y,z,t);wsBlock(x,y,z,t);buildMesh();},
   getBlock:function(x,y,z){return getB(x,y,z);},
   phase:function(){
     var r=phaseTick(),c={ice:0,water:0,snow:0};
