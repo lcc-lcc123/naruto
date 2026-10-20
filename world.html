@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <link rel="icon" href="data:,">
 <title>映射 + AI 世界</title>
-<meta name="version" content="world-v8.5.1">
+<meta name="version" content="world-v8.6.0">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:"PingFang SC","Microsoft YaHei",sans-serif;color:#fff;touch-action:none;user-select:none;-webkit-user-select:none}
@@ -129,6 +129,25 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
 #clockChip #btnFront{display:none;width:26px;height:26px;border-radius:8px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.12);color:#dce7f7;font-size:15px;line-height:1;padding:0;pointer-events:auto;flex:none}
 #clockChip #btnFront.show{display:block}
 #world{position:fixed;inset:0;z-index:70;background:rgba(7,11,17,.965);backdrop-filter:blur(16px);display:flex;flex-direction:column;color:#dce7f7}
+#rooms{position:fixed;inset:0;z-index:75;background:rgba(7,11,17,.97);backdrop-filter:blur(16px);display:flex;flex-direction:column;color:#dce7f7}
+#rooms .wbody{padding:10px 12px calc(30px + env(safe-area-inset-bottom))}
+#rooms input,#rooms select{flex:1;min-width:0;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);color:#eaf2ff;border-radius:9px;padding:9px 10px;font-size:13px;outline:none}
+#rooms input::placeholder{color:#6f8199}
+#rooms .roomItem{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.045);border-radius:12px;padding:10px 11px;margin:8px 0}
+#rooms .roomItem.pending{border-color:rgba(255,209,102,.55);background:rgba(255,209,102,.08)}
+#rooms .roomTop{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+#rooms .roomTop b{font-size:14px}
+#rooms .roomTag{font-size:9.5px;padding:2px 7px;border-radius:999px;background:rgba(255,255,255,.12);color:#c3d3e8}
+#rooms .roomTag.coop{background:rgba(7,193,96,.2);color:#8fe2b3}
+#rooms .roomMeta{font-size:10.5px;color:#7e8ea6;margin-top:5px;line-height:1.6}
+#rooms .roomBtns{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+#rooms .roomBtns button{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#dce7f7;border-radius:8px;padding:6px 9px;font-size:11.5px}
+#rooms .roomBtns button.go{background:rgba(7,193,96,.24);border-color:rgba(7,193,96,.5);color:#8fe2b3}
+#rooms .roomBtns button.warn{color:#ff9c8a;border-color:rgba(255,120,100,.35)}
+#rooms .roomDot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#3b4a5e;margin-right:4px;vertical-align:middle}
+#rooms .roomDot.on{background:#07c160;box-shadow:0 0 6px #07c160}
+#rooms button:disabled{opacity:.38}
+#roomOnline{position:fixed;right:10px;top:calc(52px + env(safe-area-inset-top));z-index:9;background:rgba(7,22,15,.82);border:1px solid rgba(7,193,96,.42);color:#8fe2b3;font-size:11px;line-height:1;padding:6px 10px;border-radius:999px;pointer-events:none;backdrop-filter:blur(6px);max-width:70vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .whead{display:flex;align-items:center;gap:8px;padding:calc(10px + env(safe-area-inset-top)) 10px 8px;border-bottom:1px solid rgba(255,255,255,.08)}
 .whead .wback{background:none;border:none;color:#dce7f7;font-size:26px;width:34px;line-height:1;padding:0}
 .whead .wtitle{font-size:15px;font-weight:600;flex:1}
@@ -311,12 +330,14 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
     <button class="tb" id="btnWorld">时序</button>
     <button class="tb" id="btnChem">化学</button>
     <button class="tb" id="btnAI">AI</button>
+    <button class="tb" id="btnRooms">房间</button>
     <div id="clockChip" role="button" title="打开时序面板">
       <div class="ck1"><span id="ckDate">公元0年1月1日 01:00:01</span><span class="sp" id="ckSpeed">60×</span></div>
       <div class="ck2"><span id="ckTerm">冬 · 小寒</span><b id="ckTemp">—</b><span id="ckLight">光 —</span></div>
       <button id="btnFront" type="button" title="正面 / 背面视角">↺</button>
     </div>
   </div>
+  <div id="roomOnline" class="hidden"></div>
   <div id="hint">拖动画面看向四周 · 左下摇杆移动<br>对准方块点 <b>挖</b> / <b>放</b> · 点击物种名称看属性<br>点右上 <b>时序</b> 看昼夜节气 · <b>化学</b> 查元素与反应<br>制造 → <b>实体</b>：造零件 / 装系统 / 总装 / 拆解</div>
   <div id="cross"></div>
   <div id="hitmark">✕</div>
@@ -445,7 +466,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
       <div class="wrow"><span class="lab">3D 世界</span><button id="btnFauna" class="on" type="button">动物显示</button><button id="btnEcoFast" type="button">生态 +30 天</button></div>
       <div class="wsec">世界存档 · 自动保存</div>
       <div class="wrow"><button id="btnSave" type="button">保存</button><button id="btnLoad" type="button">读取</button><button id="btnWipe" type="button">重置世界</button><span class="lab" id="saveInfo">尚无存档</span></div>
-      <div class="note">存档保存在本机浏览器 localStorage：方块改动、玩家位置、地域、时间与速度、动物显隐、方盒模型。时间流动时每 15 秒自动保存一次；暂停或退出页面时也会保存。换手机或清缓存不会同步。</div>
+      <div class="note">未登录时存档保存在本机浏览器 localStorage；登录后可在顶部「房间」把当前世界保存到账号，支持多个命名房间。时间流动时每 15 秒自动保存一次；暂停或退出页面时也会保存。单机房间、联机房间和汽车都会写入服务器房间存档。</div>
       <div class="note">时间从公元 0 年 1 月 1 日 01:00:01 起算，按天文纪年（有 0 年，0 年为闰年）。太阳位置用低精度天文公式；温度、辐照、光照为教学近似模型，不是气象预报。夜间光照由月光与星光组成。</div>
     </div>
     <div id="wpanel-terms" class="wpanel">
@@ -512,6 +533,36 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
   </div>
   <div class="wbody" id="spBody"></div>
 </div>
+<div id="rooms" class="hidden">
+  <div class="whead">
+    <button class="wback" id="roomsBack" type="button">‹</button>
+    <div class="wtitle">世界房间</div>
+    <div class="wsub" id="roomsUser">未登录</div>
+  </div>
+  <div class="wbody">
+    <div id="roomsLogin">
+      <div class="note">用极简聊天账号登录后，单机/联机房间会保存到服务器，按账号隔离，换手机也能继续。未登录仍可使用本机存档。</div>
+      <div class="wrow"><span class="lab">服务器</span><input id="roomsSrv" type="text" placeholder="http://101.200.171.33:3777"></div>
+      <div class="wrow"><span class="lab">账号</span><input id="roomsName" type="text" placeholder="极简聊天昵称"></div>
+      <div class="wrow"><span class="lab">密码</span><input id="roomsPass" type="password" placeholder="4-32位"></div>
+      <div class="wrow"><button id="roomsLoginBtn" type="button">登录</button><button id="roomsRegBtn" type="button">注册新号</button><span class="lab" id="roomsMsg"></span></div>
+      <div class="note">账号与「极简聊天」通用；双方需先在聊天里加为好友，联机房间才能邀请。</div>
+      <div class="note">在服务器上打开会自动填当前地址；GitHub Pages 是 HTTPS，请填 https://101.200.171.33:3778（首次需在浏览器里信任自签证书）。</div>
+    </div>
+    <div id="roomsMain" class="hidden">
+      <div class="wrow"><span class="lab">当前</span><span class="lab" id="roomsCurrent">未进入房间（使用本机存档）</span><span class="lab" id="roomsSaveInfo"></span></div>
+      <div class="wrow"><button id="roomsSaveBtn" type="button">立即保存</button><button id="roomsExitBtn" type="button">退出房间（自动存档）</button><button id="roomsRefreshBtn" type="button">刷新</button><button id="roomsLogoutBtn" type="button">退出登录</button></div>
+      <div class="wsec">新建房间 · 单机存档 / 联机邀请</div>
+      <div class="wrow"><input id="roomsNewName" type="text" maxlength="24" placeholder="房间名，例如：华北生存档"><select id="roomsNewMode"><option value="solo">单机</option><option value="coop">联机</option></select><button id="roomsCreateBtn" type="button">新建</button></div>
+      <div class="wsec">我的房间 / 收到的邀请</div>
+      <div id="roomsList"><div class="note">正在读取房间...</div></div>
+      <div class="wsec" id="roomsFriendsTitle">通讯录好友</div>
+      <div id="roomsFriends" class="note">在联机房间点「邀请」后，这里会列出好友。</div>
+      <div class="note">房间存档保存在服务器，按账号隔离。联机房间多人进入时共用同一份存档，适合轮流建设；同一时间多人编辑会以最后一次保存为准，暂不做实时同屏同步。</div>
+    </div>
+  </div>
+</div>
+
 <script>
 (function(){
 'use strict';
@@ -2852,15 +2903,17 @@ function rleDecode(str,len){
   return p===len?out:null;
 }
 function saveInfoText(s){var el=document.getElementById('saveInfo');if(el)el.textContent=s;}
-function saveWorld(manual){
+function saveWorld(manual,skipRoom){
   try{
     saveVehicles();
     var data={v:1,ts:Date.now(),sim:sim,speed:speed,region:worldRegion,sel:sel,showFauna:showFauna,fly:flyMode,
       inv:{hot:hotbarSlots.map(function(x){return x?{id:x.id,n:x.n}:null;}),bag:bag.map(function(x){return {id:x.id,n:x.n};})},
       player:{x:player.x,y:player.y,z:player.z,yaw:player.yaw,pitch:player.pitch,vy:player.vy},
-      blocks:rleEncode(blocks)};
+      blocks:rleEncode(blocks),
+      veh:(function(){try{return JSON.parse(localStorage.getItem(VEH_KEY)||'null');}catch(e){return null;}})()};
     var raw=JSON.stringify(data);
     localStorage.setItem(SAVE_KEY,raw);
+    if(!skipRoom){try{wrOnSaved(raw,!!manual);}catch(e){}}
     var kb=(raw.length/1024).toFixed(1);
     var tm=new Date();
     saveInfoText('已保存 '+pad2(tm.getHours())+':'+pad2(tm.getMinutes())+':'+pad2(tm.getSeconds())+' · '+kb+' KB');
@@ -2936,6 +2989,482 @@ function wipeWorld(){
   saveInfoText('存档已清除 · 世界已重新生成');
   toast('已按「'+REGIONS[curRegion].n+'」重新生成世界');
 }
+/* ---------- 账号世界房间：单机存档 / 联机邀请 ---------- */
+var WR_ACC_KEY = 'mapping-world-account-v1';
+var WRoom = {
+  srv: '', token: '', name: '', rooms: [], room: null, version: 0,
+  friends: [], inviteRoom: '', busy: false, uploading: false, pending: null,
+  saveTimer: 0, pingTimer: 0, listTimer: 0, presenceTimer: 0, lastSave: 0
+};
+
+function wrEsc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+  });
+}
+function wrDefaultSrv() {
+  try {
+    var h = location.hostname;
+    if (/github\.io$/i.test(h)) return location.protocol === 'https:' ? 'https://101.200.171.33:3778' : 'http://101.200.171.33:3777';
+    if (location.protocol === 'file:') return 'http://101.200.171.33:3777';
+    if (location.protocol === 'http:' || location.protocol === 'https:') return location.origin;
+  } catch (e) {}
+  return 'http://101.200.171.33:3777';
+}
+function wrLoadAcc() {
+  try { return JSON.parse(localStorage.getItem(WR_ACC_KEY) || 'null') || null; } catch (e) { return null; }
+}
+function wrSaveAcc() {
+  try {
+    localStorage.setItem(WR_ACC_KEY, JSON.stringify({ srv: WRoom.srv, name: WRoom.name, token: WRoom.token }));
+  } catch (e) {}
+}
+function wrSetMsg(s) {
+  var el = document.getElementById('roomsMsg');
+  if (el) el.textContent = s || '';
+}
+function wrTime(ts) {
+  if (!ts) return '—';
+  var d = new Date(ts);
+  return (d.getMonth() + 1) + '-' + pad2(d.getDate()) + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+}
+function wrApi(path, body, noAuth) {
+  var base = (WRoom.srv || wrDefaultSrv()).replace(/\/+$/, '');
+  var url = base + path;
+  if (!noAuth) url += (path.indexOf('?') >= 0 ? '&' : '?') + 'token=' + encodeURIComponent(WRoom.token);
+  var opt = { method: body ? 'POST' : 'GET', headers: { 'Content-Type': 'application/json' } };
+  if (body) opt.body = JSON.stringify(body);
+  var ctrl = null;
+  if (typeof AbortController !== 'undefined') {
+    ctrl = new AbortController();
+    opt.signal = ctrl.signal;
+    setTimeout(function () { try { ctrl.abort(); } catch (e) {} }, 12000);
+  }
+  return fetch(url, opt).then(function (r) {
+    return r.json().catch(function () { return { ok: false, error: '服务器返回异常' }; });
+  }).catch(function (e) {
+    return { ok: false, error: e && e.name === 'AbortError' ? '连接超时' : '无法连接服务器' };
+  });
+}
+function wrAuthError(r) { return !!(r && !r.ok && /登录/.test(String(r.error || ''))); }
+function wrFind(id) {
+  for (var i = 0; i < WRoom.rooms.length; i++) if (WRoom.rooms[i].id === id) return WRoom.rooms[i];
+  return null;
+}
+function wrRenderRooms() {
+  var login = document.getElementById('roomsLogin'), main = document.getElementById('roomsMain');
+  if (!login || !main) return;
+  var logged = !!WRoom.token;
+  login.classList.toggle('hidden', logged);
+  main.classList.toggle('hidden', !logged);
+  var user = document.getElementById('roomsUser');
+  if (user) user.textContent = logged ? ('已登录 ' + WRoom.name + ' · ' + WRoom.srv) : '未登录';
+  var cur = document.getElementById('roomsCurrent');
+  if (cur) cur.textContent = WRoom.room ? ('房间：' + WRoom.room.name + '（v' + WRoom.version + '）') : '未进入房间（使用本机存档）';
+  var sb = document.getElementById('roomsSaveBtn'), eb = document.getElementById('roomsExitBtn');
+  if (sb) sb.disabled = !WRoom.room;
+  if (eb) eb.disabled = !WRoom.room;
+  wrSetSaveInfo();
+  wrUpdateBadge();
+  wrUpdateOnlineChip();
+  if (!logged) return;
+
+  var h = '', inv = [], mine = [];
+  for (var i = 0; i < WRoom.rooms.length; i++) {
+    var r = WRoom.rooms[i];
+    if (r.role === 'invited') inv.push(r); else mine.push(r);
+  }
+  if (inv.length) {
+    h += '<div class="wsec">收到的联机邀请</div>';
+    inv.forEach(function (r) {
+      h += '<div class="roomItem pending"><div class="roomTop"><b>' + wrEsc(r.name) + '</b><span class="roomTag coop">联机邀请</span></div>' +
+        '<div class="roomMeta">' + wrEsc(r.invitedBy || r.owner) + ' 邀请你加入 · 房主 ' + wrEsc(r.owner) + ' · 成员 ' + r.memberCount + ' 人</div>' +
+        '<div class="roomBtns"><button class="go" data-wr="accept" data-id="' + wrEsc(r.id) + '">接受邀请</button>' +
+        '<button data-wr="reject" data-id="' + wrEsc(r.id) + '">拒绝</button></div></div>';
+    });
+  }
+  h += '<div class="wsec">我的房间</div>';
+  if (!mine.length) h += '<div class="note">还没有房间。输入名称选「单机」或「联机」，点新建即可。</div>';
+  mine.forEach(function (r) {
+    var online = r.online || [];
+    var mem = (r.members || []).map(function (n) {
+      return '<span class="roomDot ' + (online.indexOf(n) >= 0 ? 'on' : '') + '"></span>' + wrEsc(n);
+    }).join(' · ');
+    var tags = '<span class="roomTag ' + (r.mode === 'coop' ? 'coop' : '') + '">' + (r.mode === 'coop' ? '联机' : '单机') + '</span>';
+    if (r.role === 'owner') tags += '<span class="roomTag">房主</span>';
+    var btns = '<button class="go" data-wr="enter" data-id="' + wrEsc(r.id) + '">' + (WRoom.room && WRoom.room.id === r.id ? '继续游戏' : '进入房间') + '</button>';
+    if (r.mode === 'coop' && (r.role === 'owner' || r.role === 'member')) btns += '<button data-wr="invite" data-id="' + wrEsc(r.id) + '">邀请好友</button>';
+    if (r.role === 'owner') btns += '<button data-wr="rename" data-id="' + wrEsc(r.id) + '">改名</button><button class="warn" data-wr="delete" data-id="' + wrEsc(r.id) + '">删除</button>';
+    if (r.role === 'member') btns += '<button class="warn" data-wr="leave" data-id="' + wrEsc(r.id) + '">退出成员</button>';
+    h += '<div class="roomItem"><div class="roomTop"><b>' + wrEsc(r.name) + '</b>' + tags + '</div>' +
+      '<div class="roomMeta">房主 ' + wrEsc(r.owner) + ' · 成员 ' + (r.memberCount || 1) + ' 人 · 在线 ' + (online.length || 0) + ' 人</div>' +
+      '<div class="roomMeta">' + mem + '</div>' +
+      '<div class="roomMeta">' + (r.hasSave ? ('存档 ' + (r.saveBytes / 1024).toFixed(1) + ' KB · 最后保存 ' + wrTime(r.updatedAt) + ' · v' + r.version + (r.saveBy ? ' · ' + wrEsc(r.saveBy) : '')) : '尚无存档（进入后自动写入）') + '</div>' +
+      '<div class="roomBtns">' + btns + '</div></div>';
+  });
+  var list = document.getElementById('roomsList');
+  if (list) list.innerHTML = h;
+  wrRenderFriends();
+}
+function wrRenderFriends() {
+  var box = document.getElementById('roomsFriends');
+  if (!box) return;
+  if (!WRoom.inviteRoom) {
+    box.innerHTML = '<div class="note">在联机房间点「邀请好友」后，这里会列出通讯录好友。</div>';
+    return;
+  }
+  var r = wrFind(WRoom.inviteRoom);
+  if (!r) { box.innerHTML = ''; return; }
+  var h = '<div class="note">邀请好友进入「' + wrEsc(r.name) + '」：</div>';
+  if (!WRoom.friends.length) {
+    h += '<div class="note">通讯录还没有好友，请先在极简聊天里添加并互相通过。</div>';
+  } else {
+    WRoom.friends.forEach(function (f) {
+      var joined = (r.members || []).indexOf(f.name) >= 0;
+      h += '<div class="wrow"><span class="lab"><span class="roomDot ' + (f.online ? 'on' : '') + '"></span>' + wrEsc(f.name) + '</span>' +
+        (joined ? '<span class="roomTag">已在房间</span>' : '<button data-wr-invite="' + wrEsc(f.name) + '">邀请</button>') + '</div>';
+    });
+  }
+  box.innerHTML = h;
+}
+function wrSetSaveInfo() {
+  var el = document.getElementById('roomsSaveInfo');
+  if (!el) return;
+  if (!WRoom.room) { el.textContent = ''; return; }
+  el.textContent = WRoom.lastSave ? ('已保存 ' + wrTime(WRoom.lastSave)) : '尚未保存';
+}
+function wrUpdateBadge() {
+  var b = document.getElementById('btnRooms');
+  if (!b) return;
+  b.textContent = WRoom.room ? '房间 ●' : '房间';
+  b.classList.toggle('on', !!WRoom.room);
+}
+function wrUpdateOnlineChip() {
+  var el = document.getElementById('roomOnline');
+  if (!el) return;
+  if (!WRoom.room || WRoom.room.mode !== 'coop') { el.classList.add('hidden'); return; }
+  var arr = WRoom.room.online || [];
+  el.textContent = '联机 · ' + (arr.length ? arr.join(' / ') : '仅你在线');
+  el.classList.remove('hidden');
+}
+function wrLoadRooms() {
+  return wrApi('/api/world/rooms').then(function (r) {
+    if (!r || !r.ok) {
+      if (wrAuthError(r)) wrLogout(true); else wrSetMsg((r && r.error) || '读取房间失败');
+      return;
+    }
+    WRoom.rooms = r.rooms || [];
+    if (WRoom.room) {
+      var cur = wrFind(WRoom.room.id);
+      if (cur) WRoom.room = cur;
+      else { WRoom.room = null; WRoom.version = 0; wrStopPresence(); }
+    }
+    wrRenderRooms();
+  });
+}
+function wrRefreshFriends() {
+  return wrApi('/api/friends').then(function (r) {
+    if (r && r.ok) { WRoom.friends = r.friends || []; wrRenderFriends(); }
+  });
+}
+function wrAfterLogin() {
+  wrSaveAcc();
+  wrSetMsg('');
+  wrRenderRooms();
+  wrLoadRooms();
+  wrRefreshFriends();
+  if (!WRoom.pingTimer) WRoom.pingTimer = setInterval(wrPing, 8000);
+  if (!WRoom.listTimer) WRoom.listTimer = setInterval(function () {
+    if (!document.getElementById('rooms').classList.contains('hidden')) wrLoadRooms();
+  }, 20000);
+}
+function wrPing() {
+  if (!WRoom.token) return;
+  wrApi('/api/ping').then(function (r) {
+    if (wrAuthError(r)) wrLogout(true);
+  });
+}
+function wrLogin(reg) {
+  var srv = (document.getElementById('roomsSrv').value || '').trim();
+  var n = (document.getElementById('roomsName').value || '').trim();
+  var p = document.getElementById('roomsPass').value || '';
+  if (!n || !p) { wrSetMsg('请填写账号和密码'); return; }
+  if (!srv) srv = wrDefaultSrv();
+  if (!/^https?:\/\//i.test(srv)) srv = 'http://' + srv;
+  WRoom.srv = srv.replace(/\/+$/, '');
+  wrSetMsg(reg ? '注册中...' : '登录中...');
+  wrApi(reg ? '/api/register' : '/api/login', { name: n, password: p }, true).then(function (r) {
+    if (r && r.ok) {
+      WRoom.token = r.token;
+      WRoom.name = n;
+      wrAfterLogin();
+      toast(reg ? '注册并登录成功' : '登录成功');
+    } else {
+      wrSetMsg((r && r.error) || '登录失败');
+    }
+  });
+}
+async function wrLogout(silent) {
+  if (WRoom.room && WRoom.token) { try { await wrSaveNow(true); } catch (e) {} }
+  if (WRoom.token) { try { wrApi('/api/logout', {}); } catch (e) {} }
+  WRoom.token = ''; WRoom.name = ''; WRoom.room = null; WRoom.version = 0;
+  WRoom.rooms = []; WRoom.friends = []; WRoom.inviteRoom = '';
+  wrStopPresence();
+  if (WRoom.pingTimer) { clearInterval(WRoom.pingTimer); WRoom.pingTimer = 0; }
+  if (WRoom.listTimer) { clearInterval(WRoom.listTimer); WRoom.listTimer = 0; }
+  wrSaveAcc();
+  wrRenderRooms();
+  if (!silent) toast('已退出登录');
+  else wrSetMsg('登录已过期，请重新登录');
+}
+function wrCreateRoom() {
+  var name = (document.getElementById('roomsNewName').value || '').trim();
+  var mode = document.getElementById('roomsNewMode').value === 'coop' ? 'coop' : 'solo';
+  if (!name) { toast('请输入房间名'); return; }
+  if (WRoom.busy) return;
+  WRoom.busy = true;
+  (async function () {
+    try {
+      if (WRoom.room) await wrSaveNow(true);
+      var r = await wrApi('/api/world/rooms/create', { name: name, mode: mode });
+      if (!r || !r.ok) { toast('新建失败：' + ((r && r.error) || '网络错误')); return; }
+      document.getElementById('roomsNewName').value = '';
+      await wrLoadRooms();
+      WRoom.busy = false;
+      await wrEnter(r.room.id);
+    } finally { WRoom.busy = false; }
+  })();
+}
+async function wrEnter(id) {
+  if (WRoom.busy) return;
+  var room = wrFind(id);
+  if (!room) return;
+  WRoom.busy = true;
+  try {
+    if (WRoom.room && WRoom.room.id !== id) await wrSaveNow(true);
+    var r = await wrApi('/api/world/rooms/save?id=' + encodeURIComponent(id));
+    if (!r || !r.ok) { toast('进入房间失败：' + ((r && r.error) || '网络错误')); return; }
+    if (r.save) wrApplySave(r.save);
+    WRoom.room = r.room || room;
+    WRoom.version = r.version || 0;
+    if (!r.save) await wrSaveNow(true);
+    wrStartPresence();
+    document.getElementById('rooms').classList.add('hidden');
+    wrRenderRooms();
+    toast(r.save ? ('已进入房间：' + WRoom.room.name) : ('已创建房间存档：' + WRoom.room.name));
+  } finally { WRoom.busy = false; }
+}
+function wrApplySave(save) {
+  try {
+    if (save && save.veh) localStorage.setItem(VEH_KEY, JSON.stringify(save.veh));
+    localStorage.setItem(SAVE_KEY, JSON.stringify(save));
+    restoreVehicles();
+    if (typeof refreshSolid === 'function') refreshSolid();
+    if (typeof updateVehBar === 'function') updateVehBar();
+    return loadWorld(false);
+  } catch (e) {
+    toast('读取房间存档失败：' + e.message);
+    return false;
+  }
+}
+async function wrExitRoom() {
+  if (!WRoom.room) return;
+  var nm = WRoom.room.name;
+  await wrSaveNow(true);
+  WRoom.room = null; WRoom.version = 0;
+  wrStopPresence();
+  wrRenderRooms();
+  toast('已退出并保存：' + nm);
+}
+function wrSaveNow(manual) {
+  if (!WRoom.room || !WRoom.token) return Promise.resolve(false);
+  saveWorld(false, true);
+  var raw = null;
+  try { raw = localStorage.getItem(SAVE_KEY); } catch (e) {}
+  if (!raw) return Promise.resolve(false);
+  return wrUpload(raw, manual);
+}
+function wrUpload(raw, manual) {
+  if (!WRoom.room || !WRoom.token) return Promise.resolve(false);
+  if (WRoom.uploading) { WRoom.pending = raw; return Promise.resolve(false); }
+  var data;
+  try { data = JSON.parse(raw); } catch (e) { return Promise.resolve(false); }
+  WRoom.uploading = true;
+  return wrApi('/api/world/rooms/save', { id: WRoom.room.id, save: data, baseVersion: WRoom.version }).then(function (r) {
+    WRoom.uploading = false;
+    if (r && r.ok) {
+      WRoom.version = r.version;
+      WRoom.room.version = r.version;
+      WRoom.room.saveBytes = r.saveBytes;
+      WRoom.room.updatedAt = r.updatedAt;
+      WRoom.room.hasSave = true;
+      WRoom.room.saveBy = WRoom.name;
+      WRoom.lastSave = Date.now();
+      wrSetSaveInfo();
+      if (manual) toast('房间已保存');
+    } else {
+      toast('房间保存失败：' + ((r && r.error) || '网络错误'));
+    }
+    if (WRoom.pending) {
+      var p = WRoom.pending; WRoom.pending = null;
+      wrUpload(p, false);
+    }
+    return !!(r && r.ok);
+  });
+}
+function wrOnSaved(raw, manual) {
+  if (!WRoom.room || !WRoom.token) return;
+  if (manual) { wrUpload(raw, true); return; }
+  WRoom.pending = raw;
+  if (WRoom.saveTimer) clearTimeout(WRoom.saveTimer);
+  WRoom.saveTimer = setTimeout(function () {
+    WRoom.saveTimer = 0;
+    var p = WRoom.pending; WRoom.pending = null;
+    if (p) wrUpload(p, false);
+  }, 700);
+}
+function wrBeaconSave() {
+  if (!WRoom.room || !WRoom.token) return;
+  try {
+    saveWorld(false, true);
+    var raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return;
+    var payload = JSON.stringify({ id: WRoom.room.id, save: JSON.parse(raw), baseVersion: WRoom.version });
+    fetch((WRoom.srv || wrDefaultSrv()) + '/api/world/rooms/save?token=' + encodeURIComponent(WRoom.token), {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload, keepalive: true
+    }).catch(function () {});
+  } catch (e) {}
+}
+function wrStartPresence() {
+  wrStopPresence();
+  wrPresence();
+  WRoom.presenceTimer = setInterval(wrPresence, 8000);
+}
+function wrPresence() {
+  if (!WRoom.room || !WRoom.token) return;
+  wrApi('/api/world/rooms/presence', { id: WRoom.room.id, x: player.x, z: player.z, sim: sim }).then(function (r) {
+    if (r && r.ok) {
+      var room = wrFind(WRoom.room.id);
+      if (room) room.online = r.online || [];
+      wrUpdateOnlineChip();
+      if (!document.getElementById('rooms').classList.contains('hidden')) wrRenderRooms();
+    }
+  });
+}
+function wrStopPresence() {
+  if (WRoom.presenceTimer) { clearInterval(WRoom.presenceTimer); WRoom.presenceTimer = 0; }
+}
+function wrRenameRoom(id) {
+  var r = wrFind(id);
+  if (!r) return;
+  var name = prompt('新的房间名', r.name);
+  if (name === null) return;
+  name = name.trim();
+  if (!name) return;
+  wrApi('/api/world/rooms/rename', { id: id, name: name }).then(function (res) {
+    if (res && res.ok) { toast('房间已改名'); wrLoadRooms(); } else toast((res && res.error) || '改名失败');
+  });
+}
+function wrDeleteRoom(id) {
+  var r = wrFind(id);
+  if (!r) return;
+  if (!confirm('删除房间「' + r.name + '」及服务器存档？')) return;
+  wrApi('/api/world/rooms/delete', { id: id }).then(function (res) {
+    if (res && res.ok) {
+      if (WRoom.room && WRoom.room.id === id) { WRoom.room = null; WRoom.version = 0; wrStopPresence(); }
+      toast('房间已删除'); wrLoadRooms();
+    } else toast((res && res.error) || '删除失败');
+  });
+}
+function wrLeaveRoom(id) {
+  var r = wrFind(id);
+  if (!r) return;
+  if (!confirm('退出房间「' + r.name + '」的成员？房间存档会保留。')) return;
+  wrApi('/api/world/rooms/leave', { id: id }).then(function (res) {
+    if (res && res.ok) {
+      if (WRoom.room && WRoom.room.id === id) { WRoom.room = null; WRoom.version = 0; wrStopPresence(); }
+      toast('已退出房间成员'); wrLoadRooms();
+    } else toast((res && res.error) || '退出失败');
+  });
+}
+function wrAcceptInvite(id) {
+  wrApi('/api/world/rooms/accept', { id: id }).then(function (res) {
+    if (res && res.ok) {
+      wrLoadRooms().then(function () { wrEnter(id); });
+    } else toast((res && res.error) || '接受失败');
+  });
+}
+function wrRejectInvite(id) {
+  wrApi('/api/world/rooms/reject', { id: id }).then(function (res) {
+    if (res && res.ok) { toast('已拒绝邀请'); wrLoadRooms(); } else toast((res && res.error) || '操作失败');
+  });
+}
+function wrInviteFriend(to) {
+  if (!WRoom.inviteRoom) { toast('先在联机房间点「邀请好友」'); return; }
+  wrApi('/api/world/rooms/invite', { id: WRoom.inviteRoom, to: to }).then(function (res) {
+    if (res && res.ok) { toast('已邀请 ' + to); wrLoadRooms(); } else toast((res && res.error) || '邀请失败');
+  });
+}
+function openRooms() {
+  document.getElementById('rooms').classList.remove('hidden');
+  if (WRoom.token) { wrLoadRooms(); wrRefreshFriends(); }
+  wrRenderRooms();
+}
+function closeRooms() {
+  document.getElementById('rooms').classList.add('hidden');
+}
+function wrBind() {
+  function $(id) { return document.getElementById(id); }
+  $('roomsBack').addEventListener('click', closeRooms);
+  $('btnRooms').addEventListener('click', openRooms);
+  $('roomsLoginBtn').addEventListener('click', function () { wrLogin(false); });
+  $('roomsRegBtn').addEventListener('click', function () { wrLogin(true); });
+  $('roomsPass').addEventListener('keydown', function (e) { if (e.key === 'Enter') wrLogin(false); });
+  $('roomsRefreshBtn').addEventListener('click', function () { wrLoadRooms(); wrRefreshFriends(); toast('已刷新'); });
+  $('roomsLogoutBtn').addEventListener('click', function () { wrLogout(false); });
+  $('roomsCreateBtn').addEventListener('click', wrCreateRoom);
+  $('roomsSaveBtn').addEventListener('click', function () { wrSaveNow(true); });
+  $('roomsExitBtn').addEventListener('click', wrExitRoom);
+  $('roomsList').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-wr]');
+    if (!b) return;
+    var act = b.getAttribute('data-wr'), id = b.getAttribute('data-id');
+    if (act === 'enter') wrEnter(id);
+    else if (act === 'accept') wrAcceptInvite(id);
+    else if (act === 'reject') wrRejectInvite(id);
+    else if (act === 'invite') { WRoom.inviteRoom = id; wrRenderFriends(); }
+    else if (act === 'rename') wrRenameRoom(id);
+    else if (act === 'delete') wrDeleteRoom(id);
+    else if (act === 'leave') wrLeaveRoom(id);
+  });
+  $('roomsFriends').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-wr-invite]');
+    if (b) wrInviteFriend(b.getAttribute('data-wr-invite'));
+  });
+  addEventListener('pagehide', wrBeaconSave);
+  addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !$('rooms').classList.contains('hidden')) closeRooms();
+  });
+}
+function wrInit() {
+  var acc = wrLoadAcc();
+  WRoom.srv = (acc && acc.srv) || wrDefaultSrv();
+  WRoom.name = (acc && acc.name) || '';
+  WRoom.token = (acc && acc.token) || '';
+  var s = document.getElementById('roomsSrv');
+  if (s) s.value = WRoom.srv;
+  var n = document.getElementById('roomsName');
+  if (n) n.value = WRoom.name;
+  wrBind();
+  wrRenderRooms();
+  if (WRoom.token) {
+    wrApi('/api/friends').then(function (r) {
+      if (r && r.ok) wrAfterLogin();
+      else { WRoom.token = ''; wrSaveAcc(); wrRenderRooms(); wrSetMsg('登录已过期，请重新登录'); }
+    });
+  }
+}
+
 function sunArcHTML(){
   var h=env.D.sod/3600;
   var x=20+h/24*280;
@@ -8129,11 +8658,13 @@ if(!restored)initAgents();
 restoreVehicles();
 ensureVehUI();
 bindVehActions();
+wrInit();
 if(restored){
   setTimeout(function(){toast('已恢复上次存档：'+fmtDate(env.D)+' '+fmtClock(env.D));},1200);
 }else{
   setTimeout(function(){toast('时间起点：公元0年1月1日 01:00:01 · 当前 60× 流动');},1200);
 }
+window.__wr={state:WRoom,load:wrLoadRooms,enter:wrEnter,exit:wrExitRoom,save:wrSaveNow,create:wrCreateRoom,accept:wrAcceptInvite,invite:wrInviteFriend};
 window.__world={
   get:function(){return {sim:sim,speed:speed,region:curRegion,showFauna:showFauna,date:env.D,env:env};},
   set:function(s){sim=s;updateEnv(0);updateHUD();renderAll();},

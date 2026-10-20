@@ -1,4 +1,4 @@
-// 极简云服务端 v3.2.0 (Node.js 零依赖)
+// 极简云服务端 v3.3.0 (Node.js 零依赖)
 // = 完整聊天(好友/群聊/已读/撤回/文件) + 火影联机信令 + 排行榜 + 门户
 // 用法: node server.js --port=3777 --datadir=./data
 'use strict';
@@ -22,11 +22,14 @@ const GAMEHTML = args.game || path.join(__dirname, 'naruto.html');
 const CHATHTML = args.chat || path.join(__dirname, 'mobile.html');
 const PORTALHTML = args.portal || path.join(__dirname, 'portal.html');
 const WORLDHTML = args.world || path.join(__dirname, 'world.html');
+const WORLDDIR = path.join(DATADIR, 'worlds');
+try { fs.mkdirSync(WORLDDIR, { recursive: true }); } catch (e) {}
 try { fs.mkdirSync(FILESDIR, { recursive: true }); } catch (e) {}
 
 // ---------- 状态 ----------
-const state = { users: {}, friends: {}, requests: {}, groups: [], messages: [], nextId: 1, rank: {}, cleared: {}, reports: [] };
+const state = { users: {}, friends: {}, requests: {}, groups: [], messages: [], nextId: 1, rank: {}, cleared: {}, reports: [], worldRooms: {} };
 const fsRooms = {};   // 火影帧同步房间: id -> {a,b,frames:{},next}
+const worldPresence = {}; // 世界房间在线心跳: roomId -> {name:{at,x,z,sim}}
 const stateFile = path.join(DATADIR, 'state.json');
 function loadState() {
   try {
@@ -40,6 +43,7 @@ function loadState() {
     state.rank = s.rank || {};
     state.cleared = s.cleared || {};
     state.reports = s.reports || [];
+    state.worldRooms = s.worldRooms || {};
   } catch (e) {}
 }
 function saveState() {
@@ -122,6 +126,51 @@ function addMsg(from, to, type, text, extra) {
   state.messages.push(m);
   if (state.messages.length > 5000) state.messages.splice(0, state.messages.length - 5000);
   return m;
+}
+
+
+// ---------- 世界房间 ----------
+function sanRoomName(s) {
+  s = String(s || '').replace(/[\u0000-\u001f\u007f<>]/g, '').trim();
+  if (!s || s.length > 24) return '';
+  return s;
+}
+function worldRoomById(id) { return state.worldRooms[id] || null; }
+function worldRole(r, name) {
+  if (!r || !name) return '';
+  if (r.owner === name) return 'owner';
+  if ((r.members || []).indexOf(name) >= 0) return 'member';
+  if ((r.invites || []).indexOf(name) >= 0) return 'invited';
+  return '';
+}
+function worldCanOpen(r, name) {
+  const role = worldRole(r, name);
+  return role === 'owner' || role === 'member';
+}
+function worldOnline(id) {
+  const t = now(), box = worldPresence[id] || {}, arr = [];
+  for (const n in box) {
+    if (t - (box[n].at || 0) > 30000) delete box[n];
+    else arr.push(n);
+  }
+  return arr;
+}
+function worldRoomDTO(r, name) {
+  const role = worldRole(r, name);
+  return {
+    id: r.id, name: r.name, owner: r.owner, mode: r.mode || 'solo',
+    members: (r.members || []).slice(), memberCount: (r.members || []).length,
+    role: role, invitedBy: (r.inviteBy && r.inviteBy[name]) || '',
+    createdAt: r.createdAt || 0, updatedAt: r.updatedAt || 0,
+    version: r.version || 0, saveBytes: r.saveBytes || 0, saveBy: r.saveBy || '',
+    hasSave: (r.saveBytes || 0) > 0, online: worldOnline(r.id)
+  };
+}
+function worldSaveFile(id) { return path.join(WORLDDIR, id + '.json'); }
+function worldNewId() {
+  let id;
+  do { id = 'w' + Date.now().toString(36) + crypto.randomBytes(2).toString('hex'); } while (state.worldRooms[id]);
+  return id;
 }
 
 // ---------- HTTP ----------
@@ -222,7 +271,7 @@ async function handle(req, res) {
   }
 
   // ---------- 基础 ----------
-  if (p === '/api/status') { ok(res, { ok: true, app: '极简聊天云服务端', version: '3.2.0' }); return; }
+  if (p === '/api/status') { ok(res, { ok: true, app: '极简聊天云服务端', version: '3.3.0' }); return; }
 
   if (p === '/api/register') {
     const b = JSON.parse(((await readBody(req)) || '{}').toString());
@@ -323,6 +372,212 @@ async function handle(req, res) {
     removeFriendPair(name, sanName(b.name));
     saveState();
     return ok(res, { ok: true });
+  }
+
+
+  // ---------- 世界房间 (账号存档 / 联机邀请) ----------
+  if (p === '/api/world/rooms' && req.method === 'GET') {
+    const name = auth(req);
+    if (!name) return fail(res, 401, '请先登录');
+    const arr = [];
+    for (const id in state.worldRooms) {
+      const r = state.worldRooms[id];
+      if (worldRole(r, name)) arr.push(worldRoomDTO(r, name));
+    }
+    arr.sort(function (a, b) { return (b.updatedAt || 0) - (a.updatedAt || 0); });
+    return ok(res, { ok: true, rooms: arr });
+  }
+
+  if (p === '/api/world/rooms/create') {
+    const name = auth(req);
+    if (!name) return fail(res, 401, '请先登录');
+    let b = {};
+    try { b = JSON.parse(((await readBody(req, 512 * 1024)) || '{}').toString()); } catch (e) { return fail(res, 400, '请求格式错误'); }
+    const rn = sanRoomName(b.name);
+    const mode = b.mode === 'coop' ? 'coop' : 'solo';
+    if (!rn) return fail(res, 400, '房间名需为1-24个字符');
+    let owned = 0;
+    for (const id in state.worldRooms) if (state.worldRooms[id].owner === name) owned++;
+    if (owned >= 20) return fail(res, 400, '每人最多创建20个房间');
+    const id = worldNewId();
+    const r = {
+      id: id, name: rn, owner: name, mode: mode, members: [name], invites: [], inviteBy: {},
+      createdAt: now(), updatedAt: now(), version: 0, saveBytes: 0, saveBy: ''
+    };
+    state.worldRooms[id] = r;
+    saveState();
+    return ok(res, { ok: true, room: worldRoomDTO(r, name) });
+  }
+
+  if (p === '/api/world/rooms/rename') {
+    const name = auth(req);
+    if (!name) return fail(res, 401, '请先登录');
+    let b = {};
+    try { b = JSON.parse(((await readBody(req, 512 * 1024)) || '{}').toString()); } catch (e) { return fail(res, 400, '请求格式错误'); }
+    const r = worldRoomById(String(b.id || ''));
+    if (!r) return fail(res, 404, '房间不存在');
+    if (r.owner !== name) return fail(res, 403, '只有房主可以改名');
+    const rn = sanRoomName(b.name);
+    if (!rn) return fail(res, 400, '房间名需为1-24个字符');
+    r.name = rn; r.updatedAt = now();
+    saveState();
+    return ok(res, { ok: true, room: worldRoomDTO(r, name) });
+  }
+
+  if (p === '/api/world/rooms/delete') {
+    const name = auth(req);
+    if (!name) return fail(res, 401, '请先登录');
+    let b = {};
+    try { b = JSON.parse(((await readBody(req, 512 * 1024)) || '{}').toString()); } catch (e) { return fail(res, 400, '请求格式错误'); }
+    const r = worldRoomById(String(b.id || ''));
+    if (!r) return fail(res, 404, '房间不存在');
+    if (r.owner !== name) return fail(res, 403, '只有房主可以删除');
+    try { fs.unlinkSync(worldSaveFile(r.id)); } catch (e) {}
+    delete state.worldRooms[r.id];
+    delete worldPresence[r.id];
+    saveState();
+    return ok(res, { ok: true });
+  }
+
+  if (p === '/api/world/rooms/invite') {
+    const name = auth(req);
+    if (!name) return fail(res, 401, '请先登录');
+    let b = {};
+    try { b = JSON.parse(((await readBody(req, 512 * 1024)) || '{}').toString()); } catch (e) { return fail(res, 400, '请求格式错误'); }
+    const r = worldRoomById(String(b.id || ''));
+    if (!r) return fail(res, 404, '房间不存在');
+    if (r.mode !== 'coop') return fail(res, 400, '单机房间不能邀请好友');
+    if (!worldCanOpen(r, name)) return fail(res, 403, '你不在该房间');
+    const to = String(b.to || '');
+    if (!state.users[to]) return fail(res, 404, '对方账号不存在');
+    if (to === name) return fail(res, 400, '不能邀请自己');
+    if (!isFriend(name, to)) return fail(res, 403, '只能邀请通讯录好友');
+    if ((r.members || []).indexOf(to) >= 0) return fail(res, 409, '对方已在房间');
+    if ((r.invites || []).indexOf(to) < 0) r.invites.push(to);
+    if (!r.inviteBy) r.inviteBy = {};
+    r.inviteBy[to] = name;
+    r.updatedAt = now();
+    addSystem(to, '「' + name + '」邀请你加入世界房间「' + r.name + '」。打开世界页 → 房间 → 接受邀请。');
+    saveState();
+    return ok(res, { ok: true });
+  }
+
+  if (p === '/api/world/rooms/accept') {
+    const name = auth(req);
+    if (!name) return fail(res, 401, '请先登录');
+    let b = {};
+    try { b = JSON.parse(((await readBody(req, 512 * 1024)) || '{}').toString()); } catch (e) { return fail(res, 400, '请求格式错误'); }
+    const r = worldRoomById(String(b.id || ''));
+    if (!r) return fail(res, 404, '房间不存在');
+    if ((r.invites || []).indexOf(name) < 0) return fail(res, 404, '没有待接受的邀请');
+    r.invites = r.invites.filter(function (x) { return x !== name; });
+    if (r.inviteBy) delete r.inviteBy[name];
+    if ((r.members || []).indexOf(name) < 0) r.members.push(name);
+    r.updatedAt = now();
+    addSystem(r.owner, name + ' 已加入你的世界房间「' + r.name + '」');
+    saveState();
+    return ok(res, { ok: true, room: worldRoomDTO(r, name) });
+  }
+
+  if (p === '/api/world/rooms/reject') {
+    const name = auth(req);
+    if (!name) return fail(res, 401, '请先登录');
+    let b = {};
+    try { b = JSON.parse(((await readBody(req, 512 * 1024)) || '{}').toString()); } catch (e) { return fail(res, 400, '请求格式错误'); }
+    const r = worldRoomById(String(b.id || ''));
+    if (!r) return fail(res, 404, '房间不存在');
+    r.invites = (r.invites || []).filter(function (x) { return x !== name; });
+    if (r.inviteBy) delete r.inviteBy[name];
+    saveState();
+    return ok(res, { ok: true });
+  }
+
+  if (p === '/api/world/rooms/leave') {
+    const name = auth(req);
+    if (!name) return fail(res, 401, '请先登录');
+    let b = {};
+    try { b = JSON.parse(((await readBody(req, 512 * 1024)) || '{}').toString()); } catch (e) { return fail(res, 400, '请求格式错误'); }
+    const r = worldRoomById(String(b.id || ''));
+    if (!r) return fail(res, 404, '房间不存在');
+    if (r.owner === name) return fail(res, 400, '房主不能退出，只能删除房间');
+    r.members = (r.members || []).filter(function (x) { return x !== name; });
+    r.invites = (r.invites || []).filter(function (x) { return x !== name; });
+    if (r.inviteBy) delete r.inviteBy[name];
+    r.updatedAt = now();
+    saveState();
+    return ok(res, { ok: true });
+  }
+
+  if (p === '/api/world/rooms/kick') {
+    const name = auth(req);
+    if (!name) return fail(res, 401, '请先登录');
+    let b = {};
+    try { b = JSON.parse(((await readBody(req, 512 * 1024)) || '{}').toString()); } catch (e) { return fail(res, 400, '请求格式错误'); }
+    const r = worldRoomById(String(b.id || ''));
+    if (!r) return fail(res, 404, '房间不存在');
+    if (r.owner !== name) return fail(res, 403, '只有房主可以移除成员');
+    const to = String(b.to || '');
+    if (to === r.owner) return fail(res, 400, '不能移除房主');
+    r.members = (r.members || []).filter(function (x) { return x !== to; });
+    r.invites = (r.invites || []).filter(function (x) { return x !== to; });
+    if (r.inviteBy) delete r.inviteBy[to];
+    r.updatedAt = now();
+    saveState();
+    return ok(res, { ok: true });
+  }
+
+  if (p === '/api/world/rooms/save' && req.method === 'GET') {
+    const name = auth(req);
+    if (!name) return fail(res, 401, '请先登录');
+    const r = worldRoomById(String(qp(req, 'id') || ''));
+    if (!r) return fail(res, 404, '房间不存在');
+    if (!worldCanOpen(r, name)) return fail(res, 403, '你不在该房间');
+    let save = null;
+    try {
+      const f = worldSaveFile(r.id);
+      if (fs.existsSync(f)) save = JSON.parse(fs.readFileSync(f, 'utf8'));
+    } catch (e) { return fail(res, 500, '房间存档读取失败'); }
+    return ok(res, { ok: true, room: worldRoomDTO(r, name), save: save, version: r.version || 0 });
+  }
+
+  if (p === '/api/world/rooms/save' && req.method === 'POST') {
+    const name = auth(req);
+    if (!name) return fail(res, 401, '请先登录');
+    let b = {};
+    try { b = JSON.parse(((await readBody(req, 5 * 1024 * 1024)) || '{}').toString()); } catch (e) { return fail(res, 400, '请求格式错误'); }
+    const r = worldRoomById(String(b.id || ''));
+    if (!r) return fail(res, 404, '房间不存在');
+    if (!worldCanOpen(r, name)) return fail(res, 403, '你不在该房间');
+    if (!b.save || typeof b.save !== 'object' || Array.isArray(b.save)) return fail(res, 400, '存档格式错误');
+    let raw;
+    try { raw = JSON.stringify(b.save); } catch (e) { return fail(res, 400, '存档无法序列化'); }
+    if (Buffer.byteLength(raw, 'utf8') > 4 * 1024 * 1024) return fail(res, 413, '存档超过4MB');
+    try { fs.writeFileSync(worldSaveFile(r.id), raw); } catch (e) { return fail(res, 500, '房间存档写入失败'); }
+    r.version = (r.version || 0) + 1;
+    r.saveBytes = Buffer.byteLength(raw, 'utf8');
+    r.saveBy = name;
+    r.updatedAt = now();
+    saveState();
+    return ok(res, { ok: true, version: r.version, updatedAt: r.updatedAt, saveBytes: r.saveBytes });
+  }
+
+  if (p === '/api/world/rooms/presence') {
+    const name = auth(req);
+    if (!name) return fail(res, 401, '请先登录');
+    let b = {};
+    try { b = JSON.parse(((await readBody(req, 512 * 1024)) || '{}').toString()); } catch (e) { return fail(res, 400, '请求格式错误'); }
+    const r = worldRoomById(String(b.id || ''));
+    if (!r) return fail(res, 404, '房间不存在');
+    if (!worldCanOpen(r, name)) return fail(res, 403, '你不在该房间');
+    if (!worldPresence[r.id]) worldPresence[r.id] = {};
+    worldPresence[r.id][name] = {
+      at: now(),
+      x: Number(b.x) || 0,
+      z: Number(b.z) || 0,
+      sim: Number(b.sim) || 0
+    };
+    lastSeen[name] = now();
+    return ok(res, { ok: true, online: worldOnline(r.id) });
   }
 
   // ---------- 群聊 ----------
@@ -790,7 +1045,7 @@ let httpsStarted = false;
 
 const server = http.createServer(handle);
 server.listen(PORT, '0.0.0.0', function () {
-  console.log('NarutoCloud v3.2.0 listening on http://0.0.0.0:' + PORT + ' datadir=' + DATADIR);
+  console.log('NarutoCloud v3.3.0 listening on http://0.0.0.0:' + PORT + ' datadir=' + DATADIR);
 });
 
 // 自签名证书: 首次访问需在浏览器里点“高级 → 继续前往”
