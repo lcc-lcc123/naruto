@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <link rel="icon" href="data:,">
 <title>映射 + AI 世界</title>
-<meta name="version" content="world-v9.2.1">
+<meta name="version" content="world-v9.4.0">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:"PingFang SC","Microsoft YaHei",sans-serif;color:#fff;touch-action:none;user-select:none;-webkit-user-select:none}
@@ -419,7 +419,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
   </div>
   <div class="wbody">
     <div class="note">1 方块 = 1 米，尺寸以世界里的人（身高 1.78 m）为基准。正门朝西，门口接 5 米宽公路。</div>
-    <div class="wrow"><button id="hotelBuild" type="button">建造 / 重建</button><button id="hotelGo" type="button">传送到大堂</button><button id="hotelReset" type="button">重置门锁密码</button></div>
+    <div class="wrow"><button id="hotelBuild" type="button">建造 / 重建</button><button id="hotelGo" type="button">传送到大堂</button><button id="hotelReset" type="button">重置门锁密码</button>
+        <button id="hotelDemolish" type="button" style="background:#5a1a1a;color:#ffd7d7;border-color:#8a2b2b">一键拆解</button></div>
     <div class="note" id="hotelMetrics"></div>
     <div id="hotelCodes"></div>
     <div class="note" id="hotelRoadInfo"></div>
@@ -666,6 +667,7 @@ var REGION_GEN={
   qz:{base:52,amp:24,scale:0.016,tree:0.0008,conifer:true,surface:'snow',snowLine:48,ridge:true}
 };
 var RG=REGION_GEN.hb;
+var HOTEL_BY_REGION={};
 var canvas=document.getElementById('gl');
 var gl=canvas.getContext('webgl',{antialias:true,alpha:false});
 if(!gl){document.body.innerHTML='<div style="padding:30px;color:#fff;font-size:14px;line-height:1.8">当前浏览器不支持 WebGL，无法进入方块世界。<br>请用 Chrome / Edge / Safari 打开。</div>';return;}
@@ -1652,11 +1654,17 @@ function canDig(){
 }
 function dig(){
   window.__digTry=(window.__digTry||0)+1;
-  if(!canDig()){toast('空手或镐 / 斧 / 铲 / 刀等工具才能挖');return;}
   var h=raycast(6);
+  if(h&&hotelUse(h))return;
   if(!h)return toast('前方没有可挖的方块');
-  if(hotelUse(h))return;
-  if(typeof hotelProtected==='function'&&hotelProtected(h.x,h.z)){toast('酒店设施与墙壁受保护，不能破坏');return;}
+  if(typeof hotelProtected==='function'&&hotelProtected(h.x,h.z)){
+    var hOk=false; try { hOk = !!(HOTEL.canDig && HOTEL.canDig(h.x,h.y,h.z)); } catch(e) {}
+    if(!hOk){toast('酒店墙体 / 门窗 / 家具受保护；你放的草、土、石、木等方块可以拆');return;}
+    setB(h.x,h.y,h.z,0); wsBlock(h.x,h.y,h.z,0); buildMesh();
+    toast('已回收 ' + B[h.b].n + '（酒店内摆放物）');
+    return;
+  }
+  if(!canDig()){toast('空手或镐 / 斧 / 铲 / 刀等工具才能挖');return;}
   window.__digOk=(window.__digOk||0)+1;
   setB(h.x,h.y,h.z,0);
   wsBlock(h.x,h.y,h.z,0);
@@ -1670,7 +1678,13 @@ function place(){
   var x=h.px,y=h.py,z=h.pz;
   if(getB(x,y,z)!==0&&getB(x,y,z)!==5)return;
   var px=player.x,py=player.y,pz=player.z;
-  if(x+1>px-0.3&&x<px+0.3&&y+1>py&&y<py+1.78&&z+1>pz-0.3&&z<pz+0.3)return toast('这里会卡住自己');
+    if(x+1>px-0.3&&x<px+0.3&&y+1>py&&y<py+1.78&&z+1>pz-0.3&&z<pz+0.3){
+      var fx=Math.floor(x-Math.sin(player.yaw||0)), fz=Math.floor(z-Math.cos(player.yaw||0));
+      var fb=getB(fx,y,fz);
+      var fs2=fx+1>px-0.3&&fx<px+0.3&&y+1>py&&y<py+1.78&&fz+1>pz-0.3&&fz<pz+0.3;
+      if((fb===0||fb===5)&&!fs2){x=fx;z=fz;}
+      else return toast('离自己太近，往远处一点放');
+    }
   setB(x,y,z,sel);
   wsBlock(x,y,z,sel);
   buildMesh();
@@ -1896,6 +1910,7 @@ function loop(ts){
   // 角色软阴影
   drawShadows(eye, MVP);
   drawRigCharacters(dt, eye, MVP);
+  try { HOTEL.drawProps(eye, MVP, dim); } catch (e) {}
 
   window.__dbg={p:[player.x,player.y,player.z],eye:eye,tp:thirdPerson,off:nRig*9,sim:sim,date:env.D,env:{alt:env.alt,temp:env.temp,light:env.light,solar:env.solar,weather:env.w.n,term:env.term.now?env.term.now.n:null,season:env.season.n,region:curRegion},fauna:{total:fauna.length,active:fauna.filter(function(a){return a.active;}).length,names:fauna.map(function(a){return a.def.n;}),show:showFauna},agents:{animals:fauna.length,plants:flora.length,humans:humans.length}};
 
@@ -3334,7 +3349,8 @@ function saveWorld(manual,skipRoom){
       inv:{hot:hotbarSlots.map(function(x){return x?{id:x.id,n:x.n}:null;}),bag:bag.map(function(x){return {id:x.id,n:x.n};})},
       player:{x:player.x,y:player.y,z:player.z,yaw:player.yaw,pitch:player.pitch,vy:player.vy},
       wv:2,edits:serializeEdits(),
-      hotel:(typeof HOTEL!=='undefined'?HOTEL.save():null),
+      hotel:(function(){try{var _m=HOTEL.save();if(_m&&_m.built)HOTEL_BY_REGION[worldRegion]=_m;else delete HOTEL_BY_REGION[worldRegion];return _m;}catch(e){return null;}})(),
+      hotels:HOTEL_BY_REGION,
       veh:(function(){try{return JSON.parse(localStorage.getItem(VEH_KEY)||'null');}catch(e){return null;}})()};
     var raw=JSON.stringify(data);
     localStorage.setItem(SAVE_KEY,raw);
@@ -3372,6 +3388,8 @@ function loadWorld(auto){
     curRegion=(s.region&&REGIONS[s.region])?s.region:'hb';
     worldRegion=curRegion;
     RG=REGION_GEN[curRegion]||REGION_GEN.hb;
+    HOTEL_BY_REGION=(s.hotels&&typeof s.hotels==='object')?s.hotels:{};
+    if(s.hotel)HOTEL_BY_REGION[worldRegion]=s.hotel;
     if(typeof s.sim==='number'&&s.sim>=0)sim=s.sim;
     speed=(typeof s.speed==='number'&&s.speed>=0)?s.speed:60;
     if(typeof s.showFauna==='boolean')showFauna=s.showFauna;
@@ -3394,7 +3412,7 @@ function loadWorld(auto){
     npc=npcSpot(player.x,player.z,player.yaw);
     buildMesh();
     warmChunks();
-    try{if(s.hotel&&typeof HOTEL!=='undefined')HOTEL.load(s.hotel);}catch(e){}
+    try{if(typeof HOTEL!=='undefined'){var _hm=HOTEL_BY_REGION[worldRegion]||null;if(_hm&&_hm.built)HOTEL.load(_hm);else HOTEL.clear();}}catch(e){}
     buildHotbar();
     updateEnv(0);
     syncRegionChips();
@@ -4433,6 +4451,7 @@ async function wrLogout(silent) {
   if (WRoom.room && WRoom.token) { try { await wrSaveNow(true); } catch (e) {} }
   if (WRoom.token) { try { wrApi('/api/logout', {}); } catch (e) {} }
   WRoom.token = ''; WRoom.name = ''; WRoom.room = null; WRoom.version = 0;
+  try { if (!wrRestoreSolo()) { buildMesh(); initAgents(); } } catch (e) {}
   WRoom.rooms = []; WRoom.friends = []; WRoom.inviteRoom = '';
   try { vcStop(); wsStop(); } catch (e) {}
   wrStopPresence();
@@ -4461,10 +4480,28 @@ function wrCreateRoom() {
     } finally { WRoom.busy = false; }
   })();
 }
+function wrBackupSolo() {
+  if (typeof WRoom !== 'undefined' && WRoom.room) return;
+  try {
+    var raw = localStorage.getItem(SAVE_KEY);
+    if (!localStorage.getItem(SAVE_KEY + '_solo')) localStorage.setItem(SAVE_KEY + '_solo', raw || '{}');
+  } catch (e) {}
+}
+function wrRestoreSolo() {
+  try {
+    var raw = localStorage.getItem(SAVE_KEY + '_solo');
+    if (!raw) return false;
+    localStorage.setItem(SAVE_KEY, raw);
+    localStorage.removeItem(SAVE_KEY + '_solo');
+    loadWorld(false);
+    return true;
+  } catch (e) { return false; }
+}
 async function wrEnter(id) {
   if (WRoom.busy) return;
   var room = wrFind(id);
   if (!room) return;
+  if (!WRoom.room) wrBackupSolo();
   WRoom.busy = true;
   try {
     try { vcStop(); wsStop(); } catch (e) {}
@@ -4474,7 +4511,10 @@ async function wrEnter(id) {
     if (r.save) wrApplySave(r.save);
     WRoom.room = r.room || room;
     WRoom.version = r.version || 0;
-    if (!r.save) await wrSaveNow(true);
+    if (!r.save) {
+      try { if (typeof HOTEL !== 'undefined') { HOTEL.demolishLocal(true); HOTEL.clearAllRegions(); } } catch (e) {}
+      await wrSaveNow(true);
+    }
     if (WRoom.room.mode === 'coop') {
       try {
         vcStart({ mode: 'world', room: WRoom.room.id, my: WRoom.name, api: wrApi, peers: (WRoom.room.members && WRoom.room.members.length ? WRoom.room.members : (WRoom.room.online || [])), onChange: function () { wrPresence(); } });
@@ -4514,6 +4554,7 @@ async function wrExitRoom() {
   await wrSaveNow(true);
   try { vcStop(); wsStop(); } catch (e) {}
   WRoom.room = null; WRoom.version = 0;
+  try { if (!wrRestoreSolo()) { buildMesh(); initAgents(); } } catch (e) {}
   wrStopPresence();
   wrRenderRooms();
   toast('已退出并保存：' + nm);
@@ -4887,6 +4928,8 @@ function selectRegion(k){
   renderTimeDyn();renderRegionDetail();renderCmpTable();renderEco();renderHexDetail();
 }
 function applyRegionTerrain(){
+  try{var _pm=(typeof HOTEL!=='undefined'&&HOTEL.save)?HOTEL.save():null;if(_pm&&_pm.built)HOTEL_BY_REGION[worldRegion]=_pm;}catch(e){}
+  if(typeof WRoom!=='undefined'&&WRoom.room&&curRegion!==worldRegion){toast('联机房间内不能切换地域，请先退出房间');curRegion=worldRegion;return;}
   RG=REGION_GEN[curRegion];
   worldRegion=curRegion;
   genWorld();buildMesh();
@@ -4896,6 +4939,8 @@ function applyRegionTerrain(){
   npc=npcSpot(sp2.x,sp2.z,player.yaw);
   if(atomMode){buildAtoms();updateAtomPanel();}
   initAgents();
+  try{if(typeof HOTEL!=='undefined'&&HOTEL.restoreRegion)HOTEL.restoreRegion(worldRegion);}catch(e){}
+  buildMesh();
   closeWorld();
   toast('3D 世界已切到「'+REGIONS[curRegion].n+'」：'+REGIONS[curRegion].landform);
 }
@@ -8483,6 +8528,10 @@ function vehiclePartModel(id) {
     if (id === 'bed') {
       b.push(vB(0, 0.50, 0, 1.88, 0.08, 1.34, '#c9a87a'));
       b.push(vB(0, 0.78, -0.62, 1.86, 0.48, 0.09, '#8a6a48'));
+      b.push(vB(0, 0.575, 0.22, 1.80, 0.05, 0.84, '#3f6f74'));
+      b.push(vB(0, 0.585, 0.60, 1.80, 0.03, 0.12, '#c9a44a'));
+      b.push(vB(-0.42, 0.585, -0.42, 0.70, 0.09, 0.30, '#f2efe6'));
+      b.push(vB(0.42, 0.585, -0.42, 0.70, 0.09, 0.30, '#f2efe6'));
     }
     return b;
   }
@@ -8783,7 +8832,10 @@ function bakeVehicleRigs(arr, off, dt) {
 }
 
 /* ---------- 地面 / 放置 ---------- */
-function vGround(x, z) { return surfaceY(Math.floor(x), Math.floor(z)); }
+function vGround(x, z) {
+  if (typeof HOTEL !== 'undefined' && HOTEL.inArea && HOTEL.inArea(x, z)) return HOTEL.groundY(x, z, player.y);
+  return surfaceY(Math.floor(x), Math.floor(z));
+}
 function vAreaClear(x, z, hw, hl, height) {
   var nx = Math.max(3, Math.ceil(hw * 2 / 0.75) + 1);
   var nz = Math.max(3, Math.ceil(hl * 2 / 0.75) + 1);
@@ -9889,7 +9941,7 @@ window.__vehicle = {
    客房：5 × 12 = 60 m²（毛面积），含浴室/电视/窗/床/灯/密码门
    公路：5 m 宽平整路面，从酒店正门直达世界边缘
    ============================================================= */
-var WORLD_VER = '9.2.1';
+var WORLD_VER = '9.4.0';
 var HOTEL = (function () {
   var X0 = HOTEL_X0, Z0 = HOTEL_Z0, W = 30, D = 20, BASE = 40;
   var FLOORS = 3, ROOM_W = 5, ROOM_D = 12;
@@ -9945,7 +9997,7 @@ var HOTEL = (function () {
       for (var wi = 0; wi < WL.length; wi++) { put(X0, L + 1, WL[wi], 13); put(X0, L + 2, WL[wi], 13); }
       for (cz = Z0 + 17; cz <= Z0 + 18; cz++) for (y = L; y < L + 3; y++) { put(X0 + 23, y, cz, 21); put(X0 + 27, y, cz, 21); }
       /* 电梯按钮 */
-      put(X0 + 25, L + 1, Z0 + 18, 33);
+      put(X0 + 24, L + 1, Z0 + 17, 33);
     }
     /* 屋顶板（12 m）+ 女儿墙 */
     var ry = BASE + 12;
@@ -9956,7 +10008,7 @@ var HOTEL = (function () {
     for (var dz = Z0 + 13; dz <= Z0 + 16; dz++) { put(X0, BASE, dz, 0); put(X0, BASE + 1, dz, 0); }
     for (var kx = X0 - 3; kx <= X0 - 1; kx++) for (var kz = Z0 + 12; kz <= Z0 + 16; kz++) put(kx, BASE + 3, kz, 21);
     /* 正门上方店招（蓝色标牌带） */
-    for (var uz = Z0 + 13; uz <= Z0 + 18; uz++) put(X0, BASE + 4, uz, 34);
+    for (var uz = Z0 + 13; uz <= Z0 + 18; uz++) put(X0, BASE + 4, uz, 21);
   }
 
   /* ---------- 把动物 / 植物 / 路人移出酒店占地 ---------- */
@@ -10003,12 +10055,12 @@ var HOTEL = (function () {
         put(px + 3, L, Z0 + 9, 0);
         put(px + 3, L + 1, Z0 + 9, 0);
         /* 电视（嵌在隔墙上，朝床） */
-        put(px + 1, L + 1, Z0 + 9, 24);
+        put(px + 1, L + 1, Z0 + 9, 21);
         /* 浴室地砖与洁具 */
         for (var tx = px + 1; tx <= Math.min(px + 3, X0 + W - 2); tx++) for (var tz = Z0 + 10; tz <= Z0 + ROOM_D - 1; tz++) put(tx, L - 1, tz, 27);
-        put(px + 1, L, Z0 + ROOM_D - 1, 28);
-        put(px + 3, L + 1, Z0 + ROOM_D - 1, 29);
-        put(px + 2, L + 2, Z0 + 10, 30);
+        put(px + 1, L, Z0 + ROOM_D - 1, 0);
+        put(px + 3, L + 1, Z0 + ROOM_D - 1, 0);
+        put(px + 2, L + 2, Z0 + 10, 0);
       }
       /* 走廊地毯 */
       for (var cx = X0 + 1; cx < X0 + W - 1; cx++) for (var cz = Z0 + 13; cz <= Z0 + 16; cz++) put(cx, L - 1, cz, 32);
@@ -10083,6 +10135,7 @@ var HOTEL = (function () {
       road: { width: ROAD_W, designKm: ROAD_KM, builtM: ROAD_X1 }
     };
     ensureManager();
+    try { buildProps(); } catch (e) {}
     clearInside();
     try { buildMesh(); warmChunks(); } catch (e) {}
     try {
@@ -10151,10 +10204,547 @@ var HOTEL = (function () {
   function ensure() {
     if (!meta || !meta.built) return;
     ensureManager();
+    try { if (!propN || propBase !== BASE) buildProps(); } catch (e) {}
     if (getB(X0, BASE + 1, Z0) !== 21) {
       buildBlocks(meta.seed);
       try { buildMesh(); } catch (e) {}
     }
+  }
+
+  /* ---------- v9.4.0 门面细节：门框 / 门把 / 密码盘 / 门牌 / 指示 ----------
+     引擎只有纯色几何、没有贴图，所以门牌数字和中文提示用 Canvas 采样成像素方块。
+     静态件（门框、密码盘、门牌、地毯）一次建好；门扇单独一组，开门时绕铰链转开。
+     ------------------------------------------------------------------------- */
+  var propBuf = null, propN = 0;
+  var leafBuf = null, leafN = 0;
+  var propBase = -1;
+  var baseN = 0, floorStart = [0, 0, 0], floorCount = [0, 0, 0];
+  var leafStart = [0, 0, 0], leafCount = [0, 0, 0];
+  var doorOpen = {};
+  var TEXT_CACHE = {};
+  var _pM1 = new Float32Array(16), _pM2 = new Float32Array(16);
+  var PC = {
+    frame: [0.15, 0.17, 0.20], frameHi: [0.38, 0.41, 0.45],
+    leaf: [0.60, 0.40, 0.23], leafDark: [0.38, 0.23, 0.12], leafLight: [0.72, 0.51, 0.30],
+    brass: [0.98, 0.76, 0.33], steel: [0.62, 0.66, 0.70], steelDark: [0.40, 0.43, 0.47],
+    dark: [0.07, 0.08, 0.10], screen: [0.20, 1.25, 0.62],
+    white: [1.10, 1.10, 1.08], warm: [1.08, 0.90, 0.58],
+    plate: [0.05, 0.13, 0.29], glass: [0.46, 0.72, 0.84], mat: [0.34, 0.07, 0.09]
+  };
+
+  /* 注意：引擎的 mTRS() 里 var sy=Math.sin(ry) 会遮住 Y 缩放参数，
+     直接用会把所有盒子压扁；门面这里自己构造矩阵。 */
+  function pMat(x, y, z, yaw, sx, sy, sz, o) {
+    o = o || new Float32Array(16);
+    var c = Math.cos(yaw), s = Math.sin(yaw);
+    o[0] = c * sx; o[1] = 0; o[2] = -s * sx; o[3] = 0;
+    o[4] = 0; o[5] = sy; o[6] = 0; o[7] = 0;
+    o[8] = s * sz; o[9] = 0; o[10] = c * sz; o[11] = 0;
+    o[12] = x; o[13] = y; o[14] = z; o[15] = 1;
+    return o;
+  }
+  function pBox(buf, M, x, y, z, sx, sy, sz, col) {
+    var W = _pM2;
+    W[0] = M[0] * sx; W[1] = M[1] * sx; W[2] = M[2] * sx; W[3] = 0;
+    W[4] = M[4] * sy; W[5] = M[5] * sy; W[6] = M[6] * sy; W[7] = 0;
+    W[8] = M[8] * sz; W[9] = M[9] * sz; W[10] = M[10] * sz; W[11] = 0;
+    W[12] = M[0] * x + M[4] * y + M[8] * z + M[12];
+    W[13] = M[1] * x + M[5] * y + M[9] * z + M[13];
+    W[14] = M[2] * x + M[6] * y + M[10] * z + M[14];
+    W[15] = 1;
+    buf.n = emitRigBox(buf.arr, buf.n, W, col);
+  }
+  function pVert(buf, M, x, y, z, col) {
+    var o = buf.n, a = buf.arr;
+    if (o + 9 > a.length) return;
+    a[o] = M[0] * x + M[4] * y + M[8] * z + M[12];
+    a[o + 1] = M[1] * x + M[5] * y + M[9] * z + M[13];
+    a[o + 2] = M[2] * x + M[6] * y + M[10] * z + M[14];
+    a[o + 3] = 0; a[o + 4] = 0; a[o + 5] = 1;
+    a[o + 6] = col[0]; a[o + 7] = col[1]; a[o + 8] = col[2];
+    buf.n = o + 9;
+  }
+  function pQuad(buf, M, x, y, z, w, h, col) {
+    var hw = w * 0.5, hh = h * 0.5;
+    pVert(buf, M, x - hw, y - hh, z, col);
+    pVert(buf, M, x + hw, y - hh, z, col);
+    pVert(buf, M, x + hw, y + hh, z, col);
+    pVert(buf, M, x - hw, y - hh, z, col);
+    pVert(buf, M, x + hw, y + hh, z, col);
+    pVert(buf, M, x - hw, y + hh, z, col);
+  }
+
+  function textCells(text, fontPx) {
+    var key = text + '|' + fontPx;
+    if (TEXT_CACHE[key]) return TEXT_CACHE[key];
+    var cv = document.createElement('canvas');
+    var ctx = cv.getContext('2d');
+    var font = '700 ' + fontPx + 'px "Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif';
+    ctx.font = font;
+    var tw = Math.max(8, Math.ceil(ctx.measureText(text).width) + Math.ceil(fontPx * 0.24));
+    var th = Math.ceil(fontPx * 1.38);
+    cv.width = tw; cv.height = th;
+    ctx = cv.getContext('2d');
+    ctx.font = font; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#fff'; ctx.fillText(text, tw / 2, th / 2);
+    var data = ctx.getImageData(0, 0, tw, th).data;
+    var step = Math.max(2, Math.round(fontPx / 16));
+    var cells = [];
+    for (var y = 0; y < th; y += step) for (var x = 0; x < tw; x += step) {
+      var sx = Math.min(tw - 1, x + (step >> 1)), sy = Math.min(th - 1, y + (step >> 1));
+      if (data[(sy * tw + sx) * 4 + 3] > 90) cells.push([x / tw, y / th, step / tw, step / th]);
+    }
+    var o = { cells: cells, aspect: tw / th };
+    TEXT_CACHE[key] = o;
+    return o;
+  }
+  function textPlane(buf, M, text, o) {
+    o = o || {};
+    var t = textCells(text, o.font || 128), h = o.h || 0.2, w = h * t.aspect;
+    var x = o.x || 0, y = o.y || 0, z = o.z == null ? 0.03 : o.z;
+    var x0 = x - (o.align === 'left' ? 0 : o.align === 'right' ? w : w * 0.5);
+    var col = o.col || PC.white, cells = t.cells;
+    for (var i = 0; i < cells.length; i++) {
+      var c = cells[i], cw = c[2] * w, ch = c[3] * h;
+      pQuad(buf, M, x0 + c[0] * w + cw * 0.5, y + (1 - c[1] - c[3]) * h + ch * 0.5, z, cw, ch, col);
+    }
+  }
+
+  function doorMatrix(f, c) {
+    var L = BASE + f * 4;
+    var dx = X0 + c * ROOM_W + 2, dz = Z0 + ROOM_D;
+    return pMat(dx + 0.5, L, dz + 1, 0, 1, 1, 1);
+  }
+
+  function buildDoorStatic(buf, f, c) {
+    var no = roomNo(f, c), M = doorMatrix(f, c);
+    /* 门框：深色金属，凸出墙面 */
+    pBox(buf, M, -0.47, 1.04, 0.025, 0.06, 2.08, 0.10, PC.frame);
+    pBox(buf, M, 0.47, 1.04, 0.025, 0.06, 2.08, 0.10, PC.frame);
+    pBox(buf, M, 0, 2.075, 0.025, 1.00, 0.09, 0.10, PC.frame);
+    pBox(buf, M, 0, 2.125, 0.055, 0.96, 0.015, 0.03, PC.frameHi);
+    /* 门槛 + 门前地垫 */
+    pBox(buf, M, 0, 0.010, 0.18, 1.04, 0.020, 0.36, PC.steel);
+    pBox(buf, M, 0, 0.007, 0.62, 0.98, 0.014, 0.66, PC.mat);
+    pBox(buf, M, 0, 0.016, 0.62, 0.84, 0.006, 0.52, [0.52, 0.12, 0.13]);
+    pQuad(buf, M, 0, 0.0195, 0.895, 0.84, 0.012, [0.85, 0.68, 0.32]);
+    /* 密码盘：面板 + 屏 + 12 键 + 提示 */
+    pBox(buf, M, 0.70, 1.29, 0.020, 0.20, 0.36, 0.02, PC.dark);
+    pBox(buf, M, 0.70, 1.29, 0.032, 0.18, 0.34, 0.006, [0.20, 0.22, 0.25]);
+    pBox(buf, M, 0.70, 1.405, 0.038, 0.15, 0.075, 0.006, [0.01, 0.14, 0.06]);
+    textPlane(buf, M, '----', { x: 0.70, y: 1.372, h: 0.055, z: 0.042, col: PC.screen, font: 120 });
+    for (var r = 0; r < 4; r++) for (var cc = 0; cc < 3; cc++) {
+      pBox(buf, M, 0.65 + cc * 0.05, 1.335 - r * 0.043, 0.038, 0.036, 0.028, 0.006,
+        r === 3 ? [0.25, 0.72, 0.40] : [0.30, 0.32, 0.35]);
+    }
+    pBox(buf, M, 0.70, 1.462, 0.040, 0.022, 0.022, 0.008, PC.screen);
+    /* 门牌：盖住原来的蓝色方块，做成整块灯箱 */
+    pBox(buf, M, 0, 2.50, 0.020, 0.94, 0.94, 0.02, PC.plate);
+    pQuad(buf, M, 0, 2.03, 0.033, 0.94, 0.018, PC.brass);
+    pQuad(buf, M, 0, 2.97, 0.033, 0.94, 0.018, PC.brass);
+    pQuad(buf, M, -0.461, 2.50, 0.033, 0.018, 0.94, PC.brass);
+    pQuad(buf, M, 0.461, 2.50, 0.033, 0.018, 0.94, PC.brass);
+    textPlane(buf, M, String(no), { x: 0, y: 2.235, h: 0.55, z: 0.038, col: [1.30, 1.08, 0.62], font: 190 });
+    pBox(buf, M, 0, 2.105, 0.038, 0.16, 0.028, 0.008, PC.screen);
+    /* 门头下方的小灯条 */
+    pBox(buf, M, 0, 2.005, 0.075, 0.62, 0.028, 0.05, PC.warm);
+  }
+
+  function buildLeafMesh(buf, f, c, angle) {
+    var no = roomNo(f, c), M = doorMatrix(f, c);
+    var H = mMul(M, pMat(-0.43, 0, 0, angle, 1, 1, 1), _pM1);
+    var lx = 0.43;
+    /* 门扇本体 */
+    pBox(buf, H, lx, 1.00, 0.065, 0.86, 1.96, 0.05, PC.leaf);
+    /* 木纹竖线 */
+    for (var i = 0; i < 7; i++) {
+      pQuad(buf, H, 0.07 + i * 0.12, 1.00, 0.0915, 0.012, 1.86, PC.leafDark);
+    }
+    /* 两块凹板 + 亮边 */
+    pQuad(buf, H, lx, 1.47, 0.0930, 0.60, 0.56, PC.leafDark);
+    pQuad(buf, H, lx, 0.53, 0.0930, 0.60, 0.60, PC.leafDark);
+    pQuad(buf, H, lx, 1.755, 0.0935, 0.62, 0.018, PC.leafLight);
+    pQuad(buf, H, lx, 1.185, 0.0935, 0.62, 0.018, PC.leafLight);
+    pQuad(buf, H, lx, 0.835, 0.0935, 0.62, 0.018, PC.leafLight);
+    pQuad(buf, H, lx, 0.225, 0.0935, 0.62, 0.018, PC.leafLight);
+    /* 踢脚不锈钢 */
+    pBox(buf, H, lx, 0.13, 0.092, 0.74, 0.17, 0.01, PC.steel);
+    /* 猫眼 */
+    pBox(buf, H, lx, 1.60, 0.093, 0.055, 0.055, 0.012, PC.dark);
+    pBox(buf, H, lx, 1.60, 0.100, 0.030, 0.030, 0.008, [0.55, 0.62, 0.68]);
+    /* 黄铜门把：底座 + 横把 + 端头 */
+    pBox(buf, H, 0.745, 1.03, 0.100, 0.055, 0.16, 0.022, PC.brass);
+    pBox(buf, H, 0.655, 1.03, 0.120, 0.16, 0.032, 0.032, PC.brass);
+    pBox(buf, H, 0.585, 1.03, 0.120, 0.032, 0.052, 0.052, PC.brass);
+    /* 门上的小房号牌 */
+    pBox(buf, H, 0.30, 1.58, 0.093, 0.26, 0.12, 0.008, PC.dark);
+    textPlane(buf, H, String(no), { x: 0.30, y: 1.535, h: 0.085, z: 0.100, col: [1.15, 0.95, 0.55], font: 120 });
+    /* 推门提示 */
+    textPlane(buf, H, '推', { x: 0.17, y: 1.19, h: 0.15, z: 0.100, col: PC.white, font: 128 });
+    /* 内侧把手 */
+    pBox(buf, H, 0.745, 1.03, 0.005, 0.050, 0.15, 0.020, PC.brass);
+    pBox(buf, H, 0.665, 1.03, -0.010, 0.15, 0.030, 0.030, PC.brass);
+  }
+
+  function rebuildLeaves() {
+    var buf = { arr: new Float32Array(480000), n: 0 };
+    for (var f = 0; f < FLOORS; f++) {
+      leafStart[f] = buf.n;
+      for (var c = 0; c < 6; c++) {
+        var no = roomNo(f, c);
+        buildLeafMesh(buf, f, c, doorOpen[no] ? 1.42 : 0);
+        if (doorOpen[no]) {
+          var M = doorMatrix(f, c);
+          pQuad(buf, M, 0.70, 1.405, 0.046, 0.16, 0.08, [0.01, 0.12, 0.05]);
+          textPlane(buf, M, 'OPEN', { x: 0.70, y: 1.383, h: 0.052, z: 0.050, col: PC.screen, font: 110 });
+        }
+      }
+      leafCount[f] = buf.n - leafStart[f];
+    }
+    if (!leafBuf) leafBuf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, leafBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, buf.arr.subarray(0, buf.n), gl.STATIC_DRAW);
+    leafN = buf.n;
+  }
+
+  /* 酒店正门：两扇已滑开一半的玻璃门 + 门把 + 店招 + 雨棚灯 */
+  function buildEntrance(buf) {
+    var M = pMat(X0, BASE, Z0 + 15, -Math.PI / 2, 1, 1, 1);
+    /* 门套 */
+    pBox(buf, M, -2.02, 1.03, 0.04, 0.10, 2.10, 0.14, PC.frame);
+    pBox(buf, M, 2.02, 1.03, 0.04, 0.10, 2.10, 0.14, PC.frame);
+    pBox(buf, M, 0, 2.06, 0.04, 4.14, 0.10, 0.14, PC.frame);
+    pBox(buf, M, 0, 2.13, 0.075, 4.10, 0.02, 0.04, PC.frameHi);
+    /* 中央门梃 */
+    pBox(buf, M, 0, 1.02, 0.05, 0.07, 2.02, 0.10, PC.steelDark);
+    /* 左右两扇玻璃，各停在一侧（自动门开启状态） */
+    var sides = [-1, 1];
+    for (var s = 0; s < 2; s++) {
+      var side = sides[s], cx = side * 1.36;
+      pBox(buf, M, cx, 1.00, 0.065, 1.02, 1.90, 0.04, PC.glass);
+      pBox(buf, M, cx - 0.51, 1.00, 0.075, 0.07, 1.94, 0.06, PC.steelDark);
+      pBox(buf, M, cx + 0.51, 1.00, 0.075, 0.07, 1.94, 0.06, PC.steelDark);
+      pBox(buf, M, cx, 1.96, 0.075, 1.08, 0.07, 0.06, PC.steelDark);
+      pBox(buf, M, cx, 0.05, 0.075, 1.08, 0.07, 0.06, PC.steelDark);
+      pBox(buf, M, cx, 1.00, 0.075, 1.02, 0.018, 0.06, PC.steelDark);
+      /* 竖向拉手 */
+      pBox(buf, M, cx - side * 0.38, 1.06, 0.115, 0.035, 0.52, 0.035, PC.brass);
+      pBox(buf, M, cx - side * 0.38, 1.30, 0.11, 0.03, 0.03, 0.05, PC.brass);
+      pBox(buf, M, cx - side * 0.38, 0.82, 0.11, 0.03, 0.03, 0.05, PC.brass);
+      /* 推 PUSH */
+      textPlane(buf, M, '推', { x: cx + side * 0.05, y: 1.24, h: 0.17, z: 0.092, col: PC.white, font: 128 });
+      textPlane(buf, M, 'PUSH', { x: cx + side * 0.05, y: 1.10, h: 0.055, z: 0.092, col: [0.85, 0.90, 0.95], font: 110 });
+    }
+    /* 自动门感应器 */
+    pBox(buf, M, 0, 2.19, 0.06, 0.42, 0.06, 0.06, PC.dark);
+    pBox(buf, M, 0, 2.19, 0.095, 0.05, 0.03, 0.01, PC.screen);
+    textPlane(buf, M, '自动门', { x: 0, y: 2.235, h: 0.055, z: 0.098, col: [0.75, 0.85, 0.95], font: 110 });
+    /* 雨棚下的三盏灯（灯座朝下，用薄板表达） */
+    pBox(buf, M, -1.40, 2.975, 1.20, 0.34, 0.026, 0.34, PC.warm);
+    pBox(buf, M, 0, 2.975, 1.20, 0.34, 0.026, 0.34, PC.warm);
+    pBox(buf, M, 1.40, 2.975, 1.20, 0.34, 0.026, 0.34, PC.warm);
+    /* 门外迎宾地垫 */
+    pBox(buf, M, 0, 0.012, 1.35, 3.60, 0.020, 1.30, [0.28, 0.060, 0.075]);
+    pBox(buf, M, 0, 0.024, 1.35, 3.26, 0.006, 1.02, [0.52, 0.12, 0.13]);
+    /* 店招：挂在雨棚正面（墙上那条会被雨棚挡住，看不到） */
+    var S = pMat(X0 - 3.02, BASE + 3.0, Z0 + 15, -Math.PI / 2, 1, 1, 1);
+    pBox(buf, S, 0, 0.47, 0.030, 5.40, 0.88, 0.03, PC.plate);
+    pQuad(buf, S, 0, 0.035, 0.048, 5.40, 0.022, PC.brass);
+    pQuad(buf, S, 0, 0.905, 0.048, 5.40, 0.022, PC.brass);
+    pQuad(buf, S, -2.69, 0.47, 0.048, 0.022, 0.88, PC.brass);
+    pQuad(buf, S, 2.69, 0.47, 0.048, 0.022, 0.88, PC.brass);
+    textPlane(buf, S, '云海酒店', { x: 0, y: 0.30, h: 0.46, z: 0.055, col: [1.25, 1.02, 0.60], font: 170 });
+    textPlane(buf, S, 'YUNHAI  HOTEL', { x: 0, y: 0.11, h: 0.10, z: 0.055, col: [0.82, 0.90, 1.0], font: 110 });
+    /* 两侧壁灯 */
+    pBox(buf, M, -2.45, 2.35, 0.06, 0.12, 0.44, 0.10, PC.dark);
+    pBox(buf, M, -2.45, 2.50, 0.12, 0.09, 0.16, 0.06, PC.warm);
+    pBox(buf, M, 2.45, 2.35, 0.06, 0.12, 0.44, 0.10, PC.dark);
+    pBox(buf, M, 2.45, 2.50, 0.12, 0.09, 0.16, 0.06, PC.warm);
+  }
+
+  /* 电梯间：拉丝金属墙板 + 双开门 + 楼层显示 + 呼叫面板 */
+  function buildElevatorStatic(buf, f) {
+    var L = BASE + f * 4;
+    var M = pMat(X0 + 25.5, L, Z0 + 18, 0, 1, 1, 1);
+    /* 两侧金属墙板（把混凝土和电梯按钮方块一起收进去） */
+    pBox(buf, M, -1.55, 1.50, 0.015, 1.90, 3.00, 0.03, PC.steelDark);
+    pBox(buf, M, 1.55, 1.50, 0.015, 1.90, 3.00, 0.03, PC.steelDark);
+    pBox(buf, M, 0, 2.55, 0.015, 3.20, 0.90, 0.03, PC.steelDark);
+    /* 双开金属门 */
+    pBox(buf, M, -0.24, 1.05, 0.045, 0.46, 2.06, 0.06, PC.steel);
+    pBox(buf, M, 0.24, 1.05, 0.045, 0.46, 2.06, 0.06, PC.steel);
+    pQuad(buf, M, 0, 1.05, 0.077, 0.014, 2.02, PC.dark);
+    pBox(buf, M, -0.51, 1.05, 0.045, 0.05, 2.12, 0.08, PC.frame);
+    pBox(buf, M, 0.51, 1.05, 0.045, 0.05, 2.12, 0.08, PC.frame);
+    pBox(buf, M, 0, 2.135, 0.045, 1.08, 0.07, 0.08, PC.frame);
+    /* 楼层显示 */
+    pBox(buf, M, 0, 2.32, 0.050, 0.52, 0.21, 0.02, PC.dark);
+    textPlane(buf, M, (f + 1) + 'F', { x: 0, y: 2.245, h: 0.19, z: 0.068, col: [1.30, 0.55, 0.18], font: 150 });
+    /* 呼叫面板（对应对面墙上的电梯按钮方块） */
+    pBox(buf, M, -1.30, 1.20, 0.035, 0.22, 0.34, 0.03, PC.dark);
+    pBox(buf, M, -1.30, 1.275, 0.054, 0.075, 0.075, 0.012, PC.white);
+    pBox(buf, M, -1.30, 1.155, 0.054, 0.075, 0.075, 0.012, [0.42, 0.44, 0.47]);
+    pBox(buf, M, -1.30, 1.365, 0.054, 0.032, 0.032, 0.012, PC.screen);
+    textPlane(buf, M, '电梯', { x: -1.30, y: 0.96, h: 0.06, z: 0.054, col: [0.82, 0.88, 0.95], font: 110 });
+  }
+
+  /* ---------- v9.3.0 客房家具：床 / 电视 / 浴室 / 衣柜 / 书桌 ---------- */
+  var RC = {
+    wood: [0.56, 0.37, 0.21], woodDark: [0.36, 0.23, 0.12], woodLight: [0.70, 0.50, 0.30],
+    fabric: [0.93, 0.93, 0.90], sheet: [0.98, 0.98, 0.95], accent: [0.18, 0.42, 0.48],
+    gold: [1.05, 0.84, 0.48], stone: [0.80, 0.82, 0.83], tile: [0.80, 0.84, 0.86],
+    grout: [0.55, 0.58, 0.60], glass: [0.55, 0.78, 0.86], mirror: [0.58, 0.70, 0.78],
+    dark: [0.05, 0.06, 0.08], glow: [0.18, 0.38, 0.62], plant: [0.22, 0.46, 0.20],
+    pot: [0.45, 0.26, 0.16]
+  };
+
+  function buildRoomStatic(buf, f, c) {
+    var px = X0 + c * ROOM_W, L = BASE + f * 4;
+    /* 房间局部坐标：x 0..4（西→东），z 0..11（窗→门），y 0..3 */
+    var M = pMat(px + 1, L, Z0 + 1, 0, 1, 1, 1);
+
+    /* 地毯 */
+    pBox(buf, M, 1.45, 0.006, 4.55, 2.45, 0.012, 1.85, [0.26, 0.33, 0.40]);
+    pBox(buf, M, 1.45, 0.013, 4.55, 2.20, 0.004, 1.60, [0.34, 0.41, 0.48]);
+
+    /* 床：2×2 方块做碰撞体，外面包木框 + 床垫 + 被子 + 枕头 */
+    pBox(buf, M, 1.00, 0.34, 2.00, 2.04, 0.68, 2.04, RC.wood);
+    pBox(buf, M, 1.00, 0.84, 2.00, 2.02, 0.32, 2.02, RC.sheet);
+    pBox(buf, M, 1.00, 1.015, 2.28, 1.96, 0.03, 1.44, RC.accent);
+    pBox(buf, M, 1.00, 1.032, 1.60, 1.96, 0.02, 0.10, RC.sheet);
+    pBox(buf, M, 1.00, 1.032, 2.80, 1.96, 0.018, 0.30, RC.gold);
+    pBox(buf, M, 0.63, 1.055, 1.34, 0.56, 0.11, 0.36, RC.fabric);
+    pBox(buf, M, 1.37, 1.055, 1.34, 0.56, 0.11, 0.36, RC.fabric);
+    pBox(buf, M, 0.72, 1.17, 1.50, 0.30, 0.18, 0.14, RC.accent);
+    pBox(buf, M, 1.28, 1.17, 1.50, 0.30, 0.18, 0.14, RC.gold);
+    pBox(buf, M, 1.00, 1.16, 0.96, 2.08, 1.00, 0.10, RC.wood);
+    pBox(buf, M, 1.00, 1.65, 0.92, 2.12, 0.06, 0.16, RC.woodLight);
+    /* 床尾长凳 */
+    pBox(buf, M, 1.00, 0.24, 3.45, 1.55, 0.36, 0.42, RC.woodDark);
+    pBox(buf, M, 1.00, 0.06, 3.45, 1.35, 0.12, 0.30, RC.woodDark);
+
+    /* 床头柜 + 台灯 */
+    pBox(buf, M, 2.55, 0.28, 1.35, 0.55, 0.56, 0.50, RC.wood);
+    pBox(buf, M, 2.55, 0.575, 1.35, 0.58, 0.03, 0.54, RC.woodLight);
+    pBox(buf, M, 2.55, 0.655, 1.35, 0.11, 0.13, 0.11, PC.brass);
+    pBox(buf, M, 2.55, 0.695, 1.35, 0.34, 0.03, 0.34, PC.brass);
+    pBox(buf, M, 2.55, 0.790, 1.35, 0.28, 0.18, 0.28, [0.95, 0.86, 0.72]);
+    pBox(buf, M, 2.55, 0.685, 1.35, 0.24, 0.01, 0.24, PC.warm);
+    pBox(buf, M, 2.40, 0.635, 1.46, 0.18, 0.09, 0.10, [0.08, 0.09, 0.11]);
+    pBox(buf, M, 2.40, 0.650, 1.515, 0.13, 0.04, 0.01, [0.20, 0.90, 0.55]);
+    /* 床头壁灯 */
+    pBox(buf, M, 0.08, 1.72, 1.55, 0.08, 0.30, 0.18, PC.dark);
+    pBox(buf, M, 0.14, 1.72, 1.55, 0.05, 0.20, 0.12, PC.warm);
+
+    /* 电视墙：盖住原来的 1×2 电视方块 */
+    var T = pMat(px + 1.5, L, Z0 + 9, Math.PI, 1, 1, 1);
+    pBox(buf, T, 0, 1.95, 0.04, 1.52, 1.90, 0.05, [0.23, 0.25, 0.28]);
+    pBox(buf, T, 0, 1.55, 0.09, 1.24, 0.76, 0.04, [0.05, 0.06, 0.07]);
+    pQuad(buf, T, 0, 1.55, 0.112, 1.14, 0.66, RC.dark);
+    pQuad(buf, T, 0, 1.72, 0.114, 1.10, 0.30, [0.10, 0.26, 0.46]);
+    pQuad(buf, T, 0, 1.42, 0.114, 1.10, 0.26, [0.05, 0.15, 0.27]);
+    pQuad(buf, T, 0.36, 1.76, 0.116, 0.12, 0.12, [0.90, 0.74, 0.36]);
+    pBox(buf, T, 0, 0.46, 0.30, 1.60, 0.50, 0.34, RC.wood);
+    pBox(buf, T, -0.58, 0.11, 0.30, 0.06, 0.22, 0.30, RC.woodDark);
+    pBox(buf, T, 0.58, 0.11, 0.30, 0.06, 0.22, 0.30, RC.woodDark);
+    pBox(buf, T, 0, 0.745, 0.13, 1.20, 0.07, 0.08, [0.07, 0.08, 0.09]);
+
+    /* 浴室墙砖 + 灰缝 */
+    pBox(buf, M, 2.00, 1.20, 10.965, 4.00, 2.40, 0.04, RC.tile);
+    pBox(buf, M, 2.00, 1.20, 9.035, 4.00, 2.40, 0.04, RC.tile);
+    pBox(buf, M, 2.00, 1.20, 9.06, 4.00, 0.018, 0.02, RC.grout);
+    pBox(buf, M, 1.00, 1.20, 9.06, 0.018, 2.40, 0.02, RC.grout);
+    pBox(buf, M, 3.00, 1.20, 9.06, 0.018, 2.40, 0.02, RC.grout);
+    pBox(buf, M, 0.025, 1.20, 9.95, 0.04, 2.40, 1.95, RC.tile);
+    pBox(buf, M, 3.975, 1.20, 9.95, 0.04, 2.40, 1.95, RC.tile);
+    pBox(buf, M, 2.00, 0.60, 10.936, 4.00, 0.008, 0.016, [0.62, 0.65, 0.67]);
+    pBox(buf, M, 2.00, 1.20, 10.936, 4.00, 0.008, 0.016, [0.62, 0.65, 0.67]);
+    pBox(buf, M, 2.00, 1.80, 10.936, 4.00, 0.008, 0.016, [0.62, 0.65, 0.67]);
+    pBox(buf, M, 1.00, 1.20, 10.936, 0.008, 2.40, 0.016, [0.62, 0.65, 0.67]);
+    pBox(buf, M, 2.00, 1.20, 10.936, 0.008, 2.40, 0.016, [0.62, 0.65, 0.67]);
+    pBox(buf, M, 3.00, 1.20, 10.936, 0.008, 2.40, 0.016, [0.62, 0.65, 0.67]);
+
+    /* 马桶 */
+    pBox(buf, M, 0.55, 0.20, 10.55, 0.46, 0.40, 0.56, RC.fabric);
+    pBox(buf, M, 0.55, 0.44, 10.40, 0.52, 0.16, 0.62, RC.fabric);
+    pBox(buf, M, 0.55, 0.55, 10.40, 0.54, 0.05, 0.64, RC.sheet);
+    pBox(buf, M, 0.55, 0.579, 10.38, 0.30, 0.012, 0.38, [0.22, 0.24, 0.26]);
+    pBox(buf, M, 0.55, 0.76, 10.83, 0.56, 0.58, 0.22, RC.fabric);
+    pBox(buf, M, 0.72, 0.88, 10.70, 0.06, 0.06, 0.06, PC.steel);
+    pBox(buf, M, 0.10, 0.78, 10.25, 0.04, 0.04, 0.30, PC.steel);
+    pBox(buf, M, 0.13, 0.66, 10.25, 0.10, 0.24, 0.16, RC.sheet);
+
+    /* 洗手台 + 镜子 */
+    pBox(buf, M, 3.30, 0.38, 10.58, 0.94, 0.68, 0.46, RC.woodDark);
+    pBox(buf, M, 3.30, 0.76, 10.58, 1.04, 0.06, 0.52, RC.stone);
+    pBox(buf, M, 3.30, 0.84, 10.48, 0.54, 0.10, 0.34, RC.fabric);
+    pBox(buf, M, 3.30, 0.96, 10.70, 0.05, 0.20, 0.08, PC.steel);
+    pBox(buf, M, 3.30, 0.90, 10.70, 0.16, 0.03, 0.05, PC.steel);
+    pBox(buf, M, 3.30, 1.68, 10.930, 0.94, 0.84, 0.02, RC.woodDark);
+    pBox(buf, M, 3.30, 1.68, 10.914, 0.86, 0.76, 0.01, RC.mirror);
+    pBox(buf, M, 3.30, 2.09, 10.90, 0.90, 0.03, 0.05, PC.warm);
+
+    /* 淋浴：挂杆 + 收起的浴帘 + 花洒 + 地漏 */
+    pBox(buf, M, 1.50, 2.22, 10.02, 1.46, 0.04, 0.04, PC.steel);
+    pBox(buf, M, 1.86, 1.12, 10.00, 0.42, 2.00, 0.05, [0.72, 0.82, 0.86]);
+    pBox(buf, M, 1.64, 1.12, 10.02, 0.02, 1.96, 0.07, [0.60, 0.72, 0.78]);
+    pBox(buf, M, 1.50, 2.18, 9.18, 0.22, 0.05, 0.22, PC.steel);
+    pBox(buf, M, 1.50, 1.55, 9.10, 0.05, 1.25, 0.05, PC.steel);
+    pBox(buf, M, 1.50, 1.06, 9.14, 0.20, 0.06, 0.06, PC.steel);
+    pBox(buf, M, 1.50, 0.008, 9.55, 0.30, 0.012, 0.30, [0.25, 0.27, 0.29]);
+    /* 浴巾架 + 浴巾 */
+    pBox(buf, M, 0.09, 1.48, 9.95, 0.04, 0.05, 0.90, PC.steel);
+    pBox(buf, M, 0.12, 1.15, 10.10, 0.05, 0.62, 0.34, RC.sheet);
+    /* 浴室地垫 */
+    pBox(buf, M, 1.35, 0.008, 9.55, 0.92, 0.014, 0.55, [0.48, 0.30, 0.24]);
+
+    /* 浴室门：门套 + 打开的半透明门扇 */
+    pBox(buf, M, 2.02, 1.02, 8.02, 0.07, 2.04, 0.12, RC.woodDark);
+    pBox(buf, M, 2.98, 1.02, 8.02, 0.07, 2.04, 0.12, RC.woodDark);
+    pBox(buf, M, 2.50, 2.02, 8.02, 1.02, 0.07, 0.12, RC.woodDark);
+    pBox(buf, M, 3.45, 1.00, 7.94, 0.86, 1.92, 0.04, [0.72, 0.84, 0.89]);
+    pBox(buf, M, 3.45, 1.98, 7.94, 0.90, 0.05, 0.06, PC.steel);
+    pBox(buf, M, 3.45, 0.04, 7.94, 0.90, 0.06, 0.06, PC.steel);
+    pBox(buf, M, 3.05, 1.00, 7.90, 0.03, 0.34, 0.03, PC.brass);
+    pBox(buf, M, 3.00, 2.01, 7.94, 2.00, 0.04, 0.05, PC.steel);
+
+    /* 衣柜 */
+    pBox(buf, M, 3.72, 1.00, 4.30, 0.55, 2.00, 1.60, RC.wood);
+    pBox(buf, M, 3.435, 1.00, 4.30, 0.02, 1.94, 0.03, RC.woodDark);
+    pBox(buf, M, 3.42, 1.05, 3.75, 0.03, 0.26, 0.05, PC.brass);
+    pBox(buf, M, 3.42, 1.05, 4.85, 0.03, 0.26, 0.05, PC.brass);
+    pBox(buf, M, 3.72, 2.02, 4.30, 0.58, 0.04, 1.64, RC.woodLight);
+
+    /* 书桌 + 椅子 + 台灯 */
+    pBox(buf, M, 3.62, 0.74, 6.45, 0.62, 0.06, 1.25, RC.woodLight);
+    pBox(buf, M, 3.64, 0.36, 5.90, 0.06, 0.72, 0.06, RC.woodDark);
+    pBox(buf, M, 3.64, 0.36, 7.00, 0.06, 0.72, 0.06, RC.woodDark);
+    pBox(buf, M, 2.98, 0.45, 6.45, 0.46, 0.08, 0.46, RC.fabric);
+    pBox(buf, M, 2.74, 0.76, 6.45, 0.08, 0.70, 0.48, RC.fabric);
+    pBox(buf, M, 2.98, 0.22, 6.45, 0.08, 0.44, 0.08, PC.steel);
+    pBox(buf, M, 3.62, 0.87, 6.05, 0.10, 0.10, 0.10, PC.brass);
+    pBox(buf, M, 3.62, 0.99, 6.05, 0.22, 0.16, 0.22, PC.warm);
+    pBox(buf, M, 3.62, 0.91, 6.45, 0.46, 0.30, 0.03, [0.08, 0.09, 0.11]);
+
+    /* 窗帘 + 窗台 */
+    pBox(buf, M, 1.50, 2.62, 0.12, 3.35, 0.05, 0.05, PC.steel);
+    pBox(buf, M, 0.14, 1.38, 0.13, 0.50, 2.25, 0.06, [0.78, 0.74, 0.64]);
+    pBox(buf, M, 2.86, 1.38, 0.13, 0.50, 2.25, 0.06, [0.78, 0.74, 0.64]);
+    pBox(buf, M, 0.08, 1.38, 0.10, 0.04, 2.25, 0.04, [0.62, 0.58, 0.50]);
+    pBox(buf, M, 2.92, 1.38, 0.10, 0.04, 2.25, 0.04, [0.62, 0.58, 0.50]);
+    pBox(buf, M, 1.50, 0.95, 0.18, 3.02, 0.06, 0.20, RC.stone);
+
+    /* 东墙装饰画 */
+    var A = pMat(px + 3.97, L, 6.45, -Math.PI / 2, 1, 1, 1);
+    pBox(buf, A, 0, 1.78, 0.02, 0.06, 0.92, 1.12, RC.woodDark);
+    pQuad(buf, A, 0, 1.78, 0.055, 0.96, 0.78, [0.30, 0.42, 0.52]);
+    pQuad(buf, A, 0, 1.95, 0.057, 0.70, 0.12, [0.82, 0.70, 0.45]);
+    pQuad(buf, A, 0, 1.65, 0.057, 0.42, 0.30, [0.60, 0.36, 0.28]);
+
+    /* 吸顶灯外框与暖光面板 */
+    pBox(buf, M, 1.00, 2.00, 5.00, 0.98, 0.03, 0.98, PC.frame);
+    pBox(buf, M, 1.00, 1.985, 5.00, 0.82, 0.02, 0.82, PC.warm);
+    pBox(buf, M, 2.00, 2.00, 8.00, 0.98, 0.03, 0.98, PC.frame);
+    pBox(buf, M, 2.00, 1.985, 8.00, 0.82, 0.02, 0.82, PC.warm);
+    pBox(buf, M, 2.00, 2.92, 10.00, 0.70, 0.04, 0.70, PC.warm);
+
+    /* 西墙边柜 + 装饰画 + 台灯 */
+    pBox(buf, M, 0.38, 0.40, 5.60, 0.34, 0.80, 1.50, RC.woodDark);
+    pBox(buf, M, 0.38, 0.82, 5.60, 0.38, 0.04, 1.60, RC.woodLight);
+    pBox(buf, M, 0.40, 0.94, 4.98, 0.10, 0.20, 0.10, PC.brass);
+    pBox(buf, M, 0.40, 1.06, 4.98, 0.22, 0.16, 0.22, PC.warm);
+    pBox(buf, M, 0.03, 1.40, 5.60, 0.04, 2.20, 1.80, [0.45, 0.40, 0.34]);
+    var W = pMat(px + 0.055, L, 5.60, Math.PI / 2, 1, 1, 1);
+    pBox(buf, W, 0, 1.80, 0.02, 1.20, 0.85, 0.05, RC.woodDark);
+    pQuad(buf, W, 0, 1.80, 0.055, 1.10, 0.75, [0.30, 0.42, 0.52]);
+    pQuad(buf, W, 0, 1.92, 0.058, 0.82, 0.10, [0.82, 0.70, 0.45]);
+    pQuad(buf, W, 0, 1.68, 0.058, 0.50, 0.30, [0.60, 0.36, 0.28]);
+
+    /* 东墙挂钟 */
+    var CK = pMat(px + 3.985, L, 3.10, -Math.PI / 2, 1, 1, 1);
+    pBox(buf, CK, 0, 1.85, 0.02, 0.06, 0.42, 0.42, RC.woodDark);
+    pBox(buf, CK, 0, 1.85, 0.055, 0.03, 0.32, 0.32, RC.sheet);
+    pBox(buf, CK, 0, 1.85, 0.075, 0.02, 0.02, 0.12, [0.10, 0.10, 0.10]);
+    pBox(buf, CK, 0.04, 1.88, 0.075, 0.02, 0.02, 0.08, [0.10, 0.10, 0.10]);
+
+    /* 踢脚线 / 顶角线 / 东墙饰面板 */
+    pBox(buf, M, 2.00, 0.07, 0.03, 3.94, 0.14, 0.06, RC.woodDark);
+    pBox(buf, M, 0.03, 0.07, 5.50, 0.06, 0.14, 11.00, RC.woodDark);
+    pBox(buf, M, 3.97, 0.07, 5.50, 0.06, 0.14, 11.00, RC.woodDark);
+    pBox(buf, M, 2.00, 2.93, 0.03, 3.94, 0.06, 0.05, RC.woodLight);
+    pBox(buf, M, 0.03, 2.93, 5.50, 0.05, 0.06, 11.00, RC.woodLight);
+    pBox(buf, M, 3.97, 2.93, 5.50, 0.05, 0.06, 11.00, RC.woodLight);
+    pBox(buf, M, 3.985, 1.35, 6.20, 0.03, 2.60, 3.40, [0.47, 0.41, 0.34]);
+
+    /* 角落绿植 */
+    pBox(buf, M, 3.62, 0.22, 0.90, 0.34, 0.44, 0.34, RC.pot);
+    pBox(buf, M, 3.62, 0.52, 0.90, 0.10, 0.48, 0.10, [0.30, 0.24, 0.14]);
+    pBox(buf, M, 3.62, 0.86, 0.90, 0.62, 0.62, 0.46, RC.plant);
+    pBox(buf, M, 3.44, 1.02, 0.77, 0.30, 0.44, 0.30, [0.26, 0.52, 0.23]);
+    pBox(buf, M, 3.78, 1.12, 1.03, 0.26, 0.38, 0.26, [0.30, 0.56, 0.26]);
+  }
+
+  function buildProps() {
+    if (!meta || !meta.built) return;
+    var buf = { arr: new Float32Array(1500000), n: 0 };
+    buildEntrance(buf);
+    baseN = buf.n;
+    for (var f = 0; f < FLOORS; f++) {
+      floorStart[f] = buf.n;
+      for (var c = 0; c < 6; c++) { buildDoorStatic(buf, f, c); buildRoomStatic(buf, f, c); }
+      buildElevatorStatic(buf, f);
+      floorCount[f] = buf.n - floorStart[f];
+    }
+    if (!propBuf) propBuf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, propBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, buf.arr.subarray(0, buf.n), gl.STATIC_DRAW);
+    propN = buf.n;
+    propBase = BASE;
+    doorOpen = {};
+    rebuildLeaves();
+  }
+
+  function drawProps(eye, mvp, dim) {
+    if (!meta || !meta.built || propN <= 0) return 0;
+    var dx = eye[0] - (X0 + W * 0.5), dz = eye[2] - (Z0 + D * 0.5);
+    if (dx * dx + dz * dz > 150 * 150) return 0;
+    gl.useProgram(P_BLOCK);
+    gl.uniformMatrix4fv(UB.mvp, false, mvp);
+    gl.uniform3f(UB.eye, eye[0], eye[1], eye[2]);
+    if (env && env.sky) gl.uniform3f(UB.sky, env.sky[0], env.sky[1], env.sky[2]);
+    gl.uniform1f(UB.dim, atomMode ? 0.32 : (env ? env.dim : 1));
+    gl.uniform1f(UB.alpha, 1);
+    gl.disable(gl.BLEND);
+    gl.depthMask(true);
+    gl.enable(gl.DEPTH_TEST);
+    gl.enable(gl.CULL_FACE);
+    gl.cullFace(gl.BACK);
+    gl.bindBuffer(gl.ARRAY_BUFFER, propBuf);
+    gl.vertexAttribPointer(BLpos, 3, gl.FLOAT, false, 36, 0);
+    gl.vertexAttribPointer(BLcol, 3, gl.FLOAT, false, 36, 24);
+    gl.enableVertexAttribArray(BLpos); gl.enableVertexAttribArray(BLcol);
+    var inH = inHotelArea(eye[0], eye[2]);
+    var near = dx * dx + dz * dz < 90 * 90;
+    var fl = Math.max(0, Math.min(FLOORS - 1, Math.floor((eye[1] - BASE - 0.2) / 4)));
+    gl.drawArrays(gl.TRIANGLES, 0, baseN / 9);
+    if (propN > baseN) {
+      if (inH) gl.drawArrays(gl.TRIANGLES, floorStart[fl] / 9, floorCount[fl] / 9);
+      else if (near) gl.drawArrays(gl.TRIANGLES, floorStart[0] / 9, floorCount[0] / 9);
+    }
+    if (leafN > 0 && leafBuf) {
+      gl.bindBuffer(gl.ARRAY_BUFFER, leafBuf);
+      gl.vertexAttribPointer(BLpos, 3, gl.FLOAT, false, 36, 0);
+      gl.vertexAttribPointer(BLcol, 3, gl.FLOAT, false, 36, 24);
+      if (inH) gl.drawArrays(gl.TRIANGLES, leafStart[fl] / 9, leafCount[fl] / 9);
+      else if (near) gl.drawArrays(gl.TRIANGLES, leafStart[0] / 9, leafCount[0] / 9);
+    }
+    return propN / 9 + leafN / 9;
+  }
+
+  function setDoorOpen(no, v) {
+    if (!meta || !meta.built) return;
+    doorOpen[no] = !!v;
+    try { rebuildLeaves(); } catch (e) {}
   }
 
   /* ---------- 门锁 / 电视 / 电梯 ---------- */
@@ -10181,11 +10771,13 @@ var HOTEL = (function () {
     put(p.x, p.y0, p.z, 0); put(p.x, p.y1, p.z, 0);
     try { wsBlock(p.x, p.y0, p.z, 0); wsBlock(p.x, p.y1, p.z, 0); } catch (e) {}
     try { buildMesh(); } catch (e) {}
+    try { setDoorOpen(no, true); } catch (e) {}
     setTimeout(function () {
       if (doorSeq[no] !== token) return;
       put(p.x, p.y0, p.z, 22); put(p.x, p.y1, p.z, 22);
       try { wsBlock(p.x, p.y0, p.z, 22); wsBlock(p.x, p.y1, p.z, 22); } catch (e) {}
       try { buildMesh(); } catch (e) {}
+      try { setDoorOpen(no, false); } catch (e) {}
     }, 4000);
     return true;
   }
@@ -10224,7 +10816,7 @@ var HOTEL = (function () {
     if (h.b === 31) { openPanel(); return true; }
     if (h.b === 34) {
       var no2 = roomFromDoor(h);
-      if (no2) toast('房号牌：' + no2 + ' · 电子门锁（点「挖」输入密码）');
+      if (no2) toast('房号牌：' + no2 + ' 房 · 密码盘在门右侧（点门输入密码）');
       else toast('云海公路：设计里程 ' + ROAD_KM + ' km · 路宽 ' + ROAD_W + ' m · 本段实建 ' + ROAD_X1 + ' m');
       return true;
     }
@@ -10246,7 +10838,11 @@ var HOTEL = (function () {
       mt.innerHTML = meta
         ? '占地 ' + (W * D) + ' m²（' + W + ' × ' + D + '）· 主体高 12 m · 3 层 × 6 间 = 18 间<br>'
           + '每间 5 × 12 = 60 m²（含浴室/电视/落地窗/床/吸顶灯/密码门锁）<br>'
-          + '1F 前台 · 经理 1 名 · 电梯通往 1F/2F/3F · 走廊 4 m<br><b style="color:#8fe2b3">保护：墙体与设施不可破坏 · 只能从大门进入</b>'
+          + '房门有门牌灯箱、密码盘、黄铜门把与「推」提示；密码正确后门扇打开 4 秒，屏幕显示 OPEN<br>'
+          + '单人酒店按区域独立；进入联机房间后共用该房间的酒店，退出恢复自己的酒店<br>'
+          + '1F 前台 · 经理 1 名 · 电梯通往 1F/2F/3F · 走廊 4 m<br>'
+          + '<b style="color:#8fe2b3">室内可摆放：</b>草 / 土 / 石 / 木等方块直接点「放」；制造产品在「操作 → 制造 → 实体」取出，靠近后点上方「木床 · 点收回」回收<br>'
+          + '<b style="color:#8fe2b3">保护：</b>墙体、门窗、床 / 电视 / 浴室等固定家具不可拆 · 只能从大门进入'
         : '点「建造 / 重建」：以你脚下站立的方块高度为基准整平地块——高的铲平、低的填补，并把门口这段公路抬到同一水平。1 方块 = 1 米。';
     }
     if (rd) {
@@ -10330,7 +10926,15 @@ var HOTEL = (function () {
     };
     var bb = els('hotelBuild'); if (bb) bb.onclick = function () { build({}); };
     var gg = els('hotelGo'); if (gg) gg.onclick = teleportLobby;
-    var rr = els('hotelReset'); if (rr) rr.onclick = resetCodes;
+    var rr = els('hotelReset'); if (rr) rr.onclick = function () { resetCodes(); };
+  var dd = els('hotelDemolish');
+  if (dd) { var _arm = false, _dt = null;
+    dd.onclick = function () {
+      if (!_arm) { _arm = true; dd.textContent = '再点一次确认拆解'; dd.style.background = '#a3261e'; _dt = setTimeout(function () { _arm = false; dd.textContent = '一键拆解'; dd.style.background = '#5a1a1a'; }, 4000); return; }
+      clearTimeout(_dt); _arm = false; dd.textContent = '一键拆解'; dd.style.background = '#5a1a1a';
+      try { demolish(); } catch (e) { toast('拆解失败：' + e.message); }
+    };
+  }
     var pad = els('hkPad');
     if (pad) {
       var keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
@@ -10359,6 +10963,7 @@ var HOTEL = (function () {
   function remote(e) {
     if (!e || e.type !== 'build') return;
     if (e.kind === 'codes') { if (meta) { meta.codes = e.codes || meta.codes; renderPanel(); } return; }
+    if (e.kind === 'demolish') { demolishLocal(true); return; }
     if (e.kind === 'hotel') {
       meta = null;
       build({ seed: e.seed, codes: e.codes, base: e.base, remote: true });
@@ -10380,16 +10985,71 @@ var HOTEL = (function () {
       floors: FLOORS, rooms: FLOORS * 6, height: 12, roomArea: 60,
       road: { width: ROAD_W, designKm: ROAD_KM, builtM: ROAD_X1 },
       codes: meta ? meta.codes : null,
+      props: { static: propN / 9, leaves: leafN / 9, open: Object.keys(doorOpen) },
       manager: manager ? { id: manager.id, x: manager.x, z: manager.z, state: manager.state } : null
     };
     return info;
   }
 
+  function removeManager() {
+    for (var i = humans.length - 1; i >= 0; i--) if (humans[i] && humans[i].hotelManager) humans.splice(i, 1);
+    manager = null;
+  }
+  function clearState() {
+    meta = null; propN = 0; leafN = 0; baseN = 0; propBase = -1;
+    doorOpen = {}; floorCount = [0, 0, 0]; leafCount = [0, 0, 0];
+    removeManager();
+    try { delete HOTEL_BY_REGION[worldRegion]; } catch (e) {}
+    try { renderPanel(); } catch (e) {}
+  }
+  function clear() { clearState(); try { buildMesh(); } catch (e) {} }
+  function demolishLocal(silent) {
+    if (meta && meta.built) {
+      var top = BASE + 14;
+      for (var x = X0; x < X0 + W; x++)
+        for (var z = Z0; z < Z0 + D; z++)
+          for (var y = BASE; y <= top; y++) put(x, y, z, 0);
+      for (var ex = X0 - 4; ex < X0; ex++)
+        for (var ez = Z0 + 11; ez <= Z0 + 19; ez++)
+          for (var ey = BASE + 2; ey <= BASE + 5; ey++) put(ex, ey, ez, 0);
+    }
+    clearState();
+    if (!silent) {
+      try { saveWorld(false); } catch (e) {}
+      try { wsDemolishPush(); } catch (e) {}
+      toast('酒店已拆解；原地点「建造 / 重建」即可重新生成');
+    }
+    return true;
+  }
+  function demolish() {
+    if (!meta || !meta.built) { toast('当前区域没有酒店'); return false; }
+    demolishLocal(false);
+    return true;
+  }
+  function restoreRegion(region) {
+    var m = HOTEL_BY_REGION[region];
+    if (m && m.built) build({ seed: m.seed, base: m.base, codes: m.codes, remote: true });
+    else clear();
+  }
+  function wsDemolishPush() {
+    try { if (typeof WSYNC !== 'undefined' && WSYNC.pending) WSYNC.pending.push({ type: 'build', kind: 'demolish' }); } catch (e) {}
+  }
+
   setTimeout(bind, 0);
   return {
-    build: build, ensure: ensure, load: load, save: function () { return meta; }, keepOut: keepOut, roadLevel: applyRoadLevel, protectedAt: protectedAt, flyGuard: flyGuard,
+    build: build, ensure: ensure, load: load, save: function () { return meta; },
+    demolish: demolish, demolishLocal: demolishLocal, clear: clear, restoreRegion: restoreRegion,
+    clearAllRegions: function () { HOTEL_BY_REGION = {}; clearState(); }, keepOut: keepOut, roadLevel: applyRoadLevel, protectedAt: protectedAt, flyGuard: flyGuard,
     use: use, remote: remote, open: openPanel, status: status,
     resetCodes: resetCodes, teleport: teleportLobby, keypad: openKeypad,
+    drawProps: drawProps, openDoor: setDoorOpen, propsStatus: function () { return { static: propN / 9, leaves: leafN / 9, open: Object.keys(doorOpen) }; },
+    inArea: function (x, z) { return inHotelArea(x, z); },
+    canDig: function (x, y, z) { var b = getB(x, y, z); return b > 0 && b < 21; },
+    groundY: function (x, z, refY) {
+      var bx = Math.floor(x), bz = Math.floor(z), y0 = Math.floor(refY == null ? player.y : refY);
+      for (var y = y0 + 2; y >= y0 - 3; y--) { if (getB(bx, y, bz)) return y + 1; }
+      return y0;
+    },
     unlock: unlockDoor, config: { X0: X0, Z0: Z0, W: W, D: D, BASE: BASE, ROAD_Z: ROAD_Z, ROAD_W: ROAD_W, ROAD_KM: ROAD_KM }
   };
 })();
@@ -10643,7 +11303,7 @@ if(restored){
 }else{
   setTimeout(function(){toast('时间起点：公元0年1月1日 01:00:01 · 当前 60× 流动');},1200);
 }
-window.__wr={state:WRoom,load:wrLoadRooms,enter:wrEnter,exit:wrExitRoom,save:wrSaveNow,create:wrCreateRoom,accept:wrAcceptInvite,invite:wrInviteFriend};
+window.__wr={state:WRoom,load:wrLoadRooms,enter:wrEnter,exit:wrExitRoom,save:wrSaveNow,create:wrCreateRoom,accept:wrAcceptInvite,invite:wrInviteFriend,backupSolo:wrBackupSolo,restoreSolo:wrRestoreSolo};
 window.__world={
   version:WORLD_VER,
   get:function(){return {sim:sim,speed:speed,region:curRegion,showFauna:showFauna,date:env.D,env:env};},
