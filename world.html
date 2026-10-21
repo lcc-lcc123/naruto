@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <link rel="icon" href="data:,">
 <title>映射 + AI 世界</title>
-<meta name="version" content="world-v9.0.4">
+<meta name="version" content="world-v9.2.1">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:"PingFang SC","Microsoft YaHei",sans-serif;color:#fff;touch-action:none;user-select:none;-webkit-user-select:none}
@@ -335,6 +335,26 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
 .rxitem .mut{color:#8fa6c4;font-size:11px}
 .rxrow select{flex:1;min-width:0;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);color:#eaf2ff;border-radius:9px;padding:9px 10px;font-size:13px;outline:none}
 .rrow .mini{flex:0 0 auto;background:rgba(143,226,179,.16);border:1px solid rgba(143,226,179,.4);color:#8fe2b3;border-radius:9px;padding:9px 12px;font-size:12px;touch-action:none}
+#btnOps{flex:0 0 auto}
+#opsDock{position:fixed;top:92px;right:8px;z-index:72;width:196px;background:rgba(10,16,26,.97);border:1px solid rgba(140,180,255,.28);border-radius:14px;padding:10px;box-shadow:0 12px 40px rgba(0,0,0,.55);backdrop-filter:blur(12px);pointer-events:auto}
+#opsDock.hidden{display:none}
+#opsDock .odh{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#9fb3d8;margin-bottom:8px}
+#opsDock .odh button{background:none;border:0;color:#9fb3d8;font-size:16px;line-height:1}
+#opsDock .opsBody{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+#opsDock .opsBody .tb,#opsDock .opsBody button{width:100%;margin:0;text-align:center;font-size:13px;padding:9px 6px;border-radius:10px}
+#miniWrap{position:fixed;left:8px;top:92px;z-index:40;width:98px;border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,.22);background:rgba(5,9,14,.82);box-shadow:0 8px 24px rgba(0,0,0,.45);pointer-events:auto}
+#miniMap{display:block;width:96px;height:96px;image-rendering:pixelated}
+#miniWrap .mcap{font-size:10px;color:#b7c8de;text-align:center;padding:2px 0 3px;letter-spacing:.08em;background:rgba(255,255,255,.04)}
+#mapPanel{position:fixed;inset:0;z-index:76;background:rgba(6,10,16,.98);display:flex;flex-direction:column;color:#dce7f7;pointer-events:auto;touch-action:auto}
+#mapPanel.hidden{display:none}
+#mapPanel .mphead{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.08)}
+#mapPanel .mptitle{font-size:14px;font-weight:600}
+#mapPanel .mpsub{margin-left:auto;font-size:11px;color:#93a8c6}
+#mapPanel .mpbody{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:10px;overflow:auto}
+#mapPanel #mapBig{width:min(92vw,560px);height:min(92vw,560px);image-rendering:pixelated;border-radius:14px;border:1px solid rgba(140,180,255,.25);background:#0a1119;touch-action:manipulation}
+#mapPanel .mpnote{font-size:11px;color:#8fa6c4;text-align:center}
+#mapPanel .mpfoot{padding:10px 12px calc(14px + env(safe-area-inset-bottom));display:flex;gap:8px}
+#mapPanel .mpfoot button{flex:1;padding:12px;border-radius:12px;border:1px solid rgba(143,226,179,.4);background:rgba(143,226,179,.14);color:#8fe2b3;font-size:13px}
 </style>
 </head>
 <body>
@@ -354,6 +374,15 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
       <div class="ck2"><span id="ckTerm">冬 · 小寒</span><b id="ckTemp">—</b><span id="ckLight">光 —</span></div>
       <button id="btnFront" type="button" title="正面 / 背面视角">↺</button>
     </div>
+    <button class="tb" id="btnOps" type="button">操作</button>
+  </div>
+  <div id="opsDock" class="hidden">
+    <div class="odh"><span>映射 + AI 操作</span><button id="opsClose" type="button">×</button></div>
+    <div class="opsBody" id="opsBody"></div>
+  </div>
+  <div id="miniWrap" title="地图 · 点击放大">
+    <canvas id="miniMap" width="96" height="96"></canvas>
+    <div class="mcap">地图</div>
   </div>
   <div id="roomOnline" class="hidden"></div>
   <div id="vcBar" class="hidden">
@@ -361,7 +390,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
     <button id="vcEarBtn" type="button">🎧 听筒关</button>
     <span id="vcStatus" class="vcst"></span>
   </div>
-  <div id="hint">拖动画面看向四周 · 左下摇杆移动<br>对准方块点 <b>挖</b> / <b>放</b> · 点击物种名称看属性<br>点右上 <b>时序</b> 看昼夜节气 · <b>化学</b> 查元素与反应<br>点 <b>酒店</b> 建云海酒店 · 对门点「挖」输密码<br>制造 → <b>实体</b>：造零件 / 装系统 / 总装 / 拆解</div>
+  <div id="hint">拖动画面看向四周 · 左下摇杆移动<br>手持空槽或工具时点 <b>挖</b> · 点击角色锁定后点 <b>看</b> 查资料<br><b>左上地图</b> 点开放大，点酒店可传送 · <b>右上「操作」</b> 里是物种 / 时序 / 化学 / 制造 / AI / 酒店<br>点 <b>酒店</b> 建云海酒店 · 对门点「挖」输密码<br>制造 → <b>实体</b>：造零件 / 装系统 / 总装 / 拆解</div>
   <div id="cross"></div>
   <div id="hitmark">✕</div>
   <div id="petBar" class="hidden"></div>
@@ -374,9 +403,9 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
     <button class="put" data-act="put">放</button>
     <button class="dig" data-act="dig">挖</button>
     <button id="btnFly" class="fly" type="button">飞行</button>
-    <button id="btnBag" type="button">背包</button>
+    <button id="btnBag" type="button" style="display:none">背包</button>
     <button data-act="inspect">看</button>
-    <button id="btnAtom" type="button">原子</button>
+    <button id="btnAtom" type="button" style="display:none">原子</button>
     <button id="btnView" type="button">视角</button>
   </div>
   <div id="info">--</div>
@@ -402,6 +431,14 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;font-family:
   <div class="hkd" id="hkDisp">____</div>
   <div class="hkp" id="hkPad"></div>
   <div class="hkr"><button id="hkClear" type="button">清除</button><button id="hkOk" type="button">开锁</button><button id="hkCancel" type="button">取消</button></div>
+</div>
+<div id="mapPanel" class="hidden">
+  <div class="mphead"><button class="wback" id="mapBack" type="button">‹</button><div class="mptitle">世界地图 · 6000 × 6000</div><div class="mpsub" id="mapPos">—</div></div>
+  <div class="mpbody">
+    <canvas id="mapBig" width="640" height="640"></canvas>
+    <div class="mpnote">蓝框 = 云海酒店（点它传送）· 红点 = 你 · 灰线 = 云海公路</div>
+  </div>
+  <div class="mpfoot"><button id="mapHotelBtn" type="button">传送到云海酒店</button></div>
 </div>
 <div id="aiPanel" class="hidden">
     <div class="ah"><span>AI 世界助手</span><button id="aiClose" type="button">×</button></div>
@@ -824,7 +861,13 @@ function genWorld() {
 }
 
 /* ---------- 区块数据（地形 + 树 + 改动） ---------- */
+function inHotelArea(X, Z) {
+  if (X >= HOTEL_X0 - 1 && X <= HOTEL_X0 + 30 && Z >= HOTEL_Z0 - 1 && Z <= HOTEL_Z0 + 18) return true;
+  if (X >= HOTEL_X0 - 8 && X <= HOTEL_X0 - 1 && Z >= HOTEL_Z0 + 10 && Z <= HOTEL_Z0 + 18) return true;
+  return false;
+}
 function putLocal(data, cx, cz, X, Y, Z, t) {
+  if (inHotelArea(X, Z)) return;
   var lx = X - (cx << 5), lz = Z - (cz << 5);
   if (lx < 0 || lx >= CH || lz < 0 || lz >= CH || Y < 0 || Y >= WY) return;
   var i = lx + (lz << 5) + (Y << 10);
@@ -836,6 +879,7 @@ function stampTrees(data, cx, cz) {
   for (var rz = z0 - 2; rz < z0 + CH + 2; rz++) for (var rx = x0 - 2; rx < x0 + CH + 2; rx++) {
     if (rx < 2 || rz < 2 || rx >= WX - 2 || rz >= WZ - 2) continue;
     if (inRoad(rx, rz)) continue;
+    if (inHotelArea(rx, rz)) continue;
     if (hash2(rx + 101, rz + 57) < 1 - dens) continue;
     var h = heightAt(rx, rz);
     if (h <= SEA + 1) continue;
@@ -1294,6 +1338,17 @@ function renderHotbar(){
     h+=slotHTML(sl,'data-slot',i,sl&&sameItem(sl.id,sel));
   }
   hb.innerHTML=h;
+  var bagBtn = document.getElementById('bagSlot');
+  if (!bagBtn) {
+    bagBtn = document.createElement('button');
+    bagBtn.id = 'bagSlot';
+    bagBtn.type = 'button';
+    bagBtn.className = 'slot';
+    bagBtn.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px';
+    bagBtn.innerHTML = '<span style="font-size:17px;line-height:1">🎒</span><span style="font-size:9px;opacity:.85">背包</span>';
+    bagBtn.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); openBag(); });
+  }
+  hb.appendChild(bagBtn);
   Array.prototype.forEach.call(hb.querySelectorAll('.slot'),function(el){
     el.addEventListener('click',function(){
       var i=+el.getAttribute('data-slot');
@@ -1622,6 +1677,7 @@ function place(){
   toast('放了一个 '+B[sel].n);
 }
 function inspect(){
+  if(selectedAgent!=null){var _sa=findAgent(selectedAgent);if(_sa&&_sa.alive){openSpecies(selectedAgent);return;}}
   var h=raycast(6);
   if(!h)return toast('前方没有方块');
   var d=B[h.b],m=MATS[BLOCK_MAT[h.b]];
@@ -1760,7 +1816,7 @@ function flatten(){
   buildMesh();aiSay('前方 7×7 的地面已平整，并铺上了草方块。',true);
 }
 function ai(cmd){
-  if(cmd==='hotel'){HOTEL.build({});aiSay('云海酒店已建成：占地 540 m² · 主体高 12 m · 3 层 × 6 间（每间 60 m²），含浴室、电视、落地窗、床、吸顶灯、密码门锁；1F 有前台与酒店经理；5 米宽公路从正门直达世界边缘。',true);return;}
+  if(cmd==='hotel'){HOTEL.build({});aiSay('云海酒店已建成：占地 600 m²（30×20）· 主体高 12 m · 3 层 × 6 间（每间 60 m²）· 4 米宽走廊，含浴室、电视、落地窗、床、灯、密码门锁；1F 有前台与酒店经理；5 米宽公路从正门直达世界边缘。',true);return;}
   if(cmd==='house')return buildHouse();
   if(cmd==='tree')return plantTree();
   if(cmd==='flat')return flatten();
@@ -7338,7 +7394,9 @@ function petTarget(){
 }
 function refreshPetBar(force){
   var bar=document.getElementById('petBar');if(!bar)return;
+  if(typeof selectedAgent==='undefined'||selectedAgent==null){ if(bar){bar.classList.add('hidden');bar.innerHTML='';} if(petSig!==''){petSig='';petId='';} return; }
   var a=petTarget();
+  if(a&&a.id!==selectedAgent)a=null;
   if(a&&!force&&petId&&a.id!==petId&&Date.now()<petLock){
     var locked=findAgent(petId);
     if(locked&&locked.alive&&locked.active&&Math.hypot(locked.x-player.x,locked.z-player.z)<=5.6)a=locked;
@@ -7710,34 +7768,18 @@ function fastForward(days){
 function updateFaunaLabels(){
   var box=document.getElementById('faunaLabels');
   if(!box)return;
-  var html='';
-  function add(a,labelY){
-    if(!a.alive)return;
-    if(a.kind==='animal'&&(!a.active||!showFauna))return;
-    var gy=(a.indoorY!=null?a.indoorY:surfaceY(Math.floor(a.x),Math.floor(a.z)));
-    var y=gy+labelY;
-    var cw=MVP[3]*a.x+MVP[7]*y+MVP[11]*a.z+MVP[15];
-    if(cw<=0.01)return;
-    var cx=MVP[0]*a.x+MVP[4]*y+MVP[8]*a.z+MVP[12];
-    var cy=MVP[1]*a.x+MVP[5]*y+MVP[9]*a.z+MVP[13];
-    var sx=(cx/cw*0.5+0.5)*innerWidth,sy=(1-(cy/cw*0.5+0.5))*innerHeight;
-    if(sx<10||sx>innerWidth-10||sy<10||sy>innerHeight-10)return;
-    var extra='';
-    if(a.kind==='animal'&&env&&env.season.key==='winter'&&a.def.winter==='migrate')extra=' · 迁徙';
-    if(a.kind==='animal'&&a.pregnant)extra+=' · 孕';
-    if(a.kind==='animal'&&a.tamed)extra+=' · 已驯服';
-    if(a.kind==='human')extra=' · '+(a.occ||a.ethnic)+' · '+a.stage;
-    if(a.kind==='plant')extra=' · '+a.stage;
-    html+='<div class="fl'+(selectedAgent===a.id?' sel':'')+(a.kind==='animal'&&a.tamed?' tamed':'')+'" data-agent="'+a.id+'" style="left:'+sx.toFixed(0)+'px;top:'+sy.toFixed(0)+'px">'+a.type+extra+'</div>';
-  }
-  for(var i=0;i<fauna.length;i++)add(fauna[i],fauna[i].def.kind==='bird'?5.2:1.25*fauna[i].size);
-  for(var j=0;j<humans.length;j++)add(humans[j],1.95);
-  for(var k=0;k<flora.length;k++){
-    var p=flora[k];
-    if(!p.alive)continue;
-    if(Math.hypot(p.x-player.x,p.z-player.z)<20)add(p,0.55+0.9*p.growth);
-  }
-  box.innerHTML=html+wsRemoteLabelHTML();
+  if(selectedAgent==null){ if(box.innerHTML)box.innerHTML=''; return; }
+  var a=findAgent(selectedAgent);
+  if(!a||!a.alive){ box.innerHTML=''; return; }
+  var gy=(a.indoorY!=null?a.indoorY:surfaceY(Math.floor(a.x),Math.floor(a.z)));
+  var y=gy+(a.kind==='human'?1.95:(a.kind==='animal'?1.25*(a.size||1):0.75));
+  var cw=MVP[3]*a.x+MVP[7]*y+MVP[11]*a.z+MVP[15];
+  if(cw<=0.01){box.innerHTML='';return;}
+  var cx=MVP[0]*a.x+MVP[4]*y+MVP[8]*a.z+MVP[12];
+  var cy=MVP[1]*a.x+MVP[5]*y+MVP[9]*a.z+MVP[13];
+  var sx=(cx/cw*0.5+0.5)*innerWidth, sy=(1-(cy/cw*0.5+0.5))*innerHeight;
+  if(sx<-50||sx>innerWidth+50||sy<-50||sy>innerHeight+50){box.innerHTML='';return;}
+  box.innerHTML='<div class="fl sel" data-agent="'+a.id+'" style="left:'+sx.toFixed(0)+'px;top:'+sy.toFixed(0)+'px">'+a.type+' · 已锁定</div>';
 }
 /* ---------- 物种详情 ---------- */
 function findAgent(id){
@@ -9843,13 +9885,13 @@ window.__vehicle = {
 
 /* ================= v8.9.0 云海酒店 · 云海公路 =================
    尺度：1 方块 = 1 米（玩家身高 1.78 m，眼高 1.62 m）
-   酒店：占地 30 × 18 = 540 m²，主体高 12 m，3 层 × 每层 6 间
+   酒店：占地 30 × 20 = 600 m²，主体高 12 m，3 层 × 每层 6 间，走廊 4 m 宽
    客房：5 × 12 = 60 m²（毛面积），含浴室/电视/窗/床/灯/密码门
    公路：5 m 宽平整路面，从酒店正门直达世界边缘
    ============================================================= */
-var WORLD_VER = '9.0.4';
+var WORLD_VER = '9.2.1';
 var HOTEL = (function () {
-  var X0 = HOTEL_X0, Z0 = HOTEL_Z0, W = 30, D = 18, BASE = 40;
+  var X0 = HOTEL_X0, Z0 = HOTEL_Z0, W = 30, D = 20, BASE = 40;
   var FLOORS = 3, ROOM_W = 5, ROOM_D = 12;
   var ROAD_Z = ROAD.z0, ROAD_W = ROAD.w, ROAD_X1 = ROAD.x1, ROAD_KM = 30;
   var meta = null, manager = null, keyRoom = 0, keyBuf = '', bound = false;
@@ -9896,14 +9938,14 @@ var HOTEL = (function () {
       /* 电梯井前墙：留 1 米门洞 */
       for (cx2 = X0 + 23; cx2 <= X0 + 27; cx2++) {
         if (cx2 === X0 + 25) continue;
-        for (y = L; y < L + 3; y++) put(cx2, y, Z0 + 15, 21);
+        for (y = L; y < L + 3; y++) put(cx2, y, Z0 + 17, 21);
       }
       /* 西立面客房侧窗（避免整面空白墙） */
       var WL = [Z0 + 2, Z0 + 3, Z0 + 7, Z0 + 8, Z0 + 11];
       for (var wi = 0; wi < WL.length; wi++) { put(X0, L + 1, WL[wi], 13); put(X0, L + 2, WL[wi], 13); }
-      for (cz = Z0 + 15; cz <= Z0 + 16; cz++) for (y = L; y < L + 3; y++) { put(X0 + 23, y, cz, 21); put(X0 + 27, y, cz, 21); }
+      for (cz = Z0 + 17; cz <= Z0 + 18; cz++) for (y = L; y < L + 3; y++) { put(X0 + 23, y, cz, 21); put(X0 + 27, y, cz, 21); }
       /* 电梯按钮 */
-      put(X0 + 25, L + 1, Z0 + 16, 33);
+      put(X0 + 25, L + 1, Z0 + 18, 33);
     }
     /* 屋顶板（12 m）+ 女儿墙 */
     var ry = BASE + 12;
@@ -9911,10 +9953,10 @@ var HOTEL = (function () {
     for (var rx = X0; rx < X0 + W; rx++) { put(rx, ry, Z0, 21); put(rx, ry, Z0 + D - 1, 21); }
     for (var rz = Z0; rz < Z0 + D; rz++) { put(X0, ry, rz, 21); put(X0 + W - 1, ry, rz, 21); }
     /* 正门（西侧，2 米宽）+ 雨棚 */
-    for (var dz = Z0 + 13; dz <= Z0 + 14; dz++) { put(X0, BASE, dz, 0); put(X0, BASE + 1, dz, 0); }
-    for (var kx = X0 - 3; kx <= X0 - 1; kx++) for (var kz = Z0 + 12; kz <= Z0 + 15; kz++) put(kx, BASE + 3, kz, 21);
+    for (var dz = Z0 + 13; dz <= Z0 + 16; dz++) { put(X0, BASE, dz, 0); put(X0, BASE + 1, dz, 0); }
+    for (var kx = X0 - 3; kx <= X0 - 1; kx++) for (var kz = Z0 + 12; kz <= Z0 + 16; kz++) put(kx, BASE + 3, kz, 21);
     /* 正门上方店招（蓝色标牌带） */
-    for (var uz = Z0 + 11; uz <= Z0 + 15; uz++) put(X0, BASE + 4, uz, 34);
+    for (var uz = Z0 + 13; uz <= Z0 + 18; uz++) put(X0, BASE + 4, uz, 34);
   }
 
   /* ---------- 把动物 / 植物 / 路人移出酒店占地 ---------- */
@@ -9955,6 +9997,7 @@ var HOTEL = (function () {
         for (var bx = px + 1; bx <= px + 2; bx++) for (var bz = Z0 + 2; bz <= Z0 + 3; bz++) put(bx, L, bz, 23);
         /* 吸顶灯 */
         put(px + 2, L + 2, Z0 + 6, 26);
+        put(px + 3, L + 2, Z0 + 9, 26);
         /* 浴室隔墙 + 门洞 */
         for (var bwx = px + 1; bwx <= Math.min(px + 3, X0 + W - 2); bwx++) for (var by = L; by < L + 3; by++) put(bwx, by, Z0 + 9, 27);
         put(px + 3, L, Z0 + 9, 0);
@@ -9968,11 +10011,15 @@ var HOTEL = (function () {
         put(px + 2, L + 2, Z0 + 10, 30);
       }
       /* 走廊地毯 */
-      for (var cx = X0 + 1; cx < X0 + W - 1; cx++) for (var cz = Z0 + 13; cz <= Z0 + 14; cz++) put(cx, L - 1, cz, 32);
+      for (var cx = X0 + 1; cx < X0 + W - 1; cx++) for (var cz = Z0 + 13; cz <= Z0 + 16; cz++) put(cx, L - 1, cz, 32);
+      /* 走廊灯：每 5 m 一盏，覆盖整层 */
+      for (var cl = X0 + 4; cl <= X0 + 24; cl += 5) put(cl, L + 2, Z0 + 12, 26);
+      if (f === 0) { put(X0 + 3, L + 2, Z0 + 19, 26); put(X0 + 21, L + 2, Z0 + 19, 26); }
+      put(X0 + 25, L + 2, Z0 + 19, 26);
     }
     /* 前台台面 + 北墙招牌 */
-    for (var dx = X0 + 4; dx <= X0 + 11; dx++) put(dx, BASE, Z0 + 15, 31);
-    for (var sx = X0 + 5; sx <= X0 + 9; sx++) put(sx, BASE + 2, Z0 + 17, 34);
+    for (var dx = X0 + 4; dx <= X0 + 11; dx++) put(dx, BASE, Z0 + 17, 31);
+    for (var sx = X0 + 5; sx <= X0 + 9; sx++) put(sx, BASE + 2, Z0 + 19, 34);
   }
 
   /* ---------- 公路 ---------- */
@@ -9986,7 +10033,7 @@ var HOTEL = (function () {
 
   /* ---------- 酒店经理 ---------- */
   function ensureManager() {
-    var mx = X0 + 7.5, mz = Z0 + 16.5;
+    var mx = X0 + 7.5, mz = Z0 + 18.5;
     var found = null;
     for (var i = 0; i < humans.length; i++) if (humans[i] && humans[i].hotelManager) { found = humans[i]; break; }
     if (!found) {
@@ -10010,7 +10057,7 @@ var HOTEL = (function () {
   /* ---------- 建造 ---------- */
   function buildBlocks(seed) {
     levelArea(X0, Z0, W, D, 21);
-    levelArea(X0 - 7, Z0 + 11, 7, 7, 21);   /* 门前广场：与地基同高 */
+    levelArea(X0 - 7, Z0 + 13, 7, 7, 21);   /* 门前广场：与地基同高 */
     road();
     structure();
     rooms();
@@ -10157,7 +10204,7 @@ var HOTEL = (function () {
     if (f < 0 || f > 2) return false;
     var nf = (f + 1) % FLOORS;
     player.x = X0 + 25.5;
-    player.z = Z0 + 15.5;
+    player.z = Z0 + 17.5;
     player.y = BASE + nf * 4 + 0.06;
     player.vy = 0;
     toast('电梯：' + (f + 1) + 'F → ' + (nf + 1) + 'F');
@@ -10199,7 +10246,7 @@ var HOTEL = (function () {
       mt.innerHTML = meta
         ? '占地 ' + (W * D) + ' m²（' + W + ' × ' + D + '）· 主体高 12 m · 3 层 × 6 间 = 18 间<br>'
           + '每间 5 × 12 = 60 m²（含浴室/电视/落地窗/床/吸顶灯/密码门锁）<br>'
-          + '1F 前台 · 经理 1 名 · 电梯通往 1F/2F/3F<br><b style="color:#8fe2b3">保护：墙体与设施不可破坏 · 只能从大门进入</b>'
+          + '1F 前台 · 经理 1 名 · 电梯通往 1F/2F/3F · 走廊 4 m<br><b style="color:#8fe2b3">保护：墙体与设施不可破坏 · 只能从大门进入</b>'
         : '点「建造 / 重建」：以你脚下站立的方块高度为基准整平地块——高的铲平、低的填补，并把门口这段公路抬到同一水平。1 方块 = 1 米。';
     }
     if (rd) {
@@ -10374,6 +10421,201 @@ addEventListener('popstate', function () {
   }
 });
 
+/* ---------- v9.1.0 界面：右上操作模块 / 左上地图 / 点击锁定 ---------- */
+var UI = (function () {
+  var mapTex = null;
+  function el(id) { return document.getElementById(id); }
+
+  function dockSync() {
+  var body = el('opsBody');
+  if (!body) return;
+  var tb = el('topbar');
+  if (!tb) return;
+  var nodes = tb.querySelectorAll('button.tb, .tt');
+  for (var i = 0; i < nodes.length; i++) {
+    var n = nodes[i];
+    if (n.id === 'btnOps' || n.id === 'btnRooms') continue;
+    if (n.classList && n.classList.contains('tt')) { n.style.display = 'none'; continue; }
+    var key = n.id || ('t_' + (n.textContent || '').trim());
+    if (body.querySelector('[data-src="' + key + '"]')) continue;
+    var c = n.cloneNode(true);
+    c.removeAttribute('id');
+    c.setAttribute('data-src', key);
+    (function (src) {
+      c.onclick = function (ev) {
+        if (ev) { ev.preventDefault(); ev.stopPropagation(); }
+        try { src.click(); } catch (e) {}
+        var d = el('opsDock'); if (d) d.classList.add('hidden');
+      };
+    })(n);
+    body.appendChild(c);
+    n.style.display = 'none';
+  }
+}
+
+  function initDock() {
+    var b = el('btnOps'), d = el('opsDock'), c = el('opsClose');
+    var rooms = el('btnRooms');
+    if (b && rooms && rooms.parentNode) { try { rooms.insertAdjacentElement('afterend', b); } catch (e) {} }
+    if (b && d) b.onclick = function () { d.classList.toggle('hidden'); dockSync(); };
+    if (c && d) c.onclick = function () { d.classList.add('hidden'); };
+    dockSync();
+    setInterval(dockSync, 900);
+  }
+
+  function pickAgentAt(px, py) {
+    var best = null, bd = 46;
+    function test(a) {
+      if (!a || !a.alive) return;
+      var gy = (a.indoorY != null ? a.indoorY : surfaceY(Math.floor(a.x), Math.floor(a.z)));
+      var y = gy + (a.kind === 'human' ? 1.0 : (a.kind === 'animal' ? 0.55 * (a.size || 1) : 0.35));
+      var cw = MVP[3] * a.x + MVP[7] * y + MVP[11] * a.z + MVP[15];
+      if (cw <= 0.01) return;
+      var cx = MVP[0] * a.x + MVP[4] * y + MVP[8] * a.z + MVP[12];
+      var cy = MVP[1] * a.x + MVP[5] * y + MVP[9] * a.z + MVP[13];
+      var sx = (cx / cw * 0.5 + 0.5) * innerWidth, sy = (1 - (cy / cw * 0.5 + 0.5)) * innerHeight;
+      var d = Math.hypot(sx - px, sy - py);
+      if (d < bd) { bd = d; best = a; }
+    }
+    var i;
+    for (i = 0; i < fauna.length; i++) test(fauna[i]);
+    for (i = 0; i < humans.length; i++) test(humans[i]);
+    for (i = 0; i < flora.length; i++) { if (Math.hypot(flora[i].x - player.x, flora[i].z - player.z) < 26) test(flora[i]); }
+    return best;
+  }
+
+  function initTapLock() {
+    var downX = 0, downY = 0, downT = 0, moved = 0;
+    canvas.addEventListener('pointerdown', function (e) { downX = e.clientX; downY = e.clientY; downT = Date.now(); });
+    canvas.addEventListener('pointerup', function (e) {
+      if (Date.now() - downT > 500) return;
+      if (Math.hypot(e.clientX - downX, e.clientY - downY) > 12) return;
+      var a = pickAgentAt(e.clientX, e.clientY);
+      if (a) { selectedAgent = a.id; toast('已锁定：' + a.type + ' · 点「看」查看'); }
+      else if (selectedAgent != null) { selectedAgent = null; }
+      try { updateFaunaLabels(); } catch (err) {}
+    });
+  }
+
+  function buildTex() {
+    var N = 160, c = document.createElement('canvas');
+    c.width = N; c.height = N;
+    var g = c.getContext('2d'), img = g.createImageData(N, N), d = img.data;
+    for (var z = 0; z < N; z++) {
+      for (var x = 0; x < N; x++) {
+        var wx = Math.floor((x + 0.5) / N * WX), wz = Math.floor((z + 0.5) / N * WZ);
+        var h = heightAt(wx, wz), r, gg, b;
+        if (h < SEA) { r = 36; gg = 74 + Math.min(60, (SEA - h) * 6); b = 132; }
+        else if (h > 62) { r = 236; gg = 240; b = 246; }
+        else if (h > 54) { r = 168; gg = 176; b = 168; }
+        else if (h > 44) { r = 96 + (h - 44) * 3; gg = 140; b = 84; }
+        else { r = 62; gg = 118; b = 66; }
+        var i = (z * N + x) * 4;
+        d[i] = r; d[i + 1] = gg; d[i + 2] = b; d[i + 3] = 255;
+      }
+    }
+    g.putImageData(img, 0, 0);
+    g.strokeStyle = 'rgba(232,238,245,.9)'; g.lineWidth = 1.2;
+    g.beginPath();
+    g.moveTo(2 / WX * N, (ROAD.z0 + 2) / WZ * N);
+    g.lineTo((HOTEL_X0 - 1) / WX * N, (ROAD.z0 + 2) / WZ * N);
+    g.stroke();
+    g.fillStyle = '#4aa3ff';
+    g.fillRect((HOTEL_X0 + 15) / WX * N - 2.5, (HOTEL_Z0 + 9) / WZ * N - 2.5, 5, 5);
+    return c;
+  }
+
+  function drawMini() {
+    var cv = el('miniMap'); if (!cv) return;
+    if (!mapTex) mapTex = buildTex();
+    var g = cv.getContext('2d');
+    g.imageSmoothingEnabled = false;
+    g.clearRect(0, 0, 96, 96);
+    g.drawImage(mapTex, 0, 0, 96, 96);
+    var px = player.x / WX * 96, pz = player.z / WZ * 96;
+    g.fillStyle = '#ff5f5f'; g.beginPath(); g.arc(px, pz, 2.4, 0, 6.283); g.fill();
+    g.strokeStyle = 'rgba(0,0,0,.65)'; g.lineWidth = 1; g.stroke();
+  }
+
+  function drawBig() {
+    var cv = el('mapBig'); if (!cv) return;
+    if (!mapTex) mapTex = buildTex();
+    var S = cv.width, g = cv.getContext('2d');
+    g.imageSmoothingEnabled = false;
+    g.clearRect(0, 0, S, S);
+    g.drawImage(mapTex, 0, 0, S, S);
+    var hx = (HOTEL_X0 + 15) / WX * S, hz = (HOTEL_Z0 + 9) / WZ * S;
+    g.strokeStyle = '#4aa3ff'; g.lineWidth = 3;
+    g.strokeRect(hx - 11, hz - 11, 22, 22);
+    g.fillStyle = 'rgba(74,163,255,.95)';
+    g.beginPath(); g.arc(hx, hz, 5, 0, 6.283); g.fill();
+    g.fillStyle = '#dce7f7'; g.font = '15px sans-serif';
+    g.fillText('云海酒店', hx + 15, hz + 5);
+    var px = player.x / WX * S, pz = player.z / WZ * S;
+    g.fillStyle = '#ff5f5f'; g.beginPath(); g.arc(px, pz, 5, 0, 6.283); g.fill();
+    g.strokeStyle = '#fff'; g.lineWidth = 2; g.stroke();
+    var pos = el('mapPos');
+    if (pos) pos.textContent = '你：' + Math.round(player.x) + ', ' + Math.round(player.z);
+  }
+
+  function goHotel() {
+    var st = HOTEL.status();
+    if (!st || !st.built) { toast('酒店还没建造，先点「操作 → 酒店 → 建造 / 重建」'); return false; }
+    player.x = HOTEL_X0 + 7.5;
+    player.z = HOTEL_Z0 + 13.5;
+    player.y = st.base + 0.06;
+    player.vy = 0;
+    setFly(false, true);
+    toast('已传送到云海酒店大堂');
+    return true;
+  }
+
+  function openMap(v) {
+    var p = el('mapPanel');
+    if (!p) return;
+    p.classList.toggle('hidden', !v);
+    if (v) drawBig();
+  }
+
+  function initMap() {
+    mapTex = null;
+    var mini = el('miniWrap'), big = el('mapBig'), back = el('mapBack'), hb = el('mapHotelBtn');
+    drawMini();
+    setInterval(drawMini, 1200);
+    if (mini) mini.onclick = function () { openMap(true); };
+    if (back) back.onclick = function () { openMap(false); };
+    if (hb) hb.onclick = function () { if (goHotel()) openMap(false); };
+    if (big) big.addEventListener('click', function (e) {
+      var r = big.getBoundingClientRect();
+      var x = (e.clientX - r.left) / r.width * big.width;
+      var y = (e.clientY - r.top) / r.height * big.height;
+      var hx = (HOTEL_X0 + 15) / WX * big.width, hz = (HOTEL_Z0 + 9) / WZ * big.height;
+      if (Math.hypot(x - hx, y - hz) < 28) { if (goHotel()) openMap(false); }
+    });
+  }
+
+  function placeDock() {
+    var tb = el('topbar'), d = el('opsDock'), m = el('miniWrap');
+    if (!tb) return;
+    var y = (tb.offsetHeight + 8) + 'px';
+    if (d) d.style.top = y;
+    if (m) m.style.top = y;
+  }
+
+  function init() {
+    initDock();
+    initTapLock();
+    try { initMap(); } catch (e) {}
+    placeDock();
+    addEventListener('resize', placeDock);
+    setTimeout(function () { try { dockSync(); placeDock(); } catch (e) {} }, 1500);
+    setInterval(placeDock, 2500);
+  }
+
+  return { init: init, place: placeDock, mini: drawMini, big: drawBig, goHotel: goHotel, openMap: openMap, pick: pickAgentAt, dock: dockSync };
+})();
+window.__ui = UI;
+
 /* ---------- 启动 ---------- */
 
 resize();
@@ -10385,6 +10627,7 @@ npc=npcSpot(sp.x,sp.z,player.yaw);
 buildMesh();
 warmChunks();
 buildHotbar();
+UI.init();
 updateEnv(0);
 buildRegionChips();
 bindWorldUI();
